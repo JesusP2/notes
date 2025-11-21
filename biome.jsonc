@@ -1,0 +1,7 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
+  "extends": ["ultracite/core", "ultracite/remix"],
+  "files": {
+    "includes": ["**", "!**/ui", "!**/auth/emails"]
+  }
+}
