@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -9,7 +8,6 @@ export const Route = createFileRoute("/")({
 
 const getData = createServerFn().handler(() => ({
   message: `Running in ${navigator.userAgent}`,
-  myVar: env.MY_VAR,
 }));
 
 function Home() {
@@ -19,7 +17,6 @@ function Home() {
     <div className="p-2">
       <h3>Welcome Home!!!</h3>
       <p>{data.message}</p>
-      <p>{data.myVar}</p>
     </div>
   );
 }

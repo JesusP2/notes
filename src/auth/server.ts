@@ -70,13 +70,6 @@ export function getAuth() {
         });
       },
     },
-    socialProviders: {
-      google: {
-        enabled: true,
-        clientId: env.GOOGLE_CLIENT_ID,
-        clientSecret: env.GOOGLE_CLIENT_SECRET,
-      },
-    },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.VITE_SERVER_URL,
   });

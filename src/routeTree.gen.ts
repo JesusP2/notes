@@ -9,19 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CustomScriptDotjsRouteImport } from './routes/customScript[.]js'
 import { Route as PathlessLayoutRouteImport } from './routes/_pathlessLayout'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiUsersRouteImport } from './routes/api/users'
+import { Route as AuthIdRouteImport } from './routes/auth.$id'
 import { Route as PathlessLayoutNestedLayoutRouteImport } from './routes/_pathlessLayout/_nested-layout'
 import { Route as TodosRouteImport } from './routes/_.todos'
-import { Route as ApiUsersUserIdRouteImport } from './routes/api/users.$userId'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
 import { Route as ApiElectricSplatRouteImport } from './routes/api/electric.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as PathlessLayoutNestedLayoutRouteBRouteImport } from './routes/_pathlessLayout/_nested-layout/route-b'
 import { Route as PathlessLayoutNestedLayoutRouteARouteImport } from './routes/_pathlessLayout/_nested-layout/route-a'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomScriptDotjsRoute = CustomScriptDotjsRouteImport.update({
   id: '/customScript.js',
   path: '/customScript.js',
@@ -36,9 +41,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUsersRoute = ApiUsersRouteImport.update({
-  id: '/api/users',
-  path: '/api/users',
+const AuthIdRoute = AuthIdRouteImport.update({
+  id: '/auth/$id',
+  path: '/auth/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PathlessLayoutNestedLayoutRoute =
@@ -50,11 +55,6 @@ const TodosRoute = TodosRouteImport.update({
   id: '/_/todos',
   path: '/todos',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiUsersUserIdRoute = ApiUsersUserIdRouteImport.update({
-  id: '/$userId',
-  path: '/$userId',
-  getParentRoute: () => ApiUsersRoute,
 } as any)
 const ApiUploadSplatRoute = ApiUploadSplatRouteImport.update({
   id: '/api/upload/$',
@@ -87,89 +87,90 @@ const PathlessLayoutNestedLayoutRouteARoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/customScript.js': typeof CustomScriptDotjsRoute
+  '/settings': typeof SettingsRoute
   '/todos': typeof TodosRoute
-  '/api/users': typeof ApiUsersRouteWithChildren
+  '/auth/$id': typeof AuthIdRoute
   '/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
   '/route-b': typeof PathlessLayoutNestedLayoutRouteBRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
-  '/api/users/$userId': typeof ApiUsersUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/customScript.js': typeof CustomScriptDotjsRoute
+  '/settings': typeof SettingsRoute
   '/todos': typeof TodosRoute
-  '/api/users': typeof ApiUsersRouteWithChildren
+  '/auth/$id': typeof AuthIdRoute
   '/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
   '/route-b': typeof PathlessLayoutNestedLayoutRouteBRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
-  '/api/users/$userId': typeof ApiUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_pathlessLayout': typeof PathlessLayoutRouteWithChildren
   '/customScript.js': typeof CustomScriptDotjsRoute
+  '/settings': typeof SettingsRoute
   '/_/todos': typeof TodosRoute
   '/_pathlessLayout/_nested-layout': typeof PathlessLayoutNestedLayoutRouteWithChildren
-  '/api/users': typeof ApiUsersRouteWithChildren
+  '/auth/$id': typeof AuthIdRoute
   '/_pathlessLayout/_nested-layout/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
   '/_pathlessLayout/_nested-layout/route-b': typeof PathlessLayoutNestedLayoutRouteBRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
-  '/api/users/$userId': typeof ApiUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/customScript.js'
+    | '/settings'
     | '/todos'
-    | '/api/users'
+    | '/auth/$id'
     | '/route-a'
     | '/route-b'
     | '/api/auth/$'
     | '/api/electric/$'
     | '/api/upload/$'
-    | '/api/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/customScript.js'
+    | '/settings'
     | '/todos'
-    | '/api/users'
+    | '/auth/$id'
     | '/route-a'
     | '/route-b'
     | '/api/auth/$'
     | '/api/electric/$'
     | '/api/upload/$'
-    | '/api/users/$userId'
   id:
     | '__root__'
     | '/'
     | '/_pathlessLayout'
     | '/customScript.js'
+    | '/settings'
     | '/_/todos'
     | '/_pathlessLayout/_nested-layout'
-    | '/api/users'
+    | '/auth/$id'
     | '/_pathlessLayout/_nested-layout/route-a'
     | '/_pathlessLayout/_nested-layout/route-b'
     | '/api/auth/$'
     | '/api/electric/$'
     | '/api/upload/$'
-    | '/api/users/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PathlessLayoutRoute: typeof PathlessLayoutRouteWithChildren
   CustomScriptDotjsRoute: typeof CustomScriptDotjsRoute
+  SettingsRoute: typeof SettingsRoute
   TodosRoute: typeof TodosRoute
-  ApiUsersRoute: typeof ApiUsersRouteWithChildren
+  AuthIdRoute: typeof AuthIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiElectricSplatRoute: typeof ApiElectricSplatRoute
   ApiUploadSplatRoute: typeof ApiUploadSplatRoute
@@ -177,6 +178,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/customScript.js': {
       id: '/customScript.js'
       path: '/customScript.js'
@@ -198,11 +206,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/users': {
-      id: '/api/users'
-      path: '/api/users'
-      fullPath: '/api/users'
-      preLoaderRoute: typeof ApiUsersRouteImport
+    '/auth/$id': {
+      id: '/auth/$id'
+      path: '/auth/$id'
+      fullPath: '/auth/$id'
+      preLoaderRoute: typeof AuthIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_pathlessLayout/_nested-layout': {
@@ -218,13 +226,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/todos'
       preLoaderRoute: typeof TodosRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/api/users/$userId': {
-      id: '/api/users/$userId'
-      path: '/$userId'
-      fullPath: '/api/users/$userId'
-      preLoaderRoute: typeof ApiUsersUserIdRouteImport
-      parentRoute: typeof ApiUsersRoute
     }
     '/api/upload/$': {
       id: '/api/upload/$'
@@ -294,24 +295,13 @@ const PathlessLayoutRouteWithChildren = PathlessLayoutRoute._addFileChildren(
   PathlessLayoutRouteChildren,
 )
 
-interface ApiUsersRouteChildren {
-  ApiUsersUserIdRoute: typeof ApiUsersUserIdRoute
-}
-
-const ApiUsersRouteChildren: ApiUsersRouteChildren = {
-  ApiUsersUserIdRoute: ApiUsersUserIdRoute,
-}
-
-const ApiUsersRouteWithChildren = ApiUsersRoute._addFileChildren(
-  ApiUsersRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PathlessLayoutRoute: PathlessLayoutRouteWithChildren,
   CustomScriptDotjsRoute: CustomScriptDotjsRoute,
+  SettingsRoute: SettingsRoute,
   TodosRoute: TodosRoute,
-  ApiUsersRoute: ApiUsersRouteWithChildren,
+  AuthIdRoute: AuthIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiElectricSplatRoute: ApiElectricSplatRoute,
   ApiUploadSplatRoute: ApiUploadSplatRoute,
