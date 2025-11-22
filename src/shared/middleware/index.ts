@@ -1,7 +1,7 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { getAuth } from "@/auth/server";
 import { getDb } from "@/db";
-import { rateLimit } from "@/rate-limit";
+import { env } from "cloudflare:workers";
 
 export const contextMiddleware = createMiddleware().server(async ({ next }) => {
   const auth = getAuth();
@@ -14,28 +14,35 @@ export const contextMiddleware = createMiddleware().server(async ({ next }) => {
   });
 });
 
-export const rateLimitMiddleware = createMiddleware().server(
-  async ({ next }) => {
-    const rateLimitResponse = await rateLimit();
-    if (rateLimitResponse instanceof Response) {
-      throw "error2";
-    }
-    return next();
-  }
-);
-
-export const authMiddleware = createMiddleware()
-  .middleware([contextMiddleware, rateLimitMiddleware])
-  .server(async ({ request, next, context }) => {
+export const rateLimitMiddleware = createMiddleware()
+  .middleware([contextMiddleware])
+  .server(async ({ next, request, context }) => {
     const session = await context.auth.api.getSession({
       headers: request.headers,
     });
-    if (!session?.user) {
-      throw "error";
+    const ipAddress = request.headers.get("cf-connecting-ip") || "";
+    const rateLimitResponse = await env.MY_RATE_LIMITER.limit({
+      key: session?.user.id ?? ipAddress,
+    });
+    if (!rateLimitResponse.success) {
+      throw new Error("get rate limited bozo");
     }
     return next({
       context: {
         session,
+      },
+    });
+  });
+
+export const authMiddleware = createMiddleware()
+  .middleware([rateLimitMiddleware])
+  .server(async ({ next, context }) => {
+    if (!context.session?.user) {
+      throw "error";
+    }
+    return next({
+      context: {
+        session: context.session,
       },
     });
   });
