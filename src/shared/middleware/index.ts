@@ -33,5 +33,9 @@ export const authMiddleware = createMiddleware()
     if (!session?.user) {
       throw "error";
     }
-    return next();
+    return next({
+      context: {
+        session,
+      },
+    });
   });

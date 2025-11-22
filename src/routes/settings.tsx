@@ -32,12 +32,12 @@ function SettingsPage() {
     if (!settings) {
       userSettingsCollection.insert({
         id: ulid(),
-        userId: userQuery.data.id,
-        enableAI: checked,
+        user_id: userQuery.data.id,
+        enable_ai: checked,
       })
     } else {
       userSettingsCollection.update(settings.id, draft => {
-        draft.enableAI = checked
+        draft.enable_ai = checked
       })
     }
   };
@@ -74,7 +74,7 @@ function SettingsPage() {
             </div>
             <Switch
               id="ai-q-rephrase"
-              checked={!!settings?.enableAI}
+              checked={!!settings?.enable_ai}
               onCheckedChange={onToggle}
             />
           </div>

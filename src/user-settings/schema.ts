@@ -2,6 +2,6 @@ import z from 'zod';
 
 export const userSettingsSchema = z.object({
   id: z.string(),
-  userId: z.string(),
-  enableAI: z.boolean(),
+  user_id: z.string(),
+  enable_ai: z.boolean(),
 });

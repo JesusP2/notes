@@ -168,11 +168,11 @@ export const card = pgTable("card", (t) => ({
 
 export const cardToDeck = pgTable("card_to_deck", (t) => ({
   id: t.text("id").primaryKey(),
-  cardId: t
+  card_id: t
     .text("card_id")
     .notNull()
     .references(() => card.id, { onDelete: "cascade" }),
-  deckId: t
+  deck_id: t
     .text("deck_id")
     .notNull()
     .references(() => deck.id, { onDelete: "cascade" }),
@@ -180,9 +180,9 @@ export const cardToDeck = pgTable("card_to_deck", (t) => ({
 
 export const userSettings = pgTable("user_settings", (t) => ({
   id: t.text("id").primaryKey(),
-  userId: t
+  user_id: t
     .text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  enableAI: t.boolean("enable_ai").notNull(),
+  enable_ai: t.boolean("enable_ai").notNull(),
 }));

@@ -11,6 +11,10 @@
     "cf-typegen": "wrangler types",
     "check-types": "tsc --noEmit",
     "check": "biome check --write .",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "postinstall": "npm run cf-typegen"
   },
   "dependencies": {
