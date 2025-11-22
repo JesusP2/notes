@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,12 +14,12 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   ssr: false,
   beforeLoad: async ({ context }) => {
-    await context.queryClient.ensureQueryData(useUserQueryOptions)
-    // if (!user || user.isAnonymous) {
-    //   throw redirect({
-    //     to: "/"
-    //   });
-    // }
+    const user = await context.queryClient.ensureQueryData(useUserQueryOptions)
+    if (!user || user.isAnonymous) {
+      throw redirect({
+        to: "/"
+      });
+    }
   },
 });
 

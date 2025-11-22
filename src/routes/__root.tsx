@@ -13,7 +13,7 @@ import { getThemeServerFn } from "@/theme/functions";
 import { ThemeProvider } from "@/theme/provider";
 import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
 import { IsOnlineProvider } from "../components/providers/is-online";
-import appCss from "../styles/app.css?url";
+import appCss from "@/styles/app.css?url";
 
 export type RouterAppContext = {
   queryClient: QueryClient;
