@@ -115,23 +115,23 @@ export const todos = pgTable("todos", (t) => ({
 
 export const deck = pgTable("deck", (t) => ({
   id: t.text("id").primaryKey(),
-  userId: t
+  user_id: t
     .text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   name: t.text("name").notNull(),
   parent: t.text("parent"),
   context: t.text("context"),
-  enableAI: t.text("enable_ai"),
-  newCardsPerDay: t.integer("new_cards_per_day").notNull(),
-  limitNewCardsToDaily: t.boolean("limit_new_cards_to_daily"),
-  lastReset: t.timestamp("last_reset"),
-  resetTime: t.jsonb("reset_time").$type<{
+  enable_ai: t.text("enable_ai"),
+  new_cards_per_day: t.integer("new_cards_per_day").notNull(),
+  limit_new_cards_to_daily: t.boolean("limit_new_cards_to_daily"),
+  last_reset: t.timestamp("last_reset"),
+  reset_time: t.jsonb("reset_time").$type<{
     hour: number;
     minute: number;
   }>(),
-  createdAt: t.timestamp("created_at").defaultNow().notNull(),
-  updatedAt: t
+  created_at: t.timestamp("created_at").defaultNow().notNull(),
+  updated_at: t
     .timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
@@ -140,14 +140,14 @@ export const deck = pgTable("deck", (t) => ({
 
 export const card = pgTable("card", (t) => ({
   id: t.text("id").primaryKey(),
-  deckId: t
+  deck_id: t
     .text("deck_id")
     .notNull()
     .references(() => deck.id, { onDelete: "cascade" }),
-  frontMarkdown: t.text("front_markdown").notNull(),
-  backMarkdown: t.text("back_markdown").notNull(),
-  frontFiles: t.jsonb("front_files"),
-  backFiles: t.jsonb("back_files"),
+  front_markdown: t.text("front_markdown").notNull(),
+  back_markdown: t.text("back_markdown").notNull(),
+  front_files: t.jsonb("front_files"),
+  back_files: t.jsonb("back_files"),
   due: t.timestamp("due").notNull(),
   stability: t.doublePrecision("stability").notNull(),
   difficulty: t.doublePrecision("difficulty").notNull(),
@@ -158,8 +158,8 @@ export const card = pgTable("card", (t) => ({
   lapses: t.integer("lapses").notNull(),
   state: t.integer("state").notNull(),
   last_review: t.timestamp("last_review"),
-  createdAt: t.timestamp("created_at").defaultNow().notNull(),
-  updatedAt: t
+  created_at: t.timestamp("created_at").defaultNow().notNull(),
+  updated_at: t
     .timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
