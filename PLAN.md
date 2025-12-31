@@ -317,7 +317,7 @@ Write tests **after** when:
 ### Install Dependencies
 
 ```bash
-bun add -D vitest @vitest/browser playwright @testing-library/react @testing-library/dom
+pnpm add -D vitest @vitest/browser playwright @testing-library/react @testing-library/dom
 ```
 
 ### Vitest Configuration (`vitest.config.ts`)
@@ -382,7 +382,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "bun dev",
+    command: "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
@@ -862,7 +862,7 @@ src/components/edges/
 
 **Install dependency:**
 ```bash
-bun add react-force-graph-2d
+pnpm add react-force-graph-2d
 ```
 
 **Files to create:**
