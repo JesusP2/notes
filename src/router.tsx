@@ -5,43 +5,43 @@ import { toast } from "sonner";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient({
-    queryCache: new QueryCache({
-      onError: (error) => {
-        toast.error(error.message, {
-          action: {
-            label: "retry",
-            onClick: () => {
-              queryClient.invalidateQueries();
-            },
-          },
-        });
-      },
-    }),
-  });
+	const queryClient = new QueryClient({
+		queryCache: new QueryCache({
+			onError: (error) => {
+				toast.error(error.message, {
+					action: {
+						label: "retry",
+						onClick: () => {
+							queryClient.invalidateQueries();
+						},
+					},
+				});
+			},
+		}),
+	});
 
-  const router = createTanStackRouter({
-    routeTree,
-    scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
-    context: {
-      queryClient,
-      db: null,
-    },
-    defaultPendingComponent: () => <div>default pending component</div>,
-    defaultNotFoundComponent: () => <div>Not Found</div>,
-    Wrap: ({ children }) => <>{children}</>,
-  });
-  setupRouterSsrQueryIntegration({
-    router,
-    queryClient,
-  });
+	const router = createTanStackRouter({
+		routeTree,
+		scrollRestoration: true,
+		defaultPreloadStaleTime: 0,
+		context: {
+			queryClient,
+			db: null,
+		},
+		defaultPendingComponent: () => <div>default pending component</div>,
+		defaultNotFoundComponent: () => <div>Not Found</div>,
+		Wrap: ({ children }) => <>{children}</>,
+	});
+	setupRouterSsrQueryIntegration({
+		router,
+		queryClient,
+	});
 
-  return router;
+	return router;
 };
 
 declare module "@tanstack/react-router" {
-  interface Register {
-    router: ReturnType<typeof getRouter>;
-  }
+	interface Register {
+		router: ReturnType<typeof getRouter>;
+	}
 }

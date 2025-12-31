@@ -6,23 +6,23 @@ import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  server: {
-    port: 3000,
-  },
-  optimizeDeps: {
-    exclude: ["@electric-sql/pglite"],
-  },
-  plugins: [
-    tsConfigPaths({
-      projects: ["./tsconfig.json"],
-    }),
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tanstackStart({
-      spa: {
-        enabled: true,
-      },
-    }),
-    viteReact(),
-    tailwindcss(),
-  ],
+	server: {
+		port: 3000,
+	},
+	optimizeDeps: {
+		exclude: ["@electric-sql/pglite"],
+	},
+	plugins: [
+		tsConfigPaths({
+			projects: ["./tsconfig.json"],
+		}),
+		cloudflare({ viteEnvironment: { name: "ssr" } }),
+		tanstackStart({
+			spa: {
+				enabled: true,
+			},
+		}),
+		viteReact(),
+		tailwindcss(),
+	],
 });
