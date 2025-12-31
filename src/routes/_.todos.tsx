@@ -3,22 +3,19 @@ import {
   useLiveQuery,
   usePGlite,
 } from "@electric-sql/pglite-react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
-import { use, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { getDb } from "@/lib/pglite";
-
-const dbPromise = typeof window !== "undefined" ? getDb() : null;
 
 export const Route = createFileRoute("/_/todos")({
   component: RouteComponent,
 });
 
-interface Todo {
+type Todo = {
   id: number;
   title: string;
   completed: boolean;
@@ -26,33 +23,24 @@ interface Todo {
 }
 
 function RouteComponent() {
-  if (!dbPromise) {
-    return (
-      <div className="container mx-auto max-w-3xl px-4 py-8">
-        <p>Loading database...</p>
-      </div>
-    );
-  }
-
-  return <TodosWithProvider dbPromise={dbPromise} />;
+  return <TodosWithProvider />;
 }
 
-function TodosWithProvider({
-  dbPromise,
-}: {
-  dbPromise: Promise<Awaited<ReturnType<typeof getDb>>>;
-}) {
-  const db = use(dbPromise);
+function TodosWithProvider() {
+  const context = useRouteContext({
+    from: "/_/todos",
+  });
+  console.log('context;', context)
+  if (!context.db) return <div>Loading...</div>;
 
   return (
-    <PGliteProvider db={db}>
+    <PGliteProvider db={context.db}>
       <TodoList />
     </PGliteProvider>
   );
 }
 
 function TodoList() {
-  console.log("aksdsajkdsk");
   const db = usePGlite();
   const [newTodo, setNewTodo] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -62,7 +50,7 @@ function TodoList() {
   );
 
   const addTodo = () => {
-    if (!newTodo.trim()) return;
+    if (!newTodo.trim()) { return; }
 
     startTransition(async () => {
       await db.query("INSERT INTO todos (title) VALUES ($1)", [newTodo.trim()]);
@@ -111,7 +99,7 @@ function TodoList() {
           value={newTodo}
         />
         <Button disabled={isPending || !newTodo.trim()} onClick={addTodo}>
-          {isPending ? <Spinner className="size-4" /> : "Add"}
+          Add
         </Button>
       </div>
 

@@ -27,3 +27,5 @@ export async function getDb(): Promise<PGliteWithLive> {
 
   return dbInstance;
 }
+
+export const dbPromise = typeof window !== "undefined" ? getDb() : null;

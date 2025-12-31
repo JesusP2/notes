@@ -26,6 +26,7 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 0,
     context: {
       queryClient,
+      db: null,
     },
     defaultPendingComponent: () => <div>default pending component</div>,
     defaultNotFoundComponent: () => <div>Not Found</div>,

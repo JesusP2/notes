@@ -9,12 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RouteImport } from './routes/_'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
 import { Route as TodosRouteImport } from './routes/_.todos'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const Route = RouteImport.update({
+  id: '/_',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -26,9 +31,9 @@ const AuthIdRoute = AuthIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TodosRoute = TodosRouteImport.update({
-  id: '/_/todos',
+  id: '/todos',
   path: '/todos',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => Route,
 } as any)
 const ApiUploadSplatRoute = ApiUploadSplatRouteImport.update({
   id: '/api/upload/$',
@@ -58,6 +63,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_': typeof RouteWithChildren
   '/_/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -71,6 +77,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_'
     | '/_/todos'
     | '/auth/$id'
     | '/api/auth/$'
@@ -79,7 +86,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  TodosRoute: typeof TodosRoute
+  Route: typeof RouteWithChildren
   AuthIdRoute: typeof AuthIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiUploadSplatRoute: typeof ApiUploadSplatRoute
@@ -87,6 +94,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_': {
+      id: '/_'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -106,7 +120,7 @@ declare module '@tanstack/react-router' {
       path: '/todos'
       fullPath: '/todos'
       preLoaderRoute: typeof TodosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof Route
     }
     '/api/upload/$': {
       id: '/api/upload/$'
@@ -125,9 +139,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface RouteChildren {
+  TodosRoute: typeof TodosRoute
+}
+
+const RouteChildren: RouteChildren = {
+  TodosRoute: TodosRoute,
+}
+
+const RouteWithChildren = Route._addFileChildren(RouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  TodosRoute: TodosRoute,
+  Route: RouteWithChildren,
   AuthIdRoute: AuthIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiUploadSplatRoute: ApiUploadSplatRoute,

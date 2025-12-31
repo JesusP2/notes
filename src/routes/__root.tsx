@@ -11,9 +11,11 @@ import { useUserQueryOptions } from "@/auth/use-user";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "@/styles/app.css?url";
 import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
+import type { PGliteWithLive } from "@electric-sql/pglite/live";
 
 export type RouterAppContext = {
   queryClient: QueryClient;
+  db: PGliteWithLive | null;
 };
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
