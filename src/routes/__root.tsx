@@ -9,8 +9,8 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthProvider } from "@/auth/provider";
 import { useUserQueryOptions } from "@/auth/use-user";
 import { Toaster } from "@/components/ui/sonner";
-import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
 import appCss from "@/styles/app.css?url";
+import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
 
 export type RouterAppContext = {
   queryClient: QueryClient;

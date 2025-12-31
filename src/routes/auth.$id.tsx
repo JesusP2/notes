@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
-import { AuthView } from "@daveyplate/better-auth-ui"
+import { AuthView } from "@daveyplate/better-auth-ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
-export const Route = createFileRoute('/auth/$id')({
+export const Route = createFileRoute("/auth/$id")({
   component: RouteComponent,
 });
 
@@ -13,8 +13,8 @@ function RouteComponent() {
     <main className="mx-auto grid h-screen max-w-6xl place-items-center space-y-6 p-6">
       <Link
         className={buttonVariants({
-          variant: 'ghost',
-          className: 'absolute top-4 left-4',
+          variant: "ghost",
+          className: "absolute top-4 left-4",
         })}
         to="/"
       >

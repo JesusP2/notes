@@ -9,6 +9,9 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  optimizeDeps: {
+    exclude: ["@electric-sql/pglite"],
+  },
   plugins: [
     tsConfigPaths({
       projects: ["./tsconfig.json"],

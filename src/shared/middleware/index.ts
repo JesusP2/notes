@@ -1,7 +1,7 @@
+import { env } from "cloudflare:workers";
 import { createMiddleware } from "@tanstack/react-start";
 import { getAuth } from "@/auth/server";
 import { getDb } from "@/db";
-import { env } from "cloudflare:workers";
 
 export const contextMiddleware = createMiddleware().server(async ({ next }) => {
   const auth = getAuth();

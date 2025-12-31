@@ -1,6 +1,6 @@
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import type { User } from "./server";
 import { getUser } from "./get-user";
+import type { User } from "./server";
 
 export const useUser = () => useSuspenseQuery(useUserQueryOptions);
 export const useUserQueryOptions = queryOptions({
