@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
 import { Route as TodosRouteImport } from './routes/_.todos'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
-import { Route as ApiElectricSplatRouteImport } from './routes/api/electric.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -36,11 +35,6 @@ const ApiUploadSplatRoute = ApiUploadSplatRouteImport.update({
   path: '/api/upload/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiElectricSplatRoute = ApiElectricSplatRouteImport.update({
-  id: '/api/electric/$',
-  path: '/api/electric/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -52,7 +46,6 @@ export interface FileRoutesByFullPath {
   '/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +53,6 @@ export interface FileRoutesByTo {
   '/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesById {
@@ -69,33 +61,19 @@ export interface FileRoutesById {
   '/_/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/electric/$': typeof ApiElectricSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/todos'
-    | '/auth/$id'
-    | '/api/auth/$'
-    | '/api/electric/$'
-    | '/api/upload/$'
+  fullPaths: '/' | '/todos' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/todos'
-    | '/auth/$id'
-    | '/api/auth/$'
-    | '/api/electric/$'
-    | '/api/upload/$'
+  to: '/' | '/todos' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
   id:
     | '__root__'
     | '/'
     | '/_/todos'
     | '/auth/$id'
     | '/api/auth/$'
-    | '/api/electric/$'
     | '/api/upload/$'
   fileRoutesById: FileRoutesById
 }
@@ -104,7 +82,6 @@ export interface RootRouteChildren {
   TodosRoute: typeof TodosRoute
   AuthIdRoute: typeof AuthIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiElectricSplatRoute: typeof ApiElectricSplatRoute
   ApiUploadSplatRoute: typeof ApiUploadSplatRoute
 }
 
@@ -138,13 +115,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/electric/$': {
-      id: '/api/electric/$'
-      path: '/api/electric/$'
-      fullPath: '/api/electric/$'
-      preLoaderRoute: typeof ApiElectricSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -160,7 +130,6 @@ const rootRouteChildren: RootRouteChildren = {
   TodosRoute: TodosRoute,
   AuthIdRoute: AuthIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiElectricSplatRoute: ApiElectricSplatRoute,
   ApiUploadSplatRoute: ApiUploadSplatRoute,
 }
 export const routeTree = rootRouteImport

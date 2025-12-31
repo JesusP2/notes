@@ -10,7 +10,7 @@ const { s3 } = createUploadConfig()
     region: env.R2_REGION as "auto",
     endpoint: env.R2_ENDPOINT,
     bucket: env.R2_BUCKET,
-    accountId: env.R2_ACCOUNT_ID!,
+    accountId: env.R2_ACCOUNT_ID,
   })
   .build();
 
@@ -19,7 +19,7 @@ export const uploadRouter = s3.createRouter({
   documentUpload: s3
     .file()
     .maxFileSize("1MB")
-    .middleware(async (options) => {
+    .middleware((options) => {
       const userId = storage.getStore();
       return {
         ...options.metadata,

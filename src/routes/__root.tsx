@@ -9,10 +9,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthProvider } from "@/auth/provider";
 import { useUserQueryOptions } from "@/auth/use-user";
 import { Toaster } from "@/components/ui/sonner";
-import { getThemeServerFn } from "@/theme/functions";
-import { ThemeProvider } from "@/theme/provider";
 import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
-import { IsOnlineProvider } from "../components/providers/is-online";
 import appCss from "@/styles/app.css?url";
 
 export type RouterAppContext = {
@@ -43,28 +40,22 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootDocument,
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(useUserQueryOptions);
-    return getThemeServerFn();
   },
 });
 
 function RootDocument() {
-  const data = Route.useLoaderData();
   return (
-    <html className={data.theme} lang="en">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body style={data.presetProperties}>
-        <ThemeProvider defaultPreset={data.preset} defaultTheme={data.theme}>
-          <IsOnlineProvider>
-            <AuthProvider>
-              <ConfirmDialogProvider>
-                <Outlet />
-                <Toaster richColors />
-              </ConfirmDialogProvider>
-            </AuthProvider>
-          </IsOnlineProvider>
-        </ThemeProvider>
+      <body>
+        <AuthProvider>
+          <ConfirmDialogProvider>
+            <Outlet />
+            <Toaster richColors />
+          </ConfirmDialogProvider>
+        </AuthProvider>
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />
       </body>

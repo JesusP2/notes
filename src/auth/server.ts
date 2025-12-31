@@ -1,11 +1,12 @@
 import { env } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, anonymous, captcha, jwt, magicLink } from "better-auth/plugins";
-import { passkey } from "better-auth/plugins/passkey";
-import { reactStartCookies } from "better-auth/react-start";
+import { admin, anonymous, captcha, magicLink } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
+import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { Resend } from "resend";
 import { getDb } from "../db";
+// biome-ignore lint/performance/noNamespaceImport: shut up
 import * as schema from "../db/schema/auth";
 import { forgotPasswordTemplate } from "./emails/forgot-password";
 import { magicLinkTemplate } from "./emails/magic-link";
@@ -23,7 +24,9 @@ export function getAuth() {
       customStorage: {
         get: async (key) => {
           const value = await env.TEMPLATE_CACHE.get(key);
-          if (!value) throw new Error("Not found");
+          if (!value) {
+            throw new Error("Not found");
+          }
           const parsed = JSON.parse(value);
           return {
             key: parsed.key,
@@ -31,15 +34,13 @@ export function getAuth() {
             lastRequest: parsed.lastRequest,
           };
         },
-        set: async (key, value) => {
+        set: async (key, value) =>
           env.TEMPLATE_CACHE.put(key, JSON.stringify(value), {
             expirationTtl: 10,
-          });
-        },
+          }),
       },
     },
     plugins: [
-      jwt(),
       anonymous(),
       captcha({
         provider: "cloudflare-turnstile",
@@ -57,7 +58,7 @@ export function getAuth() {
       }),
       admin(),
       passkey(),
-      reactStartCookies(),
+      tanstackStartCookies(),
     ],
     emailAndPassword: {
       enabled: true,

@@ -1,4 +1,6 @@
-import { pgTable } from "drizzle-orm/pg-core";
+import { pgTableCreator } from "drizzle-orm/pg-core";
+
+const pgTable = pgTableCreator((name) => `nimonikku_${name}`);
 
 export const user = pgTable("user", (t) => ({
   id: t.text("id").primaryKey(),
