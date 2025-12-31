@@ -4,6 +4,6 @@ import postgres from "postgres";
 import * as schema from "./schema/auth";
 
 export function getDb() {
-	const client = postgres(env.HYPERDRIVE);
-	return drizzle(client, { schema });
+  const client = postgres(env.HYPERDRIVE);
+  return drizzle(client, { schema });
 }

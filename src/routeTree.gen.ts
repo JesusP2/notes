@@ -17,155 +17,148 @@ import { Route as AuthIdRouteImport } from "./routes/auth.$id";
 import { Route as IndexRouteImport } from "./routes/index";
 
 const Route = RouteImport.update({
-	id: "/_",
-	getParentRoute: () => rootRouteImport,
+  id: "/_",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const IndexRoute = IndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => rootRouteImport,
+  id: "/",
+  path: "/",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const AuthIdRoute = AuthIdRouteImport.update({
-	id: "/auth/$id",
-	path: "/auth/$id",
-	getParentRoute: () => rootRouteImport,
+  id: "/auth/$id",
+  path: "/auth/$id",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const TodosRoute = TodosRouteImport.update({
-	id: "/todos",
-	path: "/todos",
-	getParentRoute: () => Route,
+  id: "/todos",
+  path: "/todos",
+  getParentRoute: () => Route,
 } as any);
 const ApiUploadSplatRoute = ApiUploadSplatRouteImport.update({
-	id: "/api/upload/$",
-	path: "/api/upload/$",
-	getParentRoute: () => rootRouteImport,
+  id: "/api/upload/$",
+  path: "/api/upload/$",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-	id: "/api/auth/$",
-	path: "/api/auth/$",
-	getParentRoute: () => rootRouteImport,
+  id: "/api/auth/$",
+  path: "/api/auth/$",
+  getParentRoute: () => rootRouteImport,
 } as any);
 
 export interface FileRoutesByFullPath {
-	"/": typeof IndexRoute;
-	"/todos": typeof TodosRoute;
-	"/auth/$id": typeof AuthIdRoute;
-	"/api/auth/$": typeof ApiAuthSplatRoute;
-	"/api/upload/$": typeof ApiUploadSplatRoute;
+  "/": typeof IndexRoute;
+  "/todos": typeof TodosRoute;
+  "/auth/$id": typeof AuthIdRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/upload/$": typeof ApiUploadSplatRoute;
 }
 export interface FileRoutesByTo {
-	"/": typeof IndexRoute;
-	"/todos": typeof TodosRoute;
-	"/auth/$id": typeof AuthIdRoute;
-	"/api/auth/$": typeof ApiAuthSplatRoute;
-	"/api/upload/$": typeof ApiUploadSplatRoute;
+  "/": typeof IndexRoute;
+  "/todos": typeof TodosRoute;
+  "/auth/$id": typeof AuthIdRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/upload/$": typeof ApiUploadSplatRoute;
 }
 export interface FileRoutesById {
-	__root__: typeof rootRouteImport;
-	"/": typeof IndexRoute;
-	"/_": typeof RouteWithChildren;
-	"/_/todos": typeof TodosRoute;
-	"/auth/$id": typeof AuthIdRoute;
-	"/api/auth/$": typeof ApiAuthSplatRoute;
-	"/api/upload/$": typeof ApiUploadSplatRoute;
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/_": typeof RouteWithChildren;
+  "/_/todos": typeof TodosRoute;
+  "/auth/$id": typeof AuthIdRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/upload/$": typeof ApiUploadSplatRoute;
 }
 export interface FileRouteTypes {
-	fileRoutesByFullPath: FileRoutesByFullPath;
-	fullPaths: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
-	fileRoutesByTo: FileRoutesByTo;
-	to: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
-	id:
-		| "__root__"
-		| "/"
-		| "/_"
-		| "/_/todos"
-		| "/auth/$id"
-		| "/api/auth/$"
-		| "/api/upload/$";
-	fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
+  fileRoutesByTo: FileRoutesByTo;
+  to: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
+  id: "__root__" | "/" | "/_" | "/_/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-	IndexRoute: typeof IndexRoute;
-	Route: typeof RouteWithChildren;
-	AuthIdRoute: typeof AuthIdRoute;
-	ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
-	ApiUploadSplatRoute: typeof ApiUploadSplatRoute;
+  IndexRoute: typeof IndexRoute;
+  Route: typeof RouteWithChildren;
+  AuthIdRoute: typeof AuthIdRoute;
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+  ApiUploadSplatRoute: typeof ApiUploadSplatRoute;
 }
 
 declare module "@tanstack/react-router" {
-	interface FileRoutesByPath {
-		"/_": {
-			id: "/_";
-			path: "";
-			fullPath: "";
-			preLoaderRoute: typeof RouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/": {
-			id: "/";
-			path: "/";
-			fullPath: "/";
-			preLoaderRoute: typeof IndexRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/auth/$id": {
-			id: "/auth/$id";
-			path: "/auth/$id";
-			fullPath: "/auth/$id";
-			preLoaderRoute: typeof AuthIdRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/_/todos": {
-			id: "/_/todos";
-			path: "/todos";
-			fullPath: "/todos";
-			preLoaderRoute: typeof TodosRouteImport;
-			parentRoute: typeof Route;
-		};
-		"/api/upload/$": {
-			id: "/api/upload/$";
-			path: "/api/upload/$";
-			fullPath: "/api/upload/$";
-			preLoaderRoute: typeof ApiUploadSplatRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/api/auth/$": {
-			id: "/api/auth/$";
-			path: "/api/auth/$";
-			fullPath: "/api/auth/$";
-			preLoaderRoute: typeof ApiAuthSplatRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-	}
+  interface FileRoutesByPath {
+    "/_": {
+      id: "/_";
+      path: "";
+      fullPath: "";
+      preLoaderRoute: typeof RouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/auth/$id": {
+      id: "/auth/$id";
+      path: "/auth/$id";
+      fullPath: "/auth/$id";
+      preLoaderRoute: typeof AuthIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_/todos": {
+      id: "/_/todos";
+      path: "/todos";
+      fullPath: "/todos";
+      preLoaderRoute: typeof TodosRouteImport;
+      parentRoute: typeof Route;
+    };
+    "/api/upload/$": {
+      id: "/api/upload/$";
+      path: "/api/upload/$";
+      fullPath: "/api/upload/$";
+      preLoaderRoute: typeof ApiUploadSplatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/auth/$": {
+      id: "/api/auth/$";
+      path: "/api/auth/$";
+      fullPath: "/api/auth/$";
+      preLoaderRoute: typeof ApiAuthSplatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+  }
 }
 
 interface RouteChildren {
-	TodosRoute: typeof TodosRoute;
+  TodosRoute: typeof TodosRoute;
 }
 
 const RouteChildren: RouteChildren = {
-	TodosRoute: TodosRoute,
+  TodosRoute: TodosRoute,
 };
 
 const RouteWithChildren = Route._addFileChildren(RouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
-	IndexRoute: IndexRoute,
-	Route: RouteWithChildren,
-	AuthIdRoute: AuthIdRoute,
-	ApiAuthSplatRoute: ApiAuthSplatRoute,
-	ApiUploadSplatRoute: ApiUploadSplatRoute,
+  IndexRoute: IndexRoute,
+  Route: RouteWithChildren,
+  AuthIdRoute: AuthIdRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiUploadSplatRoute: ApiUploadSplatRoute,
 };
 export const routeTree = rootRouteImport
-	._addFileChildren(rootRouteChildren)
-	._addFileTypes<FileRouteTypes>();
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>();
 
 import type { createStart } from "@tanstack/react-start";
 import type { getRouter } from "./router.tsx";
 
 declare module "@tanstack/react-start" {
-	interface Register {
-		ssr: true;
-		router: Awaited<ReturnType<typeof getRouter>>;
-	}
+  interface Register {
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
+  }
 }

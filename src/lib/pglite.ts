@@ -6,17 +6,17 @@ type PGliteWithLive = PGlite & PGliteInterfaceExtensions<{ live: typeof live }>;
 let dbInstance: PGliteWithLive | null = null;
 
 export async function getDb(): Promise<PGliteWithLive> {
-	if (dbInstance) {
-		return dbInstance;
-	}
+  if (dbInstance) {
+    return dbInstance;
+  }
 
-	dbInstance = (await PGlite.create({
-		dataDir: "idb://todos-db",
-		extensions: { live },
-	})) as PGliteWithLive;
+  dbInstance = (await PGlite.create({
+    dataDir: "idb://todos-db",
+    extensions: { live },
+  })) as PGliteWithLive;
 
-	// Initialize todos table
-	await dbInstance.exec(`
+  // Initialize todos table
+  await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS todos (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
@@ -25,7 +25,7 @@ export async function getDb(): Promise<PGliteWithLive> {
     )
   `);
 
-	return dbInstance;
+  return dbInstance;
 }
 
 export const dbPromise = typeof window !== "undefined" ? getDb() : null;
