@@ -4,6 +4,7 @@ import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SearchDialog } from "@/components/search/search-dialog";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { dbPromise } from "@/lib/pglite";
@@ -42,6 +43,7 @@ function RouteComponent() {
 
   return (
     <PGliteProvider db={pglite}>
+      <SearchDialog />
       <ResizablePanelGroup autoSaveId="app-layout" className="h-svh" direction="horizontal">
         <ResizablePanel
           ref={sidebarRef}

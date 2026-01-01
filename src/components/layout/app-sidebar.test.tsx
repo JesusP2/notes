@@ -15,6 +15,11 @@ vi.mock("@tanstack/react-router", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
+    ),
   };
 });
 

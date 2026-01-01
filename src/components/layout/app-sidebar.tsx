@@ -1,12 +1,12 @@
-import { useNavigate } from "@tanstack/react-router";
-import { FilePlusIcon, FolderIcon, FolderPlusIcon, SearchIcon } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { FilePlusIcon, FolderIcon, FolderPlusIcon, Network, SearchIcon } from "lucide-react";
 import { useCallback, useTransition } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { FolderTree } from "@/components/tree/folder-tree";
 import { TagsSection } from "@/components/tree/tags-section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SidebarContent, SidebarHeader } from "@/components/ui/sidebar";
+import { Kbd } from "@/components/ui/kbd";
+import { SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import type { Node } from "@/db/schema/graph";
 import { useNodeMutations } from "@/lib/graph-hooks";
 
@@ -57,13 +57,17 @@ export function AppSidebar() {
           <ModeToggle />
         </div>
 
-        <div className="relative mb-2">
-          <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground/60 pointer-events-none" />
-          <Input
-            className="pl-9 h-9 bg-background/50 border-transparent hover:border-border focus:bg-background transition-all shadow-sm"
-            placeholder="Search notes..."
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+          }}
+          className="relative flex items-center w-full h-9 px-3 text-sm text-muted-foreground bg-background/50 border border-transparent hover:border-border rounded-md transition-all shadow-sm mb-2"
+        >
+          <SearchIcon className="size-4 mr-2 opacity-60" />
+          <span>Search notes...</span>
+          <Kbd className="ml-auto">⌘K</Kbd>
+        </button>
 
         <div className="flex gap-1.5 mt-2">
           <Button
@@ -89,7 +93,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 flex-1 overflow-auto">
         <div className="space-y-6 py-2">
           <div>
             <div className="px-2 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -106,6 +110,16 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarContent>
+
+      <SidebarFooter className="p-2 border-t">
+        <Link
+          to="/graph"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+        >
+          <Network className="size-4" />
+          Graph View
+        </Link>
+      </SidebarFooter>
     </aside>
   );
 }
