@@ -5,10 +5,60 @@ import { describe, expect, it, vi } from "vitest";
 import type { Node } from "@/db/schema/graph";
 import { NoteEditor } from "./note-editor";
 
-vi.mock("@milkdown/react", () => ({
-  Milkdown: () => <div data-testid="milkdown-editor">Milkdown Editor</div>,
-  MilkdownProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useEditor: () => {},
+vi.mock("@codemirror/view", () => ({
+  EditorView: class {
+    static updateListener = { of: () => ({}) };
+    static lineWrapping = {};
+    static theme: () => {};
+    destroy() {}
+    dispatch() {}
+  },
+  keymap: { of: () => ({}) },
+  lineNumbers: () => ({}),
+  highlightActiveLine: () => ({}),
+  highlightActiveLineGutter: () => ({}),
+  drawSelection: () => ({}),
+}));
+
+vi.mock("@codemirror/state", () => ({
+  EditorState: {
+    create: () => ({}),
+  },
+  Compartment: class {
+    of() {
+      return {};
+    }
+    reconfigure() {
+      return {};
+    }
+  },
+}));
+
+vi.mock("@codemirror/commands", () => ({
+  defaultKeymap: [],
+  history: () => ({}),
+  historyKeymap: [],
+}));
+
+vi.mock("@codemirror/lang-markdown", () => ({
+  markdown: () => ({}),
+  markdownLanguage: {},
+}));
+
+vi.mock("@codemirror/language-data", () => ({
+  languages: [],
+}));
+
+vi.mock("@replit/codemirror-vim", () => ({
+  vim: () => ({}),
+}));
+
+vi.mock("next-themes", () => ({
+  useTheme: () => ({ resolvedTheme: "light" }),
+}));
+
+vi.mock("./codemirror-theme", () => ({
+  createAppTheme: () => [],
 }));
 
 vi.mock("@/components/notes/note-tags", () => ({
@@ -41,7 +91,7 @@ describe("NoteEditor", () => {
     render(<NoteEditor note={baseNote} onChange={handleChange} />);
 
     expect(screen.queryByText("No Note Selected")).toBeNull();
-    expect(screen.queryByTestId("milkdown-editor")).not.toBeNull();
+    expect(screen.queryByTestId("codemirror-editor")).not.toBeNull();
   });
 
   it("uses note content as initial content", () => {
@@ -53,7 +103,7 @@ describe("NoteEditor", () => {
 
     render(<NoteEditor note={noteWithContent} onChange={handleChange} />);
 
-    expect(screen.queryByTestId("milkdown-editor")).not.toBeNull();
+    expect(screen.queryByTestId("codemirror-editor")).not.toBeNull();
   });
 
   it("generates default content from title when content is empty", () => {
@@ -66,6 +116,6 @@ describe("NoteEditor", () => {
 
     render(<NoteEditor note={noteWithoutContent} onChange={handleChange} />);
 
-    expect(screen.queryByTestId("milkdown-editor")).not.toBeNull();
+    expect(screen.queryByTestId("codemirror-editor")).not.toBeNull();
   });
 });

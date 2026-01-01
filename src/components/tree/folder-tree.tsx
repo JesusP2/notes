@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { FilePlus, FolderPlus, Info, Pencil, Trash2 } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
+import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
   ContextMenu,
@@ -30,6 +31,7 @@ interface TreeBranchProps {
   dragOverNode: string | null;
   setDragOverNode: (id: string | null) => void;
   onTriggerRename: (nodeId: string) => void;
+  onOpenDetails: (nodeId: string) => void;
 }
 
 function TreeBranch({
@@ -44,6 +46,7 @@ function TreeBranch({
   dragOverNode,
   setDragOverNode,
   onTriggerRename,
+  onOpenDetails,
 }: TreeBranchProps) {
   const children = useFolderChildren(parentId);
   const navigate = useNavigate();
@@ -168,6 +171,15 @@ function TreeBranch({
                     <ContextMenuSeparator />
                   </>
                 )}
+                {child.type === "note" && (
+                  <>
+                    <ContextMenuItem onClick={() => onOpenDetails(child.id)}>
+                      <Info className="mr-2 size-4" />
+                      Details
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                  </>
+                )}
                 <ContextMenuItem onClick={() => onTriggerRename(child.id)}>
                   <Pencil className="mr-2 size-4" />
                   Rename
@@ -194,6 +206,7 @@ function TreeBranch({
                 dragOverNode={dragOverNode}
                 setDragOverNode={setDragOverNode}
                 onTriggerRename={onTriggerRename}
+                onOpenDetails={onOpenDetails}
               />
             )}
           </li>
@@ -207,6 +220,7 @@ export function FolderTree({ rootId = "root", onSelectNode }: FolderTreeProps) {
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
+  const [detailsNodeId, setDetailsNodeId] = useState<string | null>(null);
 
   const toggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -239,21 +253,35 @@ export function FolderTree({ rootId = "root", onSelectNode }: FolderTreeProps) {
     }, 50);
   }, []);
 
+  const openDetails = useCallback((nodeId: string) => {
+    setDetailsNodeId(nodeId);
+  }, []);
+
   return (
-    <div aria-label="Folder tree" role="tree">
-      <TreeBranch
-        expandedIds={expandedIds}
-        level={0}
-        onSelectNode={onSelectNode}
-        onToggle={toggle}
-        onExpandFolder={expandFolder}
-        parentId={rootId}
-        draggedNode={draggedNode}
-        setDraggedNode={setDraggedNode}
-        dragOverNode={dragOverNode}
-        setDragOverNode={setDragOverNode}
-        onTriggerRename={triggerRename}
+    <>
+      <div aria-label="Folder tree" role="tree">
+        <TreeBranch
+          expandedIds={expandedIds}
+          level={0}
+          onSelectNode={onSelectNode}
+          onToggle={toggle}
+          onExpandFolder={expandFolder}
+          parentId={rootId}
+          draggedNode={draggedNode}
+          setDraggedNode={setDraggedNode}
+          dragOverNode={dragOverNode}
+          setDragOverNode={setDragOverNode}
+          onTriggerRename={triggerRename}
+          onOpenDetails={openDetails}
+        />
+      </div>
+      <NoteDetailsDialog
+        noteId={detailsNodeId}
+        open={detailsNodeId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailsNodeId(null);
+        }}
       />
-    </div>
+    </>
   );
 }
