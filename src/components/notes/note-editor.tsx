@@ -1,22 +1,9 @@
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { languages } from "@codemirror/language-data";
-import { Compartment, EditorState } from "@codemirror/state";
-import {
-  EditorView,
-  keymap,
-  lineNumbers,
-  highlightActiveLine,
-  highlightActiveLineGutter,
-  drawSelection,
-} from "@codemirror/view";
-import { vim } from "@replit/codemirror-vim";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { Edit3Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
-import { useTheme } from "next-themes";
-import { createAppTheme } from "./codemirror-theme";
 
 interface NoteEditorProps {
   note: Node | null;
@@ -24,78 +11,37 @@ interface NoteEditorProps {
   debounceMs?: number;
 }
 
-const themeCompartment = new Compartment();
-
-interface CodeMirrorEditorProps {
+interface TipTapEditorProps {
   content: string;
   onChange: (content: string) => void;
 }
 
-function CodeMirrorEditor({ content, onChange }: CodeMirrorEditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<EditorView | null>(null);
+function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   const initialContentRef = useRef(content);
-  const { resolvedTheme } = useTheme();
+
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: initialContentRef.current,
+    editorProps: {
+      attributes: {
+        class: "tiptap-editor prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-full",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const isDark = resolvedTheme === "dark";
-
-    const updateListener = EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        onChange(update.state.doc.toString());
-      }
-    });
-
-    const state = EditorState.create({
-      doc: initialContentRef.current,
-      extensions: [
-        vim(),
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        drawSelection(),
-        history(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
-        markdown({
-          base: markdownLanguage,
-          codeLanguages: languages,
-        }),
-        themeCompartment.of(createAppTheme(isDark)),
-        EditorView.lineWrapping,
-        updateListener,
-      ],
-    });
-
-    const view = new EditorView({
-      state,
-      parent: containerRef.current,
-    });
-
-    editorRef.current = view;
-
     return () => {
-      view.destroy();
-      editorRef.current = null;
+      editor?.destroy();
     };
-  }, []);
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    const isDark = resolvedTheme === "dark";
-    editorRef.current.dispatch({
-      effects: themeCompartment.reconfigure(createAppTheme(isDark)),
-    });
-  }, [resolvedTheme]);
+  }, [editor]);
 
   return (
-    <div
-      ref={containerRef}
-      className="codemirror-wrapper h-full overflow-auto"
-      data-testid="codemirror-editor"
-    />
+    <div className="tiptap-wrapper h-full overflow-auto" data-testid="tiptap-editor">
+      <EditorContent editor={editor} className="h-full" />
+    </div>
   );
 }
 
@@ -133,13 +79,13 @@ export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps
     );
   }
 
-  const initialContent = note.content || `# ${note.title || "Untitled"}\n\n`;
+  const initialContent = note.content || `<h1>${note.title || "Untitled"}</h1><p></p>`;
 
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6 overflow-hidden">
         <div className="flex-1 overflow-hidden">
-          <CodeMirrorEditor
+          <TipTapEditor
             key={editorKey}
             content={initialContent}
             onChange={handleContentChange}
