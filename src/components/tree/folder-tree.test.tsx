@@ -15,7 +15,7 @@ function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
 }
 
 describe("FolderTree", () => {
-  it("renders root children", async () => {
+  it("renders root children without showing root itself", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
@@ -38,9 +38,9 @@ describe("FolderTree", () => {
 
     render(<FolderTree />, { wrapper: Wrapper });
 
-    await waitFor(() => expect(screen.queryByText("Root")).not.toBeNull());
     await waitFor(() => expect(screen.queryByText("Folder 1")).not.toBeNull());
     await waitFor(() => expect(screen.queryByText("Note 1")).not.toBeNull());
+    expect(screen.queryByText("Root")).toBeNull();
   });
 
   it("expands and collapses folders", async () => {

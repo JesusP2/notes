@@ -187,7 +187,22 @@ export function useNodeMutations() {
 
   const createNote = useCallback(
     async (title: string, parentFolderId: string) => {
-      const node = await createNode("note", title);
+      const id = ulid();
+      const content = `# ${title}\n\n`;
+      const result = await db.query<Node>(
+        `INSERT INTO nodes (id, type, title, content, created_at, updated_at)
+         VALUES ($1, 'note', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING
+           id,
+           type,
+           title,
+           content,
+           color,
+           created_at AS "createdAt",
+           updated_at AS "updatedAt"`,
+        [id, title, content],
+      );
+      const node = result.rows[0];
       await db.query(
         `INSERT INTO edges (id, source_id, target_id, type, created_at)
          VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
@@ -196,7 +211,7 @@ export function useNodeMutations() {
       );
       return node;
     },
-    [createNode, db],
+    [db],
   );
 
   const createFolder = useCallback(

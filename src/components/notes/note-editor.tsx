@@ -6,15 +6,13 @@ import { gfm } from "@milkdown/preset-gfm";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { nord } from "@milkdown/theme-nord";
 import { Edit3Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useCallback, useRef, useState } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 
 interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
-  onTitleChange?: (title: string) => void;
   debounceMs?: number;
 }
 
@@ -49,16 +47,14 @@ function MilkdownEditor({
   return <Milkdown />;
 }
 
-export function NoteEditor({ note, onChange, onTitleChange, debounceMs = 500 }: NoteEditorProps) {
-  const [title, setTitle] = useState(note?.title ?? "");
+export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps) {
   const [editorKey, setEditorKey] = useState(note?.id ?? "empty");
+  const lastTitleRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    setTitle(note?.title ?? "");
-    if (note?.id && note.id !== editorKey) {
-      setEditorKey(note.id);
-    }
-  }, [note?.id, note?.title, editorKey]);
+  if (note?.id && note.id !== editorKey) {
+    setEditorKey(note.id);
+    lastTitleRef.current = null;
+  }
 
   const debouncedSave = useDebouncedCallback((nextContent: string) => {
     onChange(nextContent);
@@ -85,22 +81,14 @@ export function NoteEditor({ note, onChange, onTitleChange, debounceMs = 500 }: 
     );
   }
 
+  const initialContent = note.content || `# ${note.title || "Untitled"}\n\n`;
+
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6 overflow-hidden">
-        <Input
-          value={title}
-          onChange={(e) => {
-            const val = e.target.value;
-            setTitle(val);
-            onTitleChange?.(val);
-          }}
-          className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/50 mb-4 shrink-0"
-          placeholder="Untitled Note"
-        />
         <div className="flex-1 overflow-auto prose prose-neutral dark:prose-invert max-w-none">
           <MilkdownProvider key={editorKey}>
-            <MilkdownEditor content={note.content ?? ""} onChange={handleContentChange} />
+            <MilkdownEditor content={initialContent} onChange={handleContentChange} />
           </MilkdownProvider>
         </div>
       </div>

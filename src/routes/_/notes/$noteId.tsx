@@ -26,14 +26,5 @@ function NoteEditorPage() {
     [db, noteId, updateNode],
   );
 
-  const handleTitleChange = useCallback(
-    (title: string) => {
-      startTransition(async () => {
-        await updateNode(noteId, { title, updatedAt: new Date() });
-      });
-    },
-    [noteId, updateNode],
-  );
-
-  return <NoteEditor note={note} onChange={handleContentSave} onTitleChange={handleTitleChange} />;
+  return <NoteEditor note={note} onChange={handleContentSave} />;
 }
