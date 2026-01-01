@@ -1,12 +1,7 @@
 import { FolderIcon } from "lucide-react";
-import {
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
+import { FolderTree } from "@/components/tree/folder-tree";
+import { TagsSection } from "@/components/tree/tags-section";
+import { SidebarContent, SidebarHeader, SidebarSeparator } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   return (
@@ -20,11 +15,11 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton disabled>Root</SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="space-y-4 py-2">
+          <FolderTree />
+          <SidebarSeparator />
+          <TagsSection />
+        </div>
       </SidebarContent>
     </aside>
   );

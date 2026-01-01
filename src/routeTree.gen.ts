@@ -10,10 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RouteImport } from './routes/_'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as IndexRouteImport } from './routes/_.index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as NotesNoteIdRouteImport } from './routes/_/notes/$noteId'
 
 const Route = RouteImport.update({
   id: '/_',
@@ -22,7 +23,7 @@ const Route = RouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => Route,
 } as any)
 const AuthIdRoute = AuthIdRouteImport.update({
   id: '/auth/$id',
@@ -39,38 +40,57 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
+  id: '/notes/$noteId',
+  path: '/notes/$noteId',
+  getParentRoute: () => Route,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/auth/$id': typeof AuthIdRoute
+  '/': typeof IndexRoute
+  '/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/auth/$id': typeof AuthIdRoute
+  '/': typeof IndexRoute
+  '/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_': typeof Route
+  '/_': typeof RouteWithChildren
   '/auth/$id': typeof AuthIdRoute
+  '/_/': typeof IndexRoute
+  '/_/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
+  fullPaths:
+    | '/auth/$id'
+    | '/'
+    | '/notes/$noteId'
+    | '/api/auth/$'
+    | '/api/upload/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
-  id: '__root__' | '/' | '/_' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
+  to: '/auth/$id' | '/' | '/notes/$noteId' | '/api/auth/$' | '/api/upload/$'
+  id:
+    | '__root__'
+    | '/_'
+    | '/auth/$id'
+    | '/_/'
+    | '/_/notes/$noteId'
+    | '/api/auth/$'
+    | '/api/upload/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  Route: typeof Route
+  Route: typeof RouteWithChildren
   AuthIdRoute: typeof AuthIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiUploadSplatRoute: typeof ApiUploadSplatRoute
@@ -85,12 +105,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_/': {
+      id: '/_/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof Route
     }
     '/auth/$id': {
       id: '/auth/$id'
@@ -113,12 +133,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_/notes/$noteId': {
+      id: '/_/notes/$noteId'
+      path: '/notes/$noteId'
+      fullPath: '/notes/$noteId'
+      preLoaderRoute: typeof NotesNoteIdRouteImport
+      parentRoute: typeof Route
+    }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
+interface RouteChildren {
+  IndexRoute: typeof IndexRoute
+  NotesNoteIdRoute: typeof NotesNoteIdRoute
+}
+
+const RouteChildren: RouteChildren = {
   IndexRoute: IndexRoute,
-  Route: Route,
+  NotesNoteIdRoute: NotesNoteIdRoute,
+}
+
+const RouteWithChildren = Route._addFileChildren(RouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  Route: RouteWithChildren,
   AuthIdRoute: AuthIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiUploadSplatRoute: ApiUploadSplatRoute,
