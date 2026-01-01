@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
   ContextMenu,
@@ -49,6 +49,7 @@ function TreeBranch({
   const navigate = useNavigate();
   const { createNote, createFolder, deleteNode, moveNode } = useNodeMutations();
   const { openConfirmDialog } = useConfirmDialog();
+  const [, startTransition] = useTransition();
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, nodeId: string) => {
@@ -71,16 +72,18 @@ function TreeBranch({
   );
 
   const handleDrop = useCallback(
-    async (e: React.DragEvent, targetNode: Node) => {
+    (e: React.DragEvent, targetNode: Node) => {
       e.preventDefault();
       const sourceId = e.dataTransfer.getData("text/plain");
       if (sourceId && targetNode.type === "folder" && sourceId !== targetNode.id) {
-        await moveNode(sourceId, targetNode.id);
+        startTransition(async () => {
+          await moveNode(sourceId, targetNode.id);
+        });
       }
       setDraggedNode(null);
       setDragOverNode(null);
     },
-    [moveNode, setDraggedNode, setDragOverNode],
+    [moveNode, setDraggedNode, setDragOverNode, startTransition],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -89,23 +92,27 @@ function TreeBranch({
   }, [setDraggedNode, setDragOverNode]);
 
   const handleCreateNote = useCallback(
-    async (folderId: string) => {
+    (folderId: string) => {
       onExpandFolder(folderId);
-      const note = await createNote("Untitled", folderId);
-      navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
-      setTimeout(() => {
-        const el = document.querySelector(`[data-node-id="${note.id}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
+      startTransition(async () => {
+        const note = await createNote("Untitled", folderId);
+        navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
+        setTimeout(() => {
+          const el = document.querySelector(`[data-node-id="${note.id}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 100);
+      });
     },
-    [createNote, navigate, onExpandFolder],
+    [createNote, navigate, onExpandFolder, startTransition],
   );
 
   const handleCreateFolder = useCallback(
-    async (folderId: string) => {
-      await createFolder("New Folder", folderId);
+    (folderId: string) => {
+      startTransition(async () => {
+        await createFolder("New Folder", folderId);
+      });
     },
-    [createFolder],
+    [createFolder, startTransition],
   );
 
   const handleDelete = useCallback(
@@ -113,11 +120,15 @@ function TreeBranch({
       openConfirmDialog({
         title: `Delete ${node.type}?`,
         description: `Are you sure you want to delete "${node.title}"? This cannot be undone.`,
-        handleConfirm: () => deleteNode(node.id),
+        handleConfirm: () => {
+          startTransition(async () => {
+            await deleteNode(node.id);
+          });
+        },
         variant: "destructive",
       });
     },
-    [openConfirmDialog, deleteNode],
+    [openConfirmDialog, deleteNode, startTransition],
   );
 
   return (

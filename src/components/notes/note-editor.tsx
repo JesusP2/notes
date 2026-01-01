@@ -1,47 +1,75 @@
+import { defaultValueCtx, Editor, rootCtx } from "@milkdown/core";
+import { history } from "@milkdown/plugin-history";
+import { listener, listenerCtx } from "@milkdown/plugin-listener";
+import { commonmark } from "@milkdown/preset-commonmark";
+import { gfm } from "@milkdown/preset-gfm";
+import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
+import { nord } from "@milkdown/theme-nord";
 import { Edit3Icon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
-import { extractWikiLinks } from "./wiki-link-plugin";
 
 interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
   onTitleChange?: (title: string) => void;
-  onLinksChange?: (links: string[]) => void;
-  linkTargets?: Record<string, string>;
   debounceMs?: number;
 }
 
-export function NoteEditor({
-  note,
+function MilkdownEditor({
+  content,
   onChange,
-  onTitleChange,
-  onLinksChange,
-  debounceMs = 500,
-}: NoteEditorProps) {
+}: {
+  content: string;
+  onChange: (content: string) => void;
+}) {
+  const initialContentRef = useRef(content);
+
+  useEditor(
+    (root) => {
+      return Editor.make()
+        .config((ctx) => {
+          ctx.set(rootCtx, root);
+          ctx.set(defaultValueCtx, initialContentRef.current);
+          ctx.get(listenerCtx).markdownUpdated((_, markdown) => {
+            onChange(markdown);
+          });
+        })
+        .config(nord)
+        .use(commonmark)
+        .use(gfm)
+        .use(history)
+        .use(listener);
+    },
+    [onChange],
+  );
+
+  return <Milkdown />;
+}
+
+export function NoteEditor({ note, onChange, onTitleChange, debounceMs = 500 }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title ?? "");
-  const [content, setContent] = useState(note?.content ?? "");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [editorKey, setEditorKey] = useState(note?.id ?? "empty");
 
   useEffect(() => {
     setTitle(note?.title ?? "");
-    setContent(note?.content ?? "");
-  }, [note?.id, note?.title, note?.content]);
+    if (note?.id && note.id !== editorKey) {
+      setEditorKey(note.id);
+    }
+  }, [note?.id, note?.title, editorKey]);
 
   const debouncedSave = useDebouncedCallback((nextContent: string) => {
     onChange(nextContent);
-    if (onLinksChange) {
-      onLinksChange(extractWikiLinks(nextContent));
-    }
   }, debounceMs);
 
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    debouncedSave(newContent);
-  };
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      debouncedSave(newContent);
+    },
+    [debouncedSave],
+  );
 
   if (!note) {
     return (
@@ -59,7 +87,7 @@ export function NoteEditor({
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6 overflow-hidden">
         <Input
           value={title}
           onChange={(e) => {
@@ -67,17 +95,14 @@ export function NoteEditor({
             setTitle(val);
             onTitleChange?.(val);
           }}
-          className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/50 mb-4"
+          className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/50 mb-4 shrink-0"
           placeholder="Untitled Note"
         />
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          className="flex-1 w-full resize-none border-none focus-visible:ring-0 px-0 text-base leading-relaxed bg-transparent"
-          placeholder="Start writing..."
-          spellCheck={false}
-        />
+        <div className="flex-1 overflow-auto prose prose-neutral dark:prose-invert max-w-none">
+          <MilkdownProvider key={editorKey}>
+            <MilkdownEditor content={note.content ?? ""} onChange={handleContentChange} />
+          </MilkdownProvider>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { ChevronRight, FileText, Folder, Link2, Tag } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import type { Node } from "@/db/schema/graph";
 import { useNodeEdges, useNodeMutations } from "@/lib/graph-hooks";
@@ -48,6 +48,7 @@ export function TreeNode({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(node.title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
 
   const parentCount = outgoing.filter((edge) => edge.type === "part_of").length;
   const showMultiParent = node.type === "note" && parentCount > 1;
@@ -72,10 +73,12 @@ export function TreeNode({
   const handleRenameSubmit = useCallback(() => {
     const trimmed = editValue.trim();
     if (trimmed && trimmed !== node.title) {
-      updateNode(node.id, { title: trimmed });
+      startTransition(async () => {
+        await updateNode(node.id, { title: trimmed });
+      });
     }
     setIsEditing(false);
-  }, [editValue, node.id, node.title, updateNode]);
+  }, [editValue, node.id, node.title, updateNode, startTransition]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

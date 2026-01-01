@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FilePlusIcon, FolderIcon, FolderPlusIcon, SearchIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useTransition } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { FolderTree } from "@/components/tree/folder-tree";
 import { TagsSection } from "@/components/tree/tags-section";
@@ -13,8 +13,7 @@ import { useNodeMutations } from "@/lib/graph-hooks";
 export function AppSidebar() {
   const navigate = useNavigate();
   const { createFolder, createNote } = useNodeMutations();
-  const [isCreatingNote, setIsCreatingNote] = useState(false);
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const handleSelectNode = useCallback(
     (node: Node) => {
@@ -29,33 +28,21 @@ export function AppSidebar() {
     [navigate],
   );
 
-  const handleCreateNote = useCallback(async () => {
-    if (isCreatingNote) {
-      return;
-    }
-    setIsCreatingNote(true);
-    try {
+  const handleCreateNote = useCallback(() => {
+    startTransition(async () => {
       const note = await createNote("Untitled Note", "root");
       navigate({
         to: "/notes/$noteId",
         params: { noteId: note.id },
       });
-    } finally {
-      setIsCreatingNote(false);
-    }
-  }, [createNote, isCreatingNote, navigate]);
+    });
+  }, [createNote, navigate]);
 
-  const handleCreateFolder = useCallback(async () => {
-    if (isCreatingFolder) {
-      return;
-    }
-    setIsCreatingFolder(true);
-    try {
+  const handleCreateFolder = useCallback(() => {
+    startTransition(async () => {
       await createFolder("New Folder", "root");
-    } finally {
-      setIsCreatingFolder(false);
-    }
-  }, [createFolder, isCreatingFolder]);
+    });
+  }, [createFolder]);
 
   return (
     <aside className="bg-sidebar text-sidebar-foreground flex h-full flex-col border-r shadow-sm">
@@ -84,7 +71,7 @@ export function AppSidebar() {
             size="sm"
             className="flex-1 justify-start h-8 px-2 font-medium"
             variant="ghost"
-            disabled={isCreatingNote}
+            disabled={isPending}
           >
             <FilePlusIcon className="mr-2 size-3.5 opacity-70" />
             New Note
@@ -95,7 +82,7 @@ export function AppSidebar() {
             className="h-8 w-8"
             variant="ghost"
             title="New Folder"
-            disabled={isCreatingFolder}
+            disabled={isPending}
           >
             <FolderPlusIcon className="size-4 opacity-70" />
           </Button>

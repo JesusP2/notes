@@ -132,3 +132,29 @@
     @apply font-sans;
   }
 }
+
+.milkdown {
+  --font-family: "Inter Variable", sans-serif;
+  background: transparent !important;
+  color: var(--foreground) !important;
+}
+
+.milkdown .editor {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.milkdown .ProseMirror {
+  outline: none !important;
+  min-height: 300px;
+}
+
+.milkdown .ProseMirror:focus {
+  outline: none !important;
+}
+
+.dark .milkdown {
+  --nord0: var(--background);
+  --nord1: var(--muted);
+  --nord4: var(--foreground);
+}
