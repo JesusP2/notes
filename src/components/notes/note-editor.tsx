@@ -7,6 +7,7 @@ import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { nord } from "@milkdown/theme-nord";
 import { Edit3Icon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { NoteTags } from "@/components/notes/note-tags";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 
@@ -86,6 +87,9 @@ export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6 overflow-hidden">
+        <div className="mb-4">
+          <NoteTags noteId={note.id} />
+        </div>
         <div className="flex-1 overflow-auto prose prose-neutral dark:prose-invert max-w-none">
           <MilkdownProvider key={editorKey}>
             <MilkdownEditor content={initialContent} onChange={handleContentChange} />

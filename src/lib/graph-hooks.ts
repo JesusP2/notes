@@ -161,6 +161,19 @@ export function useTaggedNotes(tagId: string): Node[] {
   return result?.rows ?? [];
 }
 
+export function useNoteTags(noteId: string): Node[] {
+  const query = sql`
+    ${nodesSelect()}
+    JOIN edges e ON nodes.id = e.target_id
+    WHERE e.source_id = ${noteId} AND e.type = 'tagged_with'
+    ORDER BY LOWER(nodes.title) ASC
+  `;
+  const { sql: sqlString, params } = sqlToQuery(query);
+  const result = useLiveQuery<Node>(sqlString, params);
+
+  return result?.rows ?? [];
+}
+
 export function useNodeMutations() {
   const db = usePGlite();
 
@@ -296,6 +309,28 @@ export function useNodeMutations() {
     [db],
   );
 
+  const tagNote = useCallback(
+    async (noteId: string, tagId: string) => {
+      await db.query(
+        `INSERT INTO edges (id, source_id, target_id, type, created_at)
+         VALUES ($1, $2, $3, 'tagged_with', CURRENT_TIMESTAMP)
+         ON CONFLICT (source_id, target_id, type) DO NOTHING`,
+        [ulid(), noteId, tagId],
+      );
+    },
+    [db],
+  );
+
+  const untagNote = useCallback(
+    async (noteId: string, tagId: string) => {
+      await db.query(
+        "DELETE FROM edges WHERE source_id = $1 AND target_id = $2 AND type = 'tagged_with'",
+        [noteId, tagId],
+      );
+    },
+    [db],
+  );
+
   return {
     createNote,
     createFolder,
@@ -303,6 +338,8 @@ export function useNodeMutations() {
     updateNode,
     deleteNode,
     moveNode,
+    tagNote,
+    untagNote,
   };
 }
 

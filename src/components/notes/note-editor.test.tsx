@@ -11,6 +11,10 @@ vi.mock("@milkdown/react", () => ({
   useEditor: () => {},
 }));
 
+vi.mock("@/components/notes/note-tags", () => ({
+  NoteTags: () => <div data-testid="note-tags">Note Tags</div>,
+}));
+
 const baseNote: Node = {
   id: "note-1",
   type: "note",
