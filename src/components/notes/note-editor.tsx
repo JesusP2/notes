@@ -82,15 +82,13 @@ export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps
   const initialContent = note.content || `<h1>${note.title || "Untitled"}</h1><p></p>`;
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6 overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <TipTapEditor
-            key={editorKey}
-            content={initialContent}
-            onChange={handleContentChange}
-          />
-        </div>
+    <div className="h-full overflow-auto bg-background">
+      <div className="max-w-3xl mx-auto w-full px-8 py-6">
+        <TipTapEditor
+          key={editorKey}
+          content={initialContent}
+          onChange={handleContentChange}
+        />
       </div>
     </div>
   );
