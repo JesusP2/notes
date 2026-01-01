@@ -18,13 +18,13 @@ function sqlToQuery(query: ReturnType<typeof sql>) {
 function nodesSelect() {
   return sql`
     SELECT
-      id,
-      type,
-      title,
-      content,
-      color,
-      created_at AS "createdAt",
-      updated_at AS "updatedAt"
+      nodes.id AS id,
+      nodes.type AS type,
+      nodes.title AS title,
+      nodes.content AS content,
+      nodes.color AS color,
+      nodes.created_at AS "createdAt",
+      nodes.updated_at AS "updatedAt"
     FROM nodes
   `;
 }
@@ -32,11 +32,11 @@ function nodesSelect() {
 function edgesSelect() {
   return sql`
     SELECT
-      id,
-      source_id AS "sourceId",
-      target_id AS "targetId",
-      type,
-      created_at AS "createdAt"
+      edges.id AS id,
+      edges.source_id AS "sourceId",
+      edges.target_id AS "targetId",
+      edges.type AS type,
+      edges.created_at AS "createdAt"
     FROM edges
   `;
 }
@@ -73,11 +73,11 @@ export function useNodeById(nodeId: string): Node | null {
 export function useNodeEdges(nodeId: string): { outgoing: Edge[]; incoming: Edge[] } {
   const outgoingQuery = sql`
     ${edgesSelect()}
-    WHERE source_id = ${nodeId}
+    WHERE edges.source_id = ${nodeId}
   `;
   const incomingQuery = sql`
     ${edgesSelect()}
-    WHERE target_id = ${nodeId}
+    WHERE edges.target_id = ${nodeId}
   `;
 
   const outgoingCompiled = sqlToQuery(outgoingQuery);
@@ -136,7 +136,7 @@ export function useSearchNodes(queryText: string): Node[] {
 export function useTags(): Node[] {
   const query = sql`
     ${nodesSelect()}
-    WHERE type = 'tag'
+    WHERE nodes.type = 'tag'
     ORDER BY LOWER(title) ASC
   `;
   const { sql: sqlString, params } = sqlToQuery(query);

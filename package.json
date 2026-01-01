@@ -92,6 +92,7 @@
 		"@vitest/browser-playwright": "^4.0.16",
 		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.7",
+		"jsdom": "^26.1.0",
 		"oxfmt": "^0.21.0",
 		"oxlint": "^1.36.0",
 		"playwright": "1.57",
