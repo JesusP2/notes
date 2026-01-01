@@ -1,31 +1,32 @@
 import { PGlite, type PGliteInterfaceExtensions } from "@electric-sql/pglite";
 import { live } from "@electric-sql/pglite/live";
+import { drizzle } from "drizzle-orm/pglite";
+import { runMigrations } from "@/db/migrations";
+import * as schema from "@/db/schema/graph";
 
 type PGliteWithLive = PGlite & PGliteInterfaceExtensions<{ live: typeof live }>;
 
-let dbInstance: PGliteWithLive | null = null;
+let pgliteInstance: PGliteWithLive | null = null;
+let drizzleInstance: ReturnType<typeof drizzle> | null = null;
 
-export async function getDb(): Promise<PGliteWithLive> {
-  if (dbInstance) {
-    return dbInstance;
+export async function initDb(): Promise<{
+  pglite: PGliteWithLive;
+  db: ReturnType<typeof drizzle>;
+}> {
+  if (pgliteInstance && drizzleInstance) {
+    return { pglite: pgliteInstance, db: drizzleInstance };
   }
 
-  dbInstance = (await PGlite.create({
-    dataDir: "idb://todos-db",
+  pgliteInstance = (await PGlite.create({
+    dataDir: "idb://notes-graph-db",
     extensions: { live },
   })) as PGliteWithLive;
 
-  // Initialize todos table
-  await dbInstance.exec(`
-    CREATE TABLE IF NOT EXISTS todos (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      completed BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  await runMigrations(pgliteInstance);
 
-  return dbInstance;
+  drizzleInstance = drizzle(pgliteInstance, { schema });
+
+  return { pglite: pgliteInstance, db: drizzleInstance };
 }
 
-export const dbPromise = typeof window !== "undefined" ? getDb() : null;
+export const dbPromise = typeof window !== "undefined" ? initDb() : null;

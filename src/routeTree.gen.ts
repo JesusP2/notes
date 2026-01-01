@@ -8,157 +8,130 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as RouteImport } from "./routes/_";
-import { Route as TodosRouteImport } from "./routes/_.todos";
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
-import { Route as ApiUploadSplatRouteImport } from "./routes/api/upload.$";
-import { Route as AuthIdRouteImport } from "./routes/auth.$id";
-import { Route as IndexRouteImport } from "./routes/index";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as RouteImport } from './routes/_'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthIdRouteImport } from './routes/auth.$id'
+import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const Route = RouteImport.update({
-  id: "/_",
+  id: '/_',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthIdRoute = AuthIdRouteImport.update({
-  id: "/auth/$id",
-  path: "/auth/$id",
+  id: '/auth/$id',
+  path: '/auth/$id',
   getParentRoute: () => rootRouteImport,
-} as any);
-const TodosRoute = TodosRouteImport.update({
-  id: "/todos",
-  path: "/todos",
-  getParentRoute: () => Route,
-} as any);
+} as any)
 const ApiUploadSplatRoute = ApiUploadSplatRouteImport.update({
-  id: "/api/upload/$",
-  path: "/api/upload/$",
+  id: '/api/upload/$',
+  path: '/api/upload/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: "/api/auth/$",
-  path: "/api/auth/$",
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/todos": typeof TodosRoute;
-  "/auth/$id": typeof AuthIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/upload/$": typeof ApiUploadSplatRoute;
+  '/': typeof IndexRoute
+  '/auth/$id': typeof AuthIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/todos": typeof TodosRoute;
-  "/auth/$id": typeof AuthIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/upload/$": typeof ApiUploadSplatRoute;
+  '/': typeof IndexRoute
+  '/auth/$id': typeof AuthIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/_": typeof RouteWithChildren;
-  "/_/todos": typeof TodosRoute;
-  "/auth/$id": typeof AuthIdRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/upload/$": typeof ApiUploadSplatRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_': typeof Route
+  '/auth/$id': typeof AuthIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/upload/$': typeof ApiUploadSplatRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
-  fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
-  id: "__root__" | "/" | "/_" | "/_/todos" | "/auth/$id" | "/api/auth/$" | "/api/upload/$";
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
+  id: '__root__' | '/' | '/_' | '/auth/$id' | '/api/auth/$' | '/api/upload/$'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  Route: typeof RouteWithChildren;
-  AuthIdRoute: typeof AuthIdRoute;
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
-  ApiUploadSplatRoute: typeof ApiUploadSplatRoute;
+  IndexRoute: typeof IndexRoute
+  Route: typeof Route
+  AuthIdRoute: typeof AuthIdRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiUploadSplatRoute: typeof ApiUploadSplatRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/_": {
-      id: "/_";
-      path: "";
-      fullPath: "";
-      preLoaderRoute: typeof RouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/auth/$id": {
-      id: "/auth/$id";
-      path: "/auth/$id";
-      fullPath: "/auth/$id";
-      preLoaderRoute: typeof AuthIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_/todos": {
-      id: "/_/todos";
-      path: "/todos";
-      fullPath: "/todos";
-      preLoaderRoute: typeof TodosRouteImport;
-      parentRoute: typeof Route;
-    };
-    "/api/upload/$": {
-      id: "/api/upload/$";
-      path: "/api/upload/$";
-      fullPath: "/api/upload/$";
-      preLoaderRoute: typeof ApiUploadSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/auth/$": {
-      id: "/api/auth/$";
-      path: "/api/auth/$";
-      fullPath: "/api/auth/$";
-      preLoaderRoute: typeof ApiAuthSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+    '/_': {
+      id: '/_'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/$id': {
+      id: '/auth/$id'
+      path: '/auth/$id'
+      fullPath: '/auth/$id'
+      preLoaderRoute: typeof AuthIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload/$': {
+      id: '/api/upload/$'
+      path: '/api/upload/$'
+      fullPath: '/api/upload/$'
+      preLoaderRoute: typeof ApiUploadSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
-interface RouteChildren {
-  TodosRoute: typeof TodosRoute;
-}
-
-const RouteChildren: RouteChildren = {
-  TodosRoute: TodosRoute,
-};
-
-const RouteWithChildren = Route._addFileChildren(RouteChildren);
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  Route: RouteWithChildren,
+  Route: Route,
   AuthIdRoute: AuthIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiUploadSplatRoute: ApiUploadSplatRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { createStart } from "@tanstack/react-start";
-import type { getRouter } from "./router.tsx";
-
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }

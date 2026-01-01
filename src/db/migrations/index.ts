@@ -1,0 +1,38 @@
+import type { PGlite } from "@electric-sql/pglite";
+import { migration as m001 } from "./001_initial";
+import { migration as m002 } from "./002_seed_root";
+
+interface Migration {
+  version: number;
+  name: string;
+  up: (db: PGlite) => Promise<void>;
+}
+
+const migrations: Migration[] = [m001, m002];
+
+export async function runMigrations(db: PGlite): Promise<void> {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+  `);
+
+  const applied = await db.query<{ version: number }>(
+    "SELECT version FROM _migrations ORDER BY version",
+  );
+  const appliedVersions = new Set(applied.rows.map((row) => row.version));
+
+  for (const migration of migrations) {
+    if (!appliedVersions.has(migration.version)) {
+      console.log(`Running migration ${migration.version}: ${migration.name}`);
+      await migration.up(db);
+      await db.query("INSERT INTO _migrations (version, name) VALUES ($1, $2)", [
+        migration.version,
+        migration.name,
+      ]);
+      console.log(`Migration ${migration.version} complete`);
+    }
+  }
+}

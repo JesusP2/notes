@@ -97,20 +97,3 @@ export const passkey = pgTable("passkey", (t) => ({
   createdAt: t.timestamp("created_at"),
   aaguid: t.text("aaguid"),
 }));
-
-export const todos = pgTable("todos", (t) => ({
-  id: t.text("id").primaryKey(),
-  userId: t
-    .text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  title: t.text("title").notNull(),
-  description: t.text("description"),
-  completed: t.boolean("completed").notNull(),
-  createdAt: t.timestamp("created_at").defaultNow().notNull(),
-  updatedAt: t
-    .timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
-    .notNull(),
-}));
