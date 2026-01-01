@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { EdgeType, Node } from "@/db/schema/graph";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { EdgeType, Node } from "@/db/schema/graph";
 import { useEdgeMutations } from "@/lib/graph-hooks";
 import { EdgeTypeSelect } from "./edge-type-select";
 import { NodeSearch } from "./node-search";

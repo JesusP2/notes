@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { NodeSearch } from "./node-search";

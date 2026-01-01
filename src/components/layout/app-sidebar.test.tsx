@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import type React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { AppSidebar } from "./app-sidebar";
 
 const mockNavigate = vi.fn();
 
 vi.mock("@tanstack/react-router", async () => {
-  const actual = await vi.importActual<typeof import("@tanstack/react-router")>(
-    "@tanstack/react-router",
-  );
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-router")>("@tanstack/react-router");
   return {
     ...actual,
     useNavigate: () => mockNavigate,

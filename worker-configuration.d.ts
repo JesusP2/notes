@@ -27,10 +27,34 @@ declare namespace Cloudflare {
 }
 interface Env extends Cloudflare.Env {}
 type StringifyValues<EnvType extends Record<string, unknown>> = {
-	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
+	[Binding in keyof EnvType]: EnvType[Binding] extends string
+		? EnvType[Binding]
+		: string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "R2_ACCESS_KEY_ID" | "R2_SECRET_ACCESS_KEY" | "R2_ENDPOINT" | "R2_REGION" | "R2_BUCKET" | "R2_ACCOUNT_ID" | "BETTER_AUTH_SECRET" | "VITE_SERVER_URL" | "ADMIN_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "RESEND_API_KEY" | "OPENROUTER_KEY" | "SENTRY_DSN" | "TURNSTILE_SITEKEY" | "TURNSTILE_SECRET" | "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE">> {}
+	interface ProcessEnv
+		extends StringifyValues<
+			Pick<
+				Cloudflare.Env,
+				| "R2_ACCESS_KEY_ID"
+				| "R2_SECRET_ACCESS_KEY"
+				| "R2_ENDPOINT"
+				| "R2_REGION"
+				| "R2_BUCKET"
+				| "R2_ACCOUNT_ID"
+				| "BETTER_AUTH_SECRET"
+				| "VITE_SERVER_URL"
+				| "ADMIN_SECRET"
+				| "GOOGLE_CLIENT_ID"
+				| "GOOGLE_CLIENT_SECRET"
+				| "RESEND_API_KEY"
+				| "OPENROUTER_KEY"
+				| "SENTRY_DSN"
+				| "TURNSTILE_SITEKEY"
+				| "TURNSTILE_SECRET"
+				| "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE"
+			>
+		> {}
 }
 
 // Begin runtime types

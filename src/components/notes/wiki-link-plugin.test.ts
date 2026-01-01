@@ -33,7 +33,11 @@ describe("syncWikiLinks", () => {
       ["note-2", "note", "Target Note"],
     );
 
-    await syncWikiLinks({ db, noteId: "note-1", content: "Links to [[Target Note]]." });
+    await syncWikiLinks({
+      db,
+      noteId: "note-1",
+      content: "Links to [[Target Note]].",
+    });
 
     const edges = await db.query<{ target_id: string }>(
       "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'references'",

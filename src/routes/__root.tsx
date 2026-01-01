@@ -4,6 +4,7 @@ import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanst
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthProvider } from "@/auth/provider";
 import { useUserQueryOptions } from "@/auth/use-user";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "@/styles/app.css?url";
 import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
@@ -42,17 +43,24 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        <AuthProvider>
-          <ConfirmDialogProvider>
-            <Outlet />
-            <Toaster richColors />
-          </ConfirmDialogProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <ConfirmDialogProvider>
+              <Outlet />
+              <Toaster richColors />
+            </ConfirmDialogProvider>
+          </AuthProvider>
+        </ThemeProvider>
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />
       </body>

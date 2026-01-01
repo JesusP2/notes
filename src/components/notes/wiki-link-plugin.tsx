@@ -3,8 +3,7 @@ import { ulid } from "ulidx";
 import type { Node } from "@/db/schema/graph";
 
 const WIKI_LINK_REGEX = /\[\[([^[\]]+)\]\]/g;
-const RESOLVED_CLASS =
-  "wiki-link wiki-link-resolved text-sky-600 underline underline-offset-2";
+const RESOLVED_CLASS = "wiki-link wiki-link-resolved text-sky-600 underline underline-offset-2";
 const UNRESOLVED_CLASS =
   "wiki-link wiki-link-unresolved text-muted-foreground border-b border-dashed border-muted-foreground/60";
 
@@ -45,10 +44,7 @@ export function buildWikiLinkTargets(nodes: Node[]): Record<string, string> {
   return map;
 }
 
-export function renderWikiLinks(
-  content: string,
-  linkTargets: Record<string, string> = {},
-): string {
+export function renderWikiLinks(content: string, linkTargets: Record<string, string> = {}): string {
   if (!content) {
     return "";
   }

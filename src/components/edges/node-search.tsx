@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import type { Node } from "@/db/schema/graph";
-import { useSearchNodes } from "@/lib/graph-hooks";
 import {
   Combobox,
   ComboboxContent,
@@ -9,6 +7,8 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import type { Node } from "@/db/schema/graph";
+import { useSearchNodes } from "@/lib/graph-hooks";
 
 interface NodeSearchProps {
   selectedId?: string | null;
@@ -28,10 +28,7 @@ export function NodeSearch({
   const results = useSearchNodes(query);
 
   const notes = useMemo(
-    () =>
-      results.filter(
-        (node) => node.type === "note" && node.id !== excludeId,
-      ),
+    () => results.filter((node) => node.type === "note" && node.id !== excludeId),
     [excludeId, results],
   );
 

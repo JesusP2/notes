@@ -11,10 +11,7 @@ describe("runMigrations", () => {
       "SELECT name FROM _migrations ORDER BY version",
     );
 
-    expect(result.rows.map((row) => row.name)).toEqual([
-      "initial_schema",
-      "seed_root_folder",
-    ]);
+    expect(result.rows.map((row) => row.name)).toEqual(["initial_schema", "seed_root_folder"]);
   });
 
   it("skips already-applied migrations", async () => {
@@ -38,6 +35,10 @@ describe("runMigrations", () => {
       ["root"],
     );
 
-    expect(result.rows[0]).toEqual({ id: "root", type: "folder", title: "Root" });
+    expect(result.rows[0]).toEqual({
+      id: "root",
+      type: "folder",
+      title: "Root",
+    });
   });
 });

@@ -20,7 +20,10 @@ function TagNotes({ tagId, level, onSelectNode }: TagNotesProps) {
         </li>
       ))}
       {notes.length === 0 && (
-        <li className="text-muted-foreground px-2 py-1 text-xs" style={{ paddingLeft: `${level * 12}px` }}>
+        <li
+          className="text-muted-foreground px-2 py-1 text-xs"
+          style={{ paddingLeft: `${level * 12}px` }}
+        >
           No tagged notes.
         </li>
       )}

@@ -1,16 +1,17 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type React from "react";
 import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import {
+  useEdgeMutations,
   useFolderChildren,
   useGraphData,
   useNodeById,
   useNodeEdges,
   useNodeMutations,
-  useEdgeMutations,
   useSearchNodes,
   useTaggedNotes,
   useTags,
@@ -367,14 +368,7 @@ describe("useSearchNodes", () => {
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, content, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)",
-        [
-          "note-new",
-          "note",
-          "Note New",
-          "note",
-          "2020-01-02T00:00:00Z",
-          "2020-01-02T00:00:00Z",
-        ],
+        ["note-new", "note", "Note New", "note", "2020-01-02T00:00:00Z", "2020-01-02T00:00:00Z"],
       );
 
       await waitFor(() => expect(result.current).toHaveLength(2));
@@ -403,9 +397,7 @@ describe("useGraphData", () => {
         ["edge-graph", "note-1", "root", "part_of"],
       );
 
-      await waitFor(() =>
-        expect(result.current.nodes.map((node) => node.id)).toContain("note-1"),
-      );
+      await waitFor(() => expect(result.current.nodes.map((node) => node.id)).toContain("note-1"));
       await waitFor(() =>
         expect(result.current.edges.map((edge) => edge.id)).toContain("edge-graph"),
       );
@@ -421,9 +413,7 @@ describe("useGraphData", () => {
     });
 
     try {
-      await waitFor(() =>
-        expect(result.current.nodes.map((node) => node.id)).toContain("root"),
-      );
+      await waitFor(() => expect(result.current.nodes.map((node) => node.id)).toContain("root"));
     } finally {
       unmount();
     }
@@ -453,10 +443,9 @@ describe("useEdgeMutations", () => {
         edgeId = created.id;
       });
 
-      const edges = await db.query(
-        "SELECT source_id, target_id, type FROM edges WHERE id = $1",
-        [edgeId],
-      );
+      const edges = await db.query("SELECT source_id, target_id, type FROM edges WHERE id = $1", [
+        edgeId,
+      ]);
       expect(edges.rows[0]).toEqual({
         source_id: "note-1",
         target_id: "note-2",
@@ -572,15 +561,17 @@ describe("useNodeMutations", () => {
         createdId = created.id;
       });
 
-      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
-        createdId,
-      ]);
+      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [createdId]);
       const edges = await db.query(
         "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
         [createdId],
       );
 
-      expect(nodes.rows[0]).toEqual({ id: createdId, type: "note", title: "New Note" });
+      expect(nodes.rows[0]).toEqual({
+        id: createdId,
+        type: "note",
+        title: "New Note",
+      });
       expect(edges.rows[0]).toEqual({
         source_id: createdId,
         target_id: "root",
@@ -646,15 +637,17 @@ describe("useNodeMutations", () => {
         folderId = created.id;
       });
 
-      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
-        folderId,
-      ]);
+      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [folderId]);
       const edges = await db.query(
         "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
         [folderId],
       );
 
-      expect(nodes.rows[0]).toEqual({ id: folderId, type: "folder", title: "Folder" });
+      expect(nodes.rows[0]).toEqual({
+        id: folderId,
+        type: "folder",
+        title: "Folder",
+      });
       expect(edges.rows[0]).toEqual({
         source_id: folderId,
         target_id: "root",
@@ -708,10 +701,9 @@ describe("useNodeMutations", () => {
         });
       });
 
-      const nodes = await db.query(
-        "SELECT title, content, color FROM nodes WHERE id = $1",
-        ["note-1"],
-      );
+      const nodes = await db.query("SELECT title, content, color FROM nodes WHERE id = $1", [
+        "note-1",
+      ]);
 
       expect(nodes.rows[0]).toEqual({
         title: "New",

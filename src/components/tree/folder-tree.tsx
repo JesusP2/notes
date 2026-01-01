@@ -1,6 +1,16 @@
-import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useConfirmDialog } from "@/components/providers/confirm-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import type { Node } from "@/db/schema/graph";
-import { useFolderChildren, useNodeById } from "@/lib/graph-hooks";
+import { useFolderChildren, useNodeMutations } from "@/lib/graph-hooks";
 import { TreeNode } from "./tree-node";
 
 interface FolderTreeProps {
@@ -13,35 +23,166 @@ interface TreeBranchProps {
   level: number;
   expandedIds: Set<string>;
   onToggle: (id: string) => void;
+  onExpandFolder: (id: string) => void;
   onSelectNode?: (node: Node) => void;
+  draggedNode: string | null;
+  setDraggedNode: (id: string | null) => void;
+  dragOverNode: string | null;
+  setDragOverNode: (id: string | null) => void;
+  onTriggerRename: (nodeId: string) => void;
 }
 
-function TreeBranch({ parentId, level, expandedIds, onToggle, onSelectNode }: TreeBranchProps) {
+function TreeBranch({
+  parentId,
+  level,
+  expandedIds,
+  onToggle,
+  onExpandFolder,
+  onSelectNode,
+  draggedNode,
+  setDraggedNode,
+  dragOverNode,
+  setDragOverNode,
+  onTriggerRename,
+}: TreeBranchProps) {
   const children = useFolderChildren(parentId);
+  const navigate = useNavigate();
+  const { createNote, createFolder, deleteNode, moveNode } = useNodeMutations();
+  const { openConfirmDialog } = useConfirmDialog();
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, nodeId: string) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", nodeId);
+      setDraggedNode(nodeId);
+    },
+    [setDraggedNode],
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, node: Node) => {
+      e.preventDefault();
+      if (node.type === "folder" && draggedNode && draggedNode !== node.id) {
+        e.dataTransfer.dropEffect = "move";
+        setDragOverNode(node.id);
+      }
+    },
+    [draggedNode, setDragOverNode],
+  );
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent, targetNode: Node) => {
+      e.preventDefault();
+      const sourceId = e.dataTransfer.getData("text/plain");
+      if (sourceId && targetNode.type === "folder" && sourceId !== targetNode.id) {
+        await moveNode(sourceId, targetNode.id);
+      }
+      setDraggedNode(null);
+      setDragOverNode(null);
+    },
+    [moveNode, setDraggedNode, setDragOverNode],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedNode(null);
+    setDragOverNode(null);
+  }, [setDraggedNode, setDragOverNode]);
+
+  const handleCreateNote = useCallback(
+    async (folderId: string) => {
+      onExpandFolder(folderId);
+      const note = await createNote("Untitled", folderId);
+      navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
+      setTimeout(() => {
+        const el = document.querySelector(`[data-node-id="${note.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    },
+    [createNote, navigate, onExpandFolder],
+  );
+
+  const handleCreateFolder = useCallback(
+    async (folderId: string) => {
+      await createFolder("New Folder", folderId);
+    },
+    [createFolder],
+  );
+
+  const handleDelete = useCallback(
+    (node: Node) => {
+      openConfirmDialog({
+        title: `Delete ${node.type}?`,
+        description: `Are you sure you want to delete "${node.title}"? This cannot be undone.`,
+        handleConfirm: () => deleteNode(node.id),
+        variant: "destructive",
+      });
+    },
+    [openConfirmDialog, deleteNode],
+  );
 
   return (
-    <ul className="space-y-0.5">
+    <ul className="space-y-0.5" onDragEnd={handleDragEnd}>
       {children.map((child) => {
         const isFolder = child.type === "folder";
         const isExpanded = expandedIds.has(child.id);
 
         return (
           <li key={child.id}>
-            <TreeNode
-              isExpandable={isFolder}
-              isExpanded={isExpanded}
-              level={level}
-              node={child}
-              onSelect={() => onSelectNode?.(child)}
-              onToggle={isFolder ? () => onToggle(child.id) : undefined}
-            />
+            <ContextMenu>
+              <ContextMenuTrigger>
+                <TreeNode
+                  isExpandable={isFolder}
+                  isExpanded={isExpanded}
+                  level={level}
+                  node={child}
+                  onSelect={() => onSelectNode?.(child)}
+                  onToggle={isFolder ? () => onToggle(child.id) : undefined}
+                  onDragStart={(e) => handleDragStart(e, child.id)}
+                  onDragOver={(e) => handleDragOver(e, child)}
+                  onDrop={(e) => handleDrop(e, child)}
+                  isDragOver={dragOverNode === child.id}
+                />
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-48">
+                {isFolder && (
+                  <>
+                    <ContextMenuItem onClick={() => handleCreateNote(child.id)}>
+                      <FilePlus className="mr-2 size-4" />
+                      New Note
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleCreateFolder(child.id)}>
+                      <FolderPlus className="mr-2 size-4" />
+                      New Folder
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                  </>
+                )}
+                <ContextMenuItem onClick={() => onTriggerRename(child.id)}>
+                  <Pencil className="mr-2 size-4" />
+                  Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => handleDelete(child)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
             {isFolder && isExpanded && (
               <TreeBranch
                 expandedIds={expandedIds}
                 level={level + 1}
                 onSelectNode={onSelectNode}
                 onToggle={onToggle}
+                onExpandFolder={onExpandFolder}
                 parentId={child.id}
+                draggedNode={draggedNode}
+                setDraggedNode={setDraggedNode}
+                dragOverNode={dragOverNode}
+                setDragOverNode={setDragOverNode}
+                onTriggerRename={onTriggerRename}
               />
             )}
           </li>
@@ -52,8 +193,9 @@ function TreeBranch({ parentId, level, expandedIds, onToggle, onSelectNode }: Tr
 }
 
 export function FolderTree({ rootId = "root", onSelectNode }: FolderTreeProps) {
-  const root = useNodeById(rootId);
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
+  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const [dragOverNode, setDragOverNode] = useState<string | null>(null);
 
   const toggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -67,40 +209,40 @@ export function FolderTree({ rootId = "root", onSelectNode }: FolderTreeProps) {
     });
   }, []);
 
-  const isRootExpanded = expandedIds.has(rootId);
-  const rootNode = useMemo(
-    () =>
-      root ?? {
-        id: rootId,
-        type: "folder" as const,
-        title: "Root",
-        content: null,
-        color: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    [root, rootId],
-  );
+  const expandFolder = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const triggerRename = useCallback((nodeId: string) => {
+    setTimeout(() => {
+      const el = document.querySelector(`[data-node-id="${nodeId}"] button`);
+      if (el instanceof HTMLElement) {
+        const event = new MouseEvent("dblclick", { bubbles: true });
+        el.dispatchEvent(event);
+      }
+    }, 50);
+  }, []);
 
   return (
     <div aria-label="Folder tree" role="tree">
-      <TreeNode
-        isExpandable
-        isExpanded={isRootExpanded}
+      <TreeBranch
+        expandedIds={expandedIds}
         level={0}
-        node={rootNode}
-        onSelect={() => onSelectNode?.(rootNode)}
-        onToggle={() => toggle(rootId)}
+        onSelectNode={onSelectNode}
+        onToggle={toggle}
+        onExpandFolder={expandFolder}
+        parentId={rootId}
+        draggedNode={draggedNode}
+        setDraggedNode={setDraggedNode}
+        dragOverNode={dragOverNode}
+        setDragOverNode={setDragOverNode}
+        onTriggerRename={triggerRename}
       />
-      {isRootExpanded && (
-        <TreeBranch
-          expandedIds={expandedIds}
-          level={1}
-          onSelectNode={onSelectNode}
-          onToggle={toggle}
-          parentId={rootId}
-        />
-      )}
     </div>
   );
 }

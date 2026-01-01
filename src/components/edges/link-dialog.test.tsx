@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type React from "react";
 import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { LinkDialog } from "./link-dialog";
@@ -26,10 +27,9 @@ describe("LinkDialog", () => {
       ["note-target", "note", "Target Note"],
     );
 
-    render(
-      <LinkDialog open onOpenChange={() => undefined} sourceId="note-source" />,
-      { wrapper: Wrapper },
-    );
+    render(<LinkDialog open onOpenChange={() => undefined} sourceId="note-source" />, {
+      wrapper: Wrapper,
+    });
 
     fireEvent.change(screen.getByLabelText("Search notes"), {
       target: { value: "Target" },

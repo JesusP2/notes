@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Node } from "@/db/schema/graph";
-import { StreamdownRenderer } from "@/components/streamdown";
+import { Edit3Icon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
-import { extractWikiLinks, renderWikiLinks } from "./wiki-link-plugin";
+import { extractWikiLinks } from "./wiki-link-plugin";
 
 interface NoteEditorProps {
   note: Node | null;
@@ -21,11 +20,11 @@ export function NoteEditor({
   onChange,
   onTitleChange,
   onLinksChange,
-  linkTargets,
   debounceMs = 500,
 }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title ?? "");
   const [content, setContent] = useState(note?.content ?? "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setTitle(note?.title ?? "");
@@ -39,63 +38,46 @@ export function NoteEditor({
     }
   }, debounceMs);
 
-  const preview = useMemo(
-    () => renderWikiLinks(content, linkTargets),
-    [content, linkTargets],
-  );
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+    debouncedSave(newContent);
+  };
 
   if (!note) {
     return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-        Select a note to start editing.
+      <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <Edit3Icon className="size-8 text-muted-foreground/50" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">No Note Selected</h3>
+        <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+          Select a note from the sidebar or create a new one to get started.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <div className="space-y-1">
-        <Label htmlFor="note-title">Title</Label>
+    <div className="flex flex-col h-full bg-background">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-8 py-6">
         <Input
-          aria-label="Title"
-          id="note-title"
-          onChange={(event) => {
-            const value = event.target.value;
-            setTitle(value);
-            onTitleChange?.(value);
-          }}
-          placeholder="Untitled note"
           value={title}
+          onChange={(e) => {
+            const val = e.target.value;
+            setTitle(val);
+            onTitleChange?.(val);
+          }}
+          className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/50 mb-4"
+          placeholder="Untitled Note"
         />
-      </div>
-      <div className="grid flex-1 gap-4 lg:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="note-content">Content</Label>
-          <Textarea
-            aria-label="Content"
-            className="min-h-[320px] flex-1 font-mono"
-            id="note-content"
-            onChange={(event) => {
-              const value = event.target.value;
-              setContent(value);
-              debouncedSave(value);
-            }}
-            placeholder="Write your note in Markdown..."
-            value={content}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>Preview</Label>
-          <div className="bg-muted/20 flex-1 overflow-auto rounded-md border p-3 text-sm">
-            {content.trim() ? (
-              <StreamdownRenderer>{preview}</StreamdownRenderer>
-            ) : (
-              <p className="text-muted-foreground italic">
-                Preview will appear here...
-              </p>
-            )}
-          </div>
-        </div>
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => handleContentChange(e.target.value)}
+          className="flex-1 w-full resize-none border-none focus-visible:ring-0 px-0 text-base leading-relaxed bg-transparent"
+          placeholder="Start writing..."
+          spellCheck={false}
+        />
       </div>
     </div>
   );

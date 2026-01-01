@@ -1,10 +1,10 @@
-import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import type { Edge, Node } from "@/db/schema/graph";
+import { type ReactNode, useMemo, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import type { Edge, Node } from "@/db/schema/graph";
 
 const LINK_TYPES = new Set(["references", "supports", "contradicts", "related_to"]);
 const LINK_LABELS: Record<string, string> = {
@@ -39,9 +39,7 @@ export function NoteSidebar({ note, outgoingEdges, incomingEdges, nodes }: NoteS
   if (!note) {
     return (
       <aside className="bg-muted/10 text-muted-foreground w-72 shrink-0 border-l">
-        <div className="flex h-full items-center justify-center p-4 text-xs">
-          No note selected.
-        </div>
+        <div className="flex h-full items-center justify-center p-4 text-xs">No note selected.</div>
       </aside>
     );
   }
@@ -92,7 +90,11 @@ export function NoteSidebar({ note, outgoingEdges, incomingEdges, nodes }: NoteS
             return (
               <div key={edge.id} className="flex items-center justify-between text-xs">
                 {node?.type === "note" ? (
-                  <Link className="hover:underline" to="/notes/$noteId" params={{ noteId: node.id }}>
+                  <Link
+                    className="hover:underline"
+                    to="/notes/$noteId"
+                    params={{ noteId: node.id }}
+                  >
                     {node.title}
                   </Link>
                 ) : (
@@ -110,7 +112,11 @@ export function NoteSidebar({ note, outgoingEdges, incomingEdges, nodes }: NoteS
             return (
               <div key={edge.id} className="flex items-center justify-between text-xs">
                 {node?.type === "note" ? (
-                  <Link className="hover:underline" to="/notes/$noteId" params={{ noteId: node.id }}>
+                  <Link
+                    className="hover:underline"
+                    to="/notes/$noteId"
+                    params={{ noteId: node.id }}
+                  >
                     {node.title}
                   </Link>
                 ) : (
@@ -143,7 +149,11 @@ function Section({
         <span>{title}</span>
         <Badge variant="secondary">{count}</Badge>
       </div>
-      {count ? <div className="space-y-2">{children}</div> : <p className="text-muted-foreground text-xs">{emptyLabel}</p>}
+      {count ? (
+        <div className="space-y-2">{children}</div>
+      ) : (
+        <p className="text-muted-foreground text-xs">{emptyLabel}</p>
+      )}
     </section>
   );
 }

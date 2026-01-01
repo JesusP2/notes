@@ -1,7 +1,7 @@
-import { useCallback } from "react";
 import { useLiveQuery, usePGlite } from "@electric-sql/pglite-react";
-import { PgDialect } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { useCallback } from "react";
 import { ulid } from "ulidx";
 import type { Edge, EdgeType, Node, NodeType } from "@/db/schema/graph";
 
@@ -70,7 +70,10 @@ export function useNodeById(nodeId: string): Node | null {
   return result?.rows[0] ?? null;
 }
 
-export function useNodeEdges(nodeId: string): { outgoing: Edge[]; incoming: Edge[] } {
+export function useNodeEdges(nodeId: string): {
+  outgoing: Edge[];
+  incoming: Edge[];
+} {
   const outgoingQuery = sql`
     ${edgesSelect()}
     WHERE edges.source_id = ${nodeId}
@@ -247,16 +250,12 @@ export function useNodeMutations() {
         fields.push(`updated_at = CURRENT_TIMESTAMP`);
       } else {
         const updatedAtValue =
-          updates.updatedAt instanceof Date
-            ? updates.updatedAt.toISOString()
-            : updates.updatedAt;
+          updates.updatedAt instanceof Date ? updates.updatedAt.toISOString() : updates.updatedAt;
         fields.push(`updated_at = $${values.length + 1}`);
         values.push(updatedAtValue);
       }
 
-      const sqlText = `UPDATE nodes SET ${fields.join(", ")} WHERE id = $${
-        values.length + 1
-      }`;
+      const sqlText = `UPDATE nodes SET ${fields.join(", ")} WHERE id = $${values.length + 1}`;
       await db.query(sqlText, [...values, id]);
     },
     [db],

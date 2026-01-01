@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { fireEvent, render, screen } from "@testing-library/react";
+import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Node } from "@/db/schema/graph";
 import { NoteEditor } from "./note-editor";
@@ -66,7 +67,9 @@ describe("NoteEditor", () => {
     );
 
     const contentInput = screen.getByLabelText("Content") as HTMLTextAreaElement;
-    fireEvent.change(contentInput, { target: { value: "See [[Alpha]] and [[Beta]]" } });
+    fireEvent.change(contentInput, {
+      target: { value: "See [[Alpha]] and [[Beta]]" },
+    });
 
     vi.advanceTimersByTime(200);
     expect(handleLinksChange).toHaveBeenCalledWith(["Alpha", "Beta"]);

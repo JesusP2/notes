@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import React from "react";
+
 import { fireEvent, render, screen } from "@testing-library/react";
+import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { EdgeTypeSelect } from "./edge-type-select";
 

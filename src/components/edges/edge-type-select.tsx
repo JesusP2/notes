@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import type { EdgeType } from "@/db/schema/graph";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -8,16 +7,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { EdgeType } from "@/db/schema/graph";
 
 const EDGE_TYPE_OPTIONS: Array<{
   value: EdgeType;
   label: string;
   description: string;
 }> = [
-  { value: "references", label: "references", description: "Links to this note" },
-  { value: "supports", label: "supports", description: "Provides evidence for" },
+  {
+    value: "references",
+    label: "references",
+    description: "Links to this note",
+  },
+  {
+    value: "supports",
+    label: "supports",
+    description: "Provides evidence for",
+  },
   { value: "contradicts", label: "contradicts", description: "Disagrees with" },
-  { value: "related_to", label: "related to", description: "Is loosely related to" },
+  {
+    value: "related_to",
+    label: "related to",
+    description: "Is loosely related to",
+  },
 ];
 
 interface EdgeTypeSelectProps {
@@ -27,12 +39,7 @@ interface EdgeTypeSelectProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function EdgeTypeSelect({
-  value,
-  onValueChange,
-  open,
-  onOpenChange,
-}: EdgeTypeSelectProps) {
+export function EdgeTypeSelect({ value, onValueChange, open, onOpenChange }: EdgeTypeSelectProps) {
   const valueRef = useRef<EdgeType>(value);
 
   useEffect(() => {
