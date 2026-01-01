@@ -2,7 +2,7 @@
 import React from "react";
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { FolderTree } from "./folder-tree";
 import { TagsSection } from "./tags-section";
@@ -116,6 +116,28 @@ describe("FolderTree", () => {
     await waitFor(() => expect(screen.getAllByText("Shared Note")).toHaveLength(2));
     await waitFor(() => expect(screen.getAllByLabelText("Multiple parents")).toHaveLength(2));
   });
+
+  it("calls onSelectNode when a note is clicked", async () => {
+    const db = await createTestDb();
+    const Wrapper = createWrapper(db);
+    const handleSelect = vi.fn();
+
+    await db.query(
+      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+      ["note-1", "note", "Note 1"],
+    );
+    await db.query(
+      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
+      ["edge-note", "note-1", "root", "part_of"],
+    );
+
+    render(<FolderTree onSelectNode={handleSelect} />, { wrapper: Wrapper });
+
+    await waitFor(() => expect(screen.queryByText("Note 1")).not.toBeNull());
+    fireEvent.click(screen.getByText("Note 1"));
+
+    expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "note-1" }));
+  });
 });
 
 describe("TagsSection", () => {
@@ -143,5 +165,33 @@ describe("TagsSection", () => {
 
     fireEvent.click(toggle);
     await waitFor(() => expect(screen.queryByText("Tagged Note")).not.toBeNull());
+  });
+
+  it("calls onSelectNode when a tagged note is clicked", async () => {
+    const db = await createTestDb();
+    const Wrapper = createWrapper(db);
+    const handleSelect = vi.fn();
+
+    await db.query(
+      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+      ["tag-1", "tag", "Alpha"],
+    );
+    await db.query(
+      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+      ["note-1", "note", "Tagged Note"],
+    );
+    await db.query(
+      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
+      ["edge-tag", "note-1", "tag-1", "tagged_with"],
+    );
+
+    render(<TagsSection onSelectNode={handleSelect} />, { wrapper: Wrapper });
+
+    fireEvent.click(await screen.findByLabelText("Toggle tag Alpha"));
+    await waitFor(() => expect(screen.queryByText("Tagged Note")).not.toBeNull());
+
+    fireEvent.click(screen.getByText("Tagged Note"));
+
+    expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "note-1" }));
   });
 });

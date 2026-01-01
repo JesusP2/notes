@@ -15,7 +15,7 @@ describe("renderWikiLinks", () => {
       alpha: "note-1",
     });
 
-    expect(result).toContain('href="/_/notes/note-1"');
+    expect(result).toContain('href="/notes/note-1"');
     expect(result).toContain("wiki-link-unresolved");
   });
 });

@@ -64,7 +64,7 @@ export function renderWikiLinks(
     const displayTitle = `[[${escapeHtml(title)}]]`;
 
     if (targetId) {
-      return `<a class="${RESOLVED_CLASS}" href="/_/notes/${targetId}">${displayTitle}</a>`;
+      return `<a class="${RESOLVED_CLASS}" href="/notes/${targetId}">${displayTitle}</a>`;
     }
 
     return `<span class="${UNRESOLVED_CLASS}">${displayTitle}</span>`;

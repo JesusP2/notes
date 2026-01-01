@@ -92,7 +92,7 @@ export function NoteSidebar({ note, outgoingEdges, incomingEdges, nodes }: NoteS
             return (
               <div key={edge.id} className="flex items-center justify-between text-xs">
                 {node?.type === "note" ? (
-                  <Link className="hover:underline" to="/_/notes/$noteId" params={{ noteId: node.id }}>
+                  <Link className="hover:underline" to="/notes/$noteId" params={{ noteId: node.id }}>
                     {node.title}
                   </Link>
                 ) : (
@@ -110,7 +110,7 @@ export function NoteSidebar({ note, outgoingEdges, incomingEdges, nodes }: NoteS
             return (
               <div key={edge.id} className="flex items-center justify-between text-xs">
                 {node?.type === "note" ? (
-                  <Link className="hover:underline" to="/_/notes/$noteId" params={{ noteId: node.id }}>
+                  <Link className="hover:underline" to="/notes/$noteId" params={{ noteId: node.id }}>
                     {node.title}
                   </Link>
                 ) : (
