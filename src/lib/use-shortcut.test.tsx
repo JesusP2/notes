@@ -2,8 +2,33 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SHORTCUTS } from "./shortcuts";
+import { SHORTCUTS, type ShortcutDefinition } from "./shortcuts";
 import { usePlatform, useShortcut, useShortcuts } from "./use-shortcut";
+
+function keyToCode(key: string): string | undefined {
+  if (key === "/") return "Slash";
+  if (key.length === 1) {
+    const upper = key.toUpperCase();
+    if (/[A-Z]/.test(upper)) return `Key${upper}`;
+    if (/[0-9]/.test(upper)) return `Digit${upper}`;
+  }
+  return key;
+}
+
+function createShortcutEvent(
+  shortcut: ShortcutDefinition,
+  overrides: Partial<KeyboardEventInit> = {},
+) {
+  const key = overrides.key ?? shortcut.key;
+  return new KeyboardEvent("keydown", {
+    key,
+    code: overrides.code ?? keyToCode(String(key)),
+    metaKey: overrides.metaKey ?? Boolean(shortcut.modifiers?.meta),
+    ctrlKey: overrides.ctrlKey ?? false,
+    altKey: overrides.altKey ?? Boolean(shortcut.modifiers?.alt),
+    shiftKey: overrides.shiftKey ?? Boolean(shortcut.modifiers?.shift),
+  });
+}
 
 describe("usePlatform", () => {
   const originalNavigator = global.navigator;
@@ -74,10 +99,7 @@ describe("useShortcut", () => {
     const handler = vi.fn();
     renderHook(() => useShortcut(SHORTCUTS.COMMAND_PALETTE, handler));
 
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-    });
+    const event = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE);
     Object.defineProperty(event, "preventDefault", { value: vi.fn() });
 
     act(() => {
@@ -91,10 +113,7 @@ describe("useShortcut", () => {
     const handler = vi.fn();
     renderHook(() => useShortcut(SHORTCUTS.COMMAND_PALETTE, handler));
 
-    const event = new KeyboardEvent("keydown", {
-      key: "j",
-      metaKey: true,
-    });
+    const event = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE, { key: "j" });
 
     act(() => {
       document.dispatchEvent(event);
@@ -107,9 +126,7 @@ describe("useShortcut", () => {
     const handler = vi.fn();
     renderHook(() => useShortcut(SHORTCUTS.COMMAND_PALETTE, handler));
 
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-    });
+    const event = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE, { altKey: false });
 
     act(() => {
       document.dispatchEvent(event);
@@ -129,8 +146,8 @@ describe("useShortcut", () => {
     const handler = vi.fn();
     renderHook(() => useShortcut(SHORTCUTS.COMMAND_PALETTE, handler));
 
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
+    const event = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE, {
+      metaKey: false,
       ctrlKey: true,
     });
     Object.defineProperty(event, "preventDefault", { value: vi.fn() });
@@ -155,10 +172,7 @@ describe("useShortcuts", () => {
       ]),
     );
 
-    const event1 = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-    });
+    const event1 = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE);
     Object.defineProperty(event1, "preventDefault", { value: vi.fn() });
 
     act(() => {
@@ -168,10 +182,7 @@ describe("useShortcuts", () => {
     expect(handler1).toHaveBeenCalledTimes(1);
     expect(handler2).not.toHaveBeenCalled();
 
-    const event2 = new KeyboardEvent("keydown", {
-      key: "n",
-      metaKey: true,
-    });
+    const event2 = createShortcutEvent(SHORTCUTS.NEW_NOTE);
     Object.defineProperty(event2, "preventDefault", { value: vi.fn() });
 
     act(() => {
@@ -192,10 +203,7 @@ describe("useShortcuts", () => {
       ]),
     );
 
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-    });
+    const event = createShortcutEvent(SHORTCUTS.COMMAND_PALETTE);
     Object.defineProperty(event, "preventDefault", { value: vi.fn() });
 
     act(() => {

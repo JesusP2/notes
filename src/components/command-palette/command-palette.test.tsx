@@ -2,6 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { SHORTCUTS, type ShortcutDefinition } from "@/lib/shortcuts";
 import { CommandPalette } from "./command-palette";
 
 beforeAll(() => {
@@ -35,15 +36,36 @@ const defaultProps = {
   isDarkMode: false,
 };
 
+function keyToCode(key: string): string | undefined {
+  if (key === "/") return "Slash";
+  if (key.length === 1) {
+    const upper = key.toUpperCase();
+    if (/[A-Z]/.test(upper)) return `Key${upper}`;
+    if (/[0-9]/.test(upper)) return `Digit${upper}`;
+  }
+  return key;
+}
+
+function fireShortcut(shortcut: ShortcutDefinition) {
+  fireEvent.keyDown(document, {
+    key: shortcut.key,
+    code: keyToCode(shortcut.key),
+    metaKey: Boolean(shortcut.modifiers?.meta),
+    ctrlKey: false,
+    altKey: Boolean(shortcut.modifiers?.alt),
+    shiftKey: Boolean(shortcut.modifiers?.shift),
+  });
+}
+
 describe("CommandPalette", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("opens on Cmd+K", async () => {
+  it("opens on shortcut", async () => {
     render(<CommandPalette {...defaultProps} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByPlaceholderText("Search notes, commands...")).not.toBeNull();
@@ -53,7 +75,7 @@ describe("CommandPalette", () => {
   it("shows command groups when open", async () => {
     render(<CommandPalette {...defaultProps} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByText("Navigation")).not.toBeNull();
@@ -67,7 +89,7 @@ describe("CommandPalette", () => {
   it("shows New Note command", async () => {
     render(<CommandPalette {...defaultProps} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByText("New Note")).not.toBeNull();
@@ -78,7 +100,7 @@ describe("CommandPalette", () => {
     const onCreateNote = vi.fn();
     render(<CommandPalette {...defaultProps} onCreateNote={onCreateNote} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByText("New Note")).not.toBeNull();
@@ -93,7 +115,7 @@ describe("CommandPalette", () => {
     const onToggleTheme = vi.fn();
     render(<CommandPalette {...defaultProps} onToggleTheme={onToggleTheme} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByText("Toggle Theme")).not.toBeNull();
@@ -107,7 +129,7 @@ describe("CommandPalette", () => {
   it("navigates to graph view when Graph View is selected", async () => {
     render(<CommandPalette {...defaultProps} />);
 
-    fireEvent.keyDown(document, { key: "k", metaKey: true });
+    fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
       expect(screen.queryByText("Graph View")).not.toBeNull();
