@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/theme-provider";
 import { useAppSettings } from "@/components/providers/app-settings";
 import { ShortcutEditor } from "@/components/settings/shortcut-editor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

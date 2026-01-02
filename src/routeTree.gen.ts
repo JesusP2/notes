@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RouteImport } from './routes/_'
 import { Route as IndexRouteImport } from './routes/_.index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
+import { Route as TasksRouteImport } from './routes/_/tasks'
 import { Route as SettingsRouteImport } from './routes/_/settings'
 import { Route as GraphRouteImport } from './routes/_/graph'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as NotesNoteIdRouteImport } from './routes/_/notes/$noteId'
+import { Route as CanvasCanvasIdRouteImport } from './routes/_/canvas/$canvasId'
 
 const Route = RouteImport.update({
   id: '/_',
@@ -31,6 +33,11 @@ const AuthIdRoute = AuthIdRouteImport.update({
   id: '/auth/$id',
   path: '/auth/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => Route,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -57,12 +64,19 @@ const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
   path: '/notes/$noteId',
   getParentRoute: () => Route,
 } as any)
+const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
+  id: '/canvas/$canvasId',
+  path: '/canvas/$canvasId',
+  getParentRoute: () => Route,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/graph': typeof GraphRoute
   '/settings': typeof SettingsRoute
+  '/tasks': typeof TasksRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
+  '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
@@ -70,8 +84,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/graph': typeof GraphRoute
   '/settings': typeof SettingsRoute
+  '/tasks': typeof TasksRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
+  '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
@@ -81,8 +97,10 @@ export interface FileRoutesById {
   '/_': typeof RouteWithChildren
   '/_/graph': typeof GraphRoute
   '/_/settings': typeof SettingsRoute
+  '/_/tasks': typeof TasksRoute
   '/auth/$id': typeof AuthIdRoute
   '/_/': typeof IndexRoute
+  '/_/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/_/notes/$noteId': typeof NotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/upload/$': typeof ApiUploadSplatRoute
@@ -92,8 +110,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/graph'
     | '/settings'
+    | '/tasks'
     | '/auth/$id'
     | '/'
+    | '/canvas/$canvasId'
     | '/notes/$noteId'
     | '/api/auth/$'
     | '/api/upload/$'
@@ -101,8 +121,10 @@ export interface FileRouteTypes {
   to:
     | '/graph'
     | '/settings'
+    | '/tasks'
     | '/auth/$id'
     | '/'
+    | '/canvas/$canvasId'
     | '/notes/$noteId'
     | '/api/auth/$'
     | '/api/upload/$'
@@ -111,8 +133,10 @@ export interface FileRouteTypes {
     | '/_'
     | '/_/graph'
     | '/_/settings'
+    | '/_/tasks'
     | '/auth/$id'
     | '/_/'
+    | '/_/canvas/$canvasId'
     | '/_/notes/$noteId'
     | '/api/auth/$'
     | '/api/upload/$'
@@ -147,6 +171,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/$id'
       preLoaderRoute: typeof AuthIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_/tasks': {
+      id: '/_/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof Route
     }
     '/_/settings': {
       id: '/_/settings'
@@ -183,20 +214,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotesNoteIdRouteImport
       parentRoute: typeof Route
     }
+    '/_/canvas/$canvasId': {
+      id: '/_/canvas/$canvasId'
+      path: '/canvas/$canvasId'
+      fullPath: '/canvas/$canvasId'
+      preLoaderRoute: typeof CanvasCanvasIdRouteImport
+      parentRoute: typeof Route
+    }
   }
 }
 
 interface RouteChildren {
   GraphRoute: typeof GraphRoute
   SettingsRoute: typeof SettingsRoute
+  TasksRoute: typeof TasksRoute
   IndexRoute: typeof IndexRoute
+  CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   NotesNoteIdRoute: typeof NotesNoteIdRoute
 }
 
 const RouteChildren: RouteChildren = {
   GraphRoute: GraphRoute,
   SettingsRoute: SettingsRoute,
+  TasksRoute: TasksRoute,
   IndexRoute: IndexRoute,
+  CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   NotesNoteIdRoute: NotesNoteIdRoute,
 }
 

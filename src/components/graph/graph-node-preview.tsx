@@ -1,4 +1,4 @@
-import { FileText, Folder, Tag, X } from "lucide-react";
+import { FileText, Tag, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Node } from "@/db/schema/graph";
@@ -12,8 +12,9 @@ interface GraphNodePreviewProps {
 
 const NODE_ICONS: Record<Node["type"], typeof FileText> = {
   note: FileText,
-  folder: Folder,
   tag: Tag,
+  template: FileText,
+  canvas: FileText,
 };
 
 export function GraphNodePreview({ node, position, onClose, onNavigate }: GraphNodePreviewProps) {
@@ -50,9 +51,13 @@ export function GraphNodePreview({ node, position, onClose, onNavigate }: GraphN
         </p>
       )}
 
-      {node.type === "note" && (
+      {node.type !== "tag" && (
         <Button className="mt-3 w-full" size="sm" onClick={onNavigate}>
-          Open Note
+          {node.type === "canvas"
+            ? "Open Canvas"
+            : node.type === "template"
+              ? "Open Template"
+              : "Open Note"}
         </Button>
       )}
     </div>

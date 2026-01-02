@@ -61,11 +61,11 @@ describe("useTagChildren", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-root-note", "note-a", "root", "part_of"],
+        ["edge-root-note", "note-a", "root", "tagged_with"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-tag-note", "note-nested", "tag-z", "part_of"],
+        ["edge-tag-note", "note-nested", "tag-z", "tagged_with"],
       );
 
       await waitFor(() => expect(result.current).toHaveLength(2));
@@ -88,7 +88,7 @@ describe("useTagChildren", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "root", "part_of"],
+        ["edge-1", "note-1", "root", "tagged_with"],
       );
 
       await waitFor(() => expect(result.current).toHaveLength(1));
@@ -317,7 +317,7 @@ describe("useGraphData", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-graph", "note-1", "root", "part_of"],
+        ["edge-graph", "note-1", "root", "tagged_with"],
       );
 
       await waitFor(() => expect(result.current.nodes.map((node) => node.id)).toContain("note-1"));
@@ -473,7 +473,7 @@ describe("useEdgeMutations", () => {
 });
 
 describe("useNodeMutations", () => {
-  it("createNote creates a node and part_of edge", async () => {
+  it("createNote creates a node and tagged_with edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(db),
@@ -500,7 +500,7 @@ describe("useNodeMutations", () => {
       expect(edges.rows[0]).toEqual({
         source_id: createdId,
         target_id: "root",
-        type: "part_of",
+        type: "tagged_with",
       });
     } finally {
       unmount();
@@ -528,11 +528,11 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "tag-1", "part_of"],
+        ["edge-1", "note-1", "tag-1", "tagged_with"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-2", "note-1", "tag-2", "part_of"],
+        ["edge-2", "note-1", "tag-2", "tagged_with"],
       );
 
       await act(async () => {
@@ -549,27 +549,13 @@ describe("useNodeMutations", () => {
     }
   });
 
-  it("createTag creates a tag node with optional parent edge", async () => {
+  it("createTag creates a tag node with a parent edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(db),
     });
 
     try {
-      let tagId = "";
-      await act(async () => {
-        const created = await result.current.createTag("Standalone Tag");
-        tagId = created.id;
-      });
-
-      const standaloneNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
-        tagId,
-      ]);
-      const standaloneEdges = await db.query("SELECT id FROM edges WHERE source_id = $1", [tagId]);
-
-      expect(standaloneNodes.rows[0]).toEqual({ id: tagId, type: "tag", title: "Standalone Tag" });
-      expect(standaloneEdges.rows).toHaveLength(0);
-
       let childTagId = "";
       await act(async () => {
         const created = await result.current.createTag("Child Tag", "root");
@@ -629,7 +615,7 @@ describe("useNodeMutations", () => {
     }
   });
 
-  it("moveNode replaces part_of edge", async () => {
+  it("moveTag replaces part_of edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(db),
@@ -646,20 +632,20 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
+        ["tag-move", "tag", "Tag Move"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "tag-a", "part_of"],
+        ["edge-1", "tag-move", "tag-a", "part_of"],
       );
 
       await act(async () => {
-        await result.current.moveNode("note-1", "tag-b");
+        await result.current.moveTag("tag-move", "tag-b");
       });
 
       const edges = await db.query<{ target_id: string }>(
         "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
-        ["note-1"],
+        ["tag-move"],
       );
 
       expect(edges.rows).toHaveLength(1);
@@ -669,7 +655,7 @@ describe("useNodeMutations", () => {
     }
   });
 
-  it("moveNode removes multiple part_of edges before adding new", async () => {
+  it("moveTag replaces the part_of edge without affecting other edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(db),
@@ -690,28 +676,35 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
+        ["tag-move", "tag", "Tag Move"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-a", "note-1", "tag-a", "part_of"],
+        ["edge-a", "tag-move", "tag-a", "part_of"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-b", "note-1", "tag-b", "part_of"],
+        ["edge-b", "tag-move", "tag-b", "related_to"],
       );
 
       await act(async () => {
-        await result.current.moveNode("note-1", "tag-c");
+        await result.current.moveTag("tag-move", "tag-c");
       });
 
       const edges = await db.query<{ target_id: string }>(
         "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
-        ["note-1"],
+        ["tag-move"],
       );
 
       expect(edges.rows).toHaveLength(1);
       expect(edges.rows[0]?.target_id).toBe("tag-c");
+
+      const relatedEdges = await db.query<{ target_id: string }>(
+        "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'related_to'",
+        ["tag-move"],
+      );
+      expect(relatedEdges.rows).toHaveLength(1);
+      expect(relatedEdges.rows[0]?.target_id).toBe("tag-b");
     } finally {
       unmount();
     }

@@ -26,15 +26,26 @@ interface GraphData {
 
 const NODE_COLORS: Record<Node["type"], string> = {
   note: "#3b82f6",
-  folder: "#f59e0b",
   tag: "#22c55e",
+  template: "#f59e0b",
+  canvas: "#ec4899",
 };
 
 const NODE_SIZES: Record<Node["type"], number> = {
   note: 4,
-  folder: 6,
   tag: 3,
+  template: 5,
+  canvas: 6,
 };
+
+const VISIBLE_EDGE_TYPES = new Set([
+  "references",
+  "supports",
+  "contradicts",
+  "related_to",
+  "embeds",
+  "derived_from",
+]);
 
 export function GraphView() {
   const { nodes, edges } = useGraphData();
@@ -71,11 +82,13 @@ export function GraphView() {
       val: NODE_SIZES[node.type],
     }));
 
-    const graphLinks: GraphLink[] = edges.map((edge) => ({
-      source: edge.sourceId,
-      target: edge.targetId,
-      type: edge.type,
-    }));
+    const graphLinks: GraphLink[] = edges
+      .filter((edge) => VISIBLE_EDGE_TYPES.has(edge.type))
+      .map((edge) => ({
+        source: edge.sourceId,
+        target: edge.targetId,
+        type: edge.type,
+      }));
 
     return { nodes: graphNodes, links: graphLinks };
   }, [nodes, edges]);
@@ -103,9 +116,12 @@ export function GraphView() {
     setSelectedNode(null);
   }, []);
 
-  const handleNavigateToNote = useCallback(() => {
-    if (selectedNode?.type === "note") {
+  const handleNavigateToNode = useCallback(() => {
+    if (!selectedNode) return;
+    if (selectedNode.type === "note" || selectedNode.type === "template") {
       navigate({ to: "/notes/$noteId", params: { noteId: selectedNode.id } });
+    } else if (selectedNode.type === "canvas") {
+      navigate({ to: "/canvas/$canvasId", params: { canvasId: selectedNode.id } });
     }
     setSelectedNode(null);
   }, [selectedNode, navigate]);
@@ -150,7 +166,7 @@ export function GraphView() {
           node={selectedNode}
           position={previewPosition}
           onClose={handleClosePreview}
-          onNavigate={handleNavigateToNote}
+          onNavigate={handleNavigateToNode}
         />
       )}
     </div>

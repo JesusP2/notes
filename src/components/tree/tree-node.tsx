@@ -1,5 +1,7 @@
-import { ChevronRight, FileText, Link2, Tag } from "lucide-react";
+import { ChevronRight, FileText, Link2, PenTool, Tag } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { NotePreviewCard } from "@/components/notes/note-preview-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import type { Node } from "@/db/schema/graph";
 import { useNodeEdges, useNodeMutations } from "@/lib/graph-hooks";
@@ -23,6 +25,8 @@ function nodeIcon(type: Node["type"]) {
   switch (type) {
     case "tag":
       return <Tag className="size-3.5" />;
+    case "canvas":
+      return <PenTool className="size-3.5" />;
     default:
       return <FileText className="size-3.5" />;
   }
@@ -48,8 +52,8 @@ export function TreeNode({
   const inputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
-  const parentCount = outgoing.filter((edge) => edge.type === "part_of").length;
-  const showMultiParent = node.type === "note" && parentCount > 1;
+  const parentCount = outgoing.filter((edge) => edge.type === "tagged_with").length;
+  const showMultiParent = (node.type === "note" || node.type === "canvas") && parentCount > 1;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -125,17 +129,34 @@ export function TreeNode({
           className="h-6 text-xs py-0 px-1.5 flex-1"
         />
       ) : (
-        <button
-          className="hover:bg-muted flex flex-1 items-center gap-2 rounded px-1.5 py-1 text-left"
-          onClick={onSelect}
-          onDoubleClick={handleDoubleClick}
-          type="button"
-        >
-          <span className="text-muted-foreground">{nodeIcon(node.type)}</span>
-          <span data-testid="tree-node-label" className="truncate">
-            {node.title}
-          </span>
-        </button>
+        (() => {
+          const button = (
+            <button
+              className="hover:bg-muted flex flex-1 items-center gap-2 rounded px-1.5 py-1 text-left"
+              onClick={onSelect}
+              onDoubleClick={handleDoubleClick}
+              type="button"
+            >
+              <span className="text-muted-foreground">{nodeIcon(node.type)}</span>
+              <span data-testid="tree-node-label" className="truncate">
+                {node.title}
+              </span>
+            </button>
+          );
+
+          if (node.type !== "note") {
+            return button;
+          }
+
+          return (
+            <HoverCard>
+              <HoverCardTrigger render={button} />
+              <HoverCardContent side="right" align="start" className="w-72">
+                <NotePreviewCard noteId={node.id} />
+              </HoverCardContent>
+            </HoverCard>
+          );
+        })()
       )}
 
       {showMultiParent && !isEditing && (

@@ -6,21 +6,32 @@ import { LinkDialog } from "@/components/edges/link-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { syncWikiLinks } from "@/components/notes/wiki-link-plugin";
+import { NotePreviewPanel } from "@/components/notes/note-preview-panel";
+import { NoteToolbar, type NoteViewMode } from "@/components/notes/note-toolbar";
+import { syncEmbeds, syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { useAppSettings } from "@/components/providers/app-settings";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import type { Node } from "@/db/schema/graph";
-import { useNodeMutations } from "@/lib/graph-hooks";
+import { useCurrentUserId } from "@/hooks/use-current-user";
+import { useDebouncedCallback } from "@/hooks/use-debounce";
+import { useUserSetting } from "@/hooks/use-user-settings";
+import { useNodeMutations, useVersionMutations } from "@/lib/graph-hooks";
+import { buildNoteExcerpt } from "@/lib/note-excerpt";
 import { SHORTCUTS } from "@/lib/shortcuts";
+import { syncTasks } from "@/lib/tasks";
 import { useEditorShortcut } from "@/lib/use-shortcut";
 
 export const Route = createFileRoute("/_/notes/$noteId")({
   component: NoteEditorPage,
 });
 
+const DEFAULT_SPLIT_SIZES = [60, 40];
+
 function NoteEditorPage() {
   const { noteId } = Route.useParams();
   const { updateNode, deleteNode } = useNodeMutations();
+  const { createNoteVersion } = useVersionMutations();
   const db = usePGlite();
   const [, startTransition] = useTransition();
   const navigate = useNavigate();
@@ -31,7 +42,17 @@ function NoteEditorPage() {
   const [noteLoading, setNoteLoading] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
-  const { vimEnabled } = useAppSettings();
+  const [editorKey, setEditorKey] = useState(0);
+  const { vimEnabled, setVimEnabled } = useAppSettings();
+  const userId = useCurrentUserId();
+  const [viewMode, setViewMode] = useUserSetting<NoteViewMode>("note.view_mode", "edit");
+  const [splitSizes, setSplitSizes] = useUserSetting<number[]>(
+    "layout.note_split",
+    DEFAULT_SPLIT_SIZES,
+  );
+  const { call: persistSplitSizes } = useDebouncedCallback((next: number[]) => {
+    void setSplitSizes(next);
+  }, 200);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,16 +71,18 @@ function NoteEditorPage() {
         const result = await db.query<Node>(
           `SELECT
              nodes.id AS id,
+             nodes.user_id AS "userId",
              nodes.type AS type,
              nodes.title AS title,
              nodes.content AS content,
+             nodes.excerpt AS excerpt,
              nodes.color AS color,
              nodes.created_at AS "createdAt",
              nodes.updated_at AS "updatedAt"
            FROM nodes
-           WHERE id = $1
+           WHERE id = $1 AND user_id = $2
            LIMIT 1`,
-          [noteId],
+          [noteId, userId],
         );
 
         if (!cancelled) {
@@ -77,16 +100,22 @@ function NoteEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [db, noteId]);
+  }, [db, noteId, userId]);
 
   const handleContentSave = useCallback(
     (content: string) => {
+      const excerpt = buildNoteExcerpt(content);
       startTransition(async () => {
-        await updateNode(noteId, { content, updatedAt: new Date() });
-        await syncWikiLinks({ db, noteId, content });
+        await updateNode(noteId, { content, excerpt, updatedAt: new Date() });
+        await syncWikiLinks({ db, noteId, userId, content });
+        await syncEmbeds({ db, noteId, userId, content });
+        await syncTasks({ db, userId, noteId, content });
+        if (note?.title) {
+          await createNoteVersion(noteId, note.title, content, "autosave");
+        }
       });
     },
-    [db, noteId, updateNode],
+    [createNoteVersion, db, note, noteId, updateNode, userId],
   );
 
   const handleOpenDetails = useCallback(() => {
@@ -116,6 +145,43 @@ function NoteEditorPage() {
     saveNowRef.current?.();
   }, []);
 
+  const handleVersionRestored = useCallback(
+    (content: string, title: string) => {
+      setNote((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          content,
+          title,
+          updatedAt: new Date(),
+        };
+      });
+      setEditorKey((prev) => prev + 1);
+      startTransition(async () => {
+        await syncWikiLinks({ db, noteId, userId, content });
+        await syncEmbeds({ db, noteId, userId, content });
+        await syncTasks({ db, userId, noteId, content });
+      });
+    },
+    [db, noteId, startTransition, userId],
+  );
+
+  const handleViewModeChange = useCallback(
+    (mode: NoteViewMode) => {
+      void setViewMode(mode);
+    },
+    [setViewMode],
+  );
+
+  const handleSplitLayout = useCallback(
+    (sizes: number[]) => {
+      persistSplitSizes(sizes);
+    },
+    [persistSplitSizes],
+  );
+
+  const resolvedSplitSizes = splitSizes.length === 2 ? splitSizes : DEFAULT_SPLIT_SIZES;
+
   useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {
     enabled: !!note && !noteLoading,
   });
@@ -132,26 +198,101 @@ function NoteEditorPage() {
   return (
     <>
       <div className="flex h-full flex-col overflow-hidden">
-        <div ref={editorContainerRef} className="flex-1 min-h-0">
-          {noteLoading ? (
-            <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
-              <div className="rounded-full bg-muted p-4 mb-4">
-                <Edit3Icon className="size-8 text-muted-foreground/50" />
+        <NoteToolbar
+          note={note}
+          onOpenDetails={handleOpenDetails}
+          onLinkTo={handleOpenLinkDialog}
+          onDelete={handleDelete}
+          vimEnabled={vimEnabled}
+          onToggleVim={() => setVimEnabled(!vimEnabled)}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
+        {viewMode === "split" ? (
+          <ResizablePanelGroup
+            className="flex-1 min-h-0"
+            direction="horizontal"
+            onLayout={handleSplitLayout}
+          >
+            <ResizablePanel defaultSize={resolvedSplitSizes[0]} minSize={30}>
+              <div ref={editorContainerRef} className="h-full">
+                {noteLoading ? (
+                  <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Edit3Icon className="size-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                      Fetching the latest version from your database.
+                    </p>
+                  </div>
+                ) : (
+                  <NoteEditor
+                    note={note}
+                    onChange={handleContentSave}
+                    saveNowRef={saveNowRef}
+                    vimEnabled={vimEnabled}
+                    editorKey={editorKey}
+                  />
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
-              <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                Fetching the latest version from your database.
-              </p>
-            </div>
-          ) : (
-            <NoteEditor
-              note={note}
-              onChange={handleContentSave}
-              saveNowRef={saveNowRef}
-              vimEnabled={vimEnabled}
-            />
-          )}
-        </div>
+            </ResizablePanel>
+            <ResizableHandle className="hover:bg-primary/20 w-1" />
+            <ResizablePanel defaultSize={resolvedSplitSizes[1]} minSize={20}>
+              {noteLoading ? (
+                <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+                  <div className="rounded-full bg-muted p-4 mb-4">
+                    <Edit3Icon className="size-8 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                    Fetching the latest version from your database.
+                  </p>
+                </div>
+              ) : (
+                <NotePreviewPanel note={note} />
+              )}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : viewMode === "preview" ? (
+          <div className="flex-1 min-h-0">
+            {noteLoading ? (
+              <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+                <div className="rounded-full bg-muted p-4 mb-4">
+                  <Edit3Icon className="size-8 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                  Fetching the latest version from your database.
+                </p>
+              </div>
+            ) : (
+              <NotePreviewPanel note={note} />
+            )}
+          </div>
+        ) : (
+          <div ref={editorContainerRef} className="flex-1 min-h-0">
+            {noteLoading ? (
+              <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+                <div className="rounded-full bg-muted p-4 mb-4">
+                  <Edit3Icon className="size-8 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                  Fetching the latest version from your database.
+                </p>
+              </div>
+            ) : (
+              <NoteEditor
+                note={note}
+                onChange={handleContentSave}
+                saveNowRef={saveNowRef}
+                vimEnabled={vimEnabled}
+                editorKey={editorKey}
+              />
+            )}
+          </div>
+        )}
         {note && <BacklinksPanel noteId={note.id} />}
       </div>
       <NoteDetailsDialog
@@ -160,6 +301,7 @@ function NoteEditorPage() {
         onOpenChange={(open) => {
           if (!open) setDetailsOpen(false);
         }}
+        onVersionRestored={handleVersionRestored}
       />
       {note && (
         <LinkDialog

@@ -11,7 +11,11 @@ describe("runMigrations", () => {
       "SELECT name FROM _migrations ORDER BY version",
     );
 
-    expect(result.rows.map((row) => row.name)).toEqual(["initial_schema", "seed_root_tag"]);
+    expect(result.rows.map((row) => row.name)).toEqual([
+      "initial_schema",
+      "seed_root_tag",
+      "user_scoped_graph",
+    ]);
   });
 
   it("skips already-applied migrations", async () => {
@@ -23,7 +27,7 @@ describe("runMigrations", () => {
       "SELECT COUNT(*)::int AS count FROM _migrations",
     );
 
-    expect(result.rows[0]?.count).toBe(2);
+    expect(result.rows[0]?.count).toBe(3);
   });
 
   it("seeds the root tag", async () => {

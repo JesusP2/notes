@@ -1,27 +1,41 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore, type RefObject } from "react";
-import { getActiveShortcut, loadOverrides, type ShortcutOverrides } from "./shortcut-settings";
+import { useCallback, useEffect, useMemo, type RefObject } from "react";
+import { useUserSetting } from "@/hooks/use-user-settings";
+import { getActiveShortcut, type ShortcutOverrides } from "./shortcut-settings";
 import { matchesShortcut, type ShortcutDefinition, type ShortcutId } from "./shortcuts";
 
-function subscribeToStorage(callback: () => void): () => void {
-  const handler = (event: StorageEvent) => {
-    if (event.key === "shortcut-overrides") {
-      callback();
-    }
-  };
-  window.addEventListener("storage", handler);
-  return () => window.removeEventListener("storage", handler);
-}
-
-function getOverridesSnapshot(): ShortcutOverrides {
-  return loadOverrides();
-}
-
-function getServerSnapshot(): ShortcutOverrides {
-  return {};
-}
+const SHORTCUT_OVERRIDES_KEY = "shortcut_overrides";
 
 export function useShortcutOverrides(): ShortcutOverrides {
-  return useSyncExternalStore(subscribeToStorage, getOverridesSnapshot, getServerSnapshot);
+  const [overrides] = useUserSetting<ShortcutOverrides>(SHORTCUT_OVERRIDES_KEY, {});
+  return overrides;
+}
+
+export function useShortcutOverridesState(): {
+  overrides: ShortcutOverrides;
+  saveOverrides: (next: ShortcutOverrides) => void;
+  resetOverrides: () => void;
+} {
+  const [overrides, setOverrides, clearOverrides] = useUserSetting<ShortcutOverrides>(
+    SHORTCUT_OVERRIDES_KEY,
+    {},
+  );
+
+  const saveOverrides = useCallback(
+    (next: ShortcutOverrides) => {
+      if (Object.keys(next).length === 0) {
+        void clearOverrides();
+        return;
+      }
+      void setOverrides(next);
+    },
+    [clearOverrides, setOverrides],
+  );
+
+  const resetOverrides = useCallback(() => {
+    void clearOverrides();
+  }, [clearOverrides]);
+
+  return { overrides, saveOverrides, resetOverrides };
 }
 
 export function useActiveShortcut(id: ShortcutId): ShortcutDefinition {

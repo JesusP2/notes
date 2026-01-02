@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Download, Info, Plus, Printer, Tag, X } from "lucide-react";
+import { Download, History, Info, Plus, Printer, Tag, X } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -8,40 +8,58 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import type { Node } from "@/db/schema/graph";
+import { ROOT_TAG_ID } from "@/hooks/use-current-user";
 import { exportAsMarkdown, exportAsPdf } from "@/lib/export-note";
 import {
   useGraphData,
   useNodeById,
   useNodeEdges,
   useNodeMutations,
-  useParentTags,
+  useNoteTags,
   useTags,
 } from "@/lib/graph-hooks";
 import { cn } from "@/lib/utils";
+import { NoteVersionHistoryDialog } from "./note-version-history-dialog";
 
-const LINK_TYPES = new Set(["references", "supports", "contradicts", "related_to"]);
+const LINK_TYPES = new Set([
+  "references",
+  "supports",
+  "contradicts",
+  "related_to",
+  "embeds",
+  "derived_from",
+]);
 const LINK_LABELS: Record<string, string> = {
   references: "references",
   supports: "supports",
   contradicts: "contradicts",
   related_to: "related to",
+  embeds: "embeds",
+  derived_from: "derived from",
 };
 
 interface NoteDetailsDialogProps {
   noteId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onVersionRestored?: (content: string, title: string) => void;
 }
 
-export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDialogProps) {
+export function NoteDetailsDialog({
+  noteId,
+  open,
+  onOpenChange,
+  onVersionRestored,
+}: NoteDetailsDialogProps) {
   const note = useNodeById(noteId ?? "");
   const { outgoing, incoming } = useNodeEdges(noteId ?? "");
   const { nodes } = useGraphData();
-  const parentTags = useParentTags(noteId ?? "");
+  const noteTags = useNoteTags(noteId ?? "");
   const allTags = useTags();
-  const { addParent, removeParent } = useNodeMutations();
+  const { addTag, removeTag } = useNodeMutations();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   const nodesById = useMemo(() => {
@@ -52,21 +70,21 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
     return map;
   }, [nodes]);
 
-  const parentTagIds = new Set(parentTags.map((t) => t.id));
-  const availableTags = allTags.filter((t) => !parentTagIds.has(t.id) && t.id !== "root");
+  const noteTagIds = new Set(noteTags.map((t) => t.id));
+  const availableTags = allTags.filter((t) => !noteTagIds.has(t.id) && t.id !== ROOT_TAG_ID);
 
   const handleAddTag = (tagId: string) => {
     if (!noteId) return;
     startTransition(async () => {
-      await addParent(noteId, tagId);
+      await addTag(noteId, tagId);
     });
     setTagPopoverOpen(false);
   };
 
   const handleRemoveTag = (tagId: string) => {
-    if (!noteId || parentTags.length <= 1) return;
+    if (!noteId) return;
     startTransition(async () => {
-      await removeParent(noteId, tagId);
+      await removeTag(noteId, tagId);
     });
   };
 
@@ -103,6 +121,10 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
               <Button onClick={() => setLinkDialogOpen(true)} size="sm" variant="outline">
                 Link to...
               </Button>
+              <Button onClick={() => setHistoryOpen(true)} size="sm" variant="outline">
+                <History className="size-4 mr-1" />
+                History
+              </Button>
               <Button onClick={handleExportMarkdown} size="sm" variant="outline">
                 <Download className="size-4 mr-1" />
                 Markdown
@@ -115,18 +137,18 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
 
             <section className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
-                <span>Parent Tags</span>
-                <Badge variant="secondary">{parentTags.length}</Badge>
+                <span>Tags</span>
+                <Badge variant="secondary">{noteTags.length}</Badge>
               </div>
-              {parentTags.length > 0 ? (
+              {noteTags.length > 0 ? (
                 <div className="space-y-1">
-                  {parentTags.map((tag) => (
+                  {noteTags.map((tag) => (
                     <div key={tag.id} className="flex items-center justify-between text-xs group">
                       <span className="flex items-center gap-1.5">
                         <Tag className="size-3 text-muted-foreground" />
                         {tag.title}
                       </span>
-                      {parentTags.length > 1 && (
+                      {noteTags.length > 0 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag.id)}
@@ -140,7 +162,7 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-xs">No parent tags yet.</p>
+                <p className="text-muted-foreground text-xs">No tags yet.</p>
               )}
               <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
                 <PopoverTrigger
@@ -251,6 +273,12 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
         onOpenChange={setLinkDialogOpen}
         sourceId={note.id}
         sourceTitle={note.title}
+      />
+      <NoteVersionHistoryDialog
+        noteId={noteId}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        onRestored={onVersionRestored}
       />
     </>
   );

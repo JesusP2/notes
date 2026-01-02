@@ -32,7 +32,7 @@ describe("TagTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "root", "part_of"],
+      ["edge-note", "note-1", "root", "tagged_with"],
     );
 
     render(<TagTree />, { wrapper: Wrapper });
@@ -60,7 +60,7 @@ describe("TagTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "tag-1", "part_of"],
+      ["edge-note", "note-1", "tag-1", "tagged_with"],
     );
 
     render(<TagTree />, { wrapper: Wrapper });
@@ -101,11 +101,11 @@ describe("TagTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-a", "note-shared", "tag-a", "part_of"],
+      ["edge-a", "note-shared", "tag-a", "tagged_with"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-b", "note-shared", "tag-b", "part_of"],
+      ["edge-b", "note-shared", "tag-b", "tagged_with"],
     );
 
     render(<TagTree />, { wrapper: Wrapper });
@@ -128,7 +128,7 @@ describe("TagTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "root", "part_of"],
+      ["edge-note", "note-1", "root", "tagged_with"],
     );
 
     render(<TagTree onSelectNode={handleSelect} />, { wrapper: Wrapper });
@@ -165,7 +165,7 @@ describe("TagTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "child-tag", "part_of"],
+      ["edge-note", "note-1", "child-tag", "tagged_with"],
     );
 
     render(<TagTree />, { wrapper: Wrapper });

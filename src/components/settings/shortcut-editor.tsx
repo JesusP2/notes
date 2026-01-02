@@ -1,5 +1,5 @@
 import { AlertCircle, Check, RotateCcw, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,6 @@ import {
   findConflict,
   getActiveShortcuts,
   isBrowserReserved,
-  loadOverrides,
-  resetOverrides,
-  saveOverrides,
   type ShortcutOverrides,
 } from "@/lib/shortcut-settings";
 import {
@@ -20,10 +17,11 @@ import {
   type ShortcutId,
   type ShortcutModifiers,
 } from "@/lib/shortcuts";
-import { usePlatform } from "@/lib/use-shortcut";
+import { usePlatform, useShortcutOverridesState } from "@/lib/use-shortcut";
 import { cn } from "@/lib/utils";
 
 export function ShortcutEditor() {
+  const { overrides: storedOverrides, saveOverrides, resetOverrides } = useShortcutOverridesState();
   const [overrides, setOverrides] = useState<ShortcutOverrides>({});
   const [editingId, setEditingId] = useState<ShortcutId | null>(null);
   const [pendingKey, setPendingKey] = useState<{
@@ -32,10 +30,15 @@ export function ShortcutEditor() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const platform = usePlatform();
+  // Guard against storedOverrides changing identity without content changes.
+  const storedOverridesKeyRef = useRef<string>("");
 
   useEffect(() => {
-    setOverrides(loadOverrides());
-  }, []);
+    const nextKey = JSON.stringify(storedOverrides);
+    if (nextKey === storedOverridesKeyRef.current) return;
+    storedOverridesKeyRef.current = nextKey;
+    setOverrides(storedOverrides);
+  }, [storedOverrides]);
 
   const activeShortcuts = getActiveShortcuts(overrides);
 

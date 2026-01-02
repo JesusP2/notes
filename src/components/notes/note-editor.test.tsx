@@ -5,11 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import type { Node } from "@/db/schema/graph";
 import { NoteEditor } from "./note-editor";
 
+vi.mock("@/lib/graph-hooks", () => ({
+  useGraphData: () => ({ nodes: [] }),
+  useNodeMutations: () => ({ createNote: vi.fn() }),
+}));
+
 const baseNote: Node = {
   id: "note-1",
+  userId: "local",
   type: "note",
   title: "Example Note",
   content: "# Example Note\n\nHello world",
+  excerpt: null,
   color: null,
   createdAt: new Date("2020-01-01T00:00:00Z"),
   updatedAt: new Date("2020-01-01T00:00:00Z"),

@@ -5,8 +5,6 @@ import {
   type ShortcutModifiers,
 } from "./shortcuts";
 
-const STORAGE_KEY = "shortcut-overrides";
-
 export interface ShortcutOverride {
   key: string;
   modifiers: ShortcutModifiers;
@@ -46,43 +44,9 @@ function shortcutToString(key: string, modifiers: ShortcutModifiers): string {
   return parts.join("+");
 }
 
-export function loadOverrides(): ShortcutOverrides {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return {};
-    return JSON.parse(stored) as ShortcutOverrides;
-  } catch {
-    return {};
-  }
-}
-
-export function saveOverrides(overrides: ShortcutOverrides): void {
-  if (typeof window === "undefined") return;
-
-  const filtered: ShortcutOverrides = {};
-  for (const [id, override] of Object.entries(overrides)) {
-    if (override) {
-      filtered[id as ShortcutId] = override;
-    }
-  }
-
-  if (Object.keys(filtered).length === 0) {
-    localStorage.removeItem(STORAGE_KEY);
-  } else {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-  }
-}
-
-export function resetOverrides(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
-}
-
 export function getActiveShortcut(
   id: ShortcutId,
-  overrides: ShortcutOverrides = loadOverrides(),
+  overrides: ShortcutOverrides = {},
 ): ShortcutDefinition {
   const defaultShortcut = SHORTCUTS[id];
   const override = overrides[id];
@@ -99,7 +63,7 @@ export function getActiveShortcut(
 }
 
 export function getActiveShortcuts(
-  overrides: ShortcutOverrides = loadOverrides(),
+  overrides: ShortcutOverrides = {},
 ): Record<ShortcutId, ShortcutDefinition> {
   const result = {} as Record<ShortcutId, ShortcutDefinition>;
 
@@ -119,7 +83,7 @@ export function findConflict(
   key: string,
   modifiers: ShortcutModifiers,
   excludeId: ShortcutId,
-  overrides: ShortcutOverrides = loadOverrides(),
+  overrides: ShortcutOverrides = {},
 ): ShortcutId | null {
   const newStr = shortcutToString(key, modifiers);
 

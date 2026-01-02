@@ -24,6 +24,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/lib/graph-hooks", () => ({
+  useRecentNotes: () => [],
   useSearchNodes: () => [],
 }));
 

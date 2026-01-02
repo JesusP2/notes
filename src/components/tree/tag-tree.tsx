@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus, Info, Pencil, Tag, Trash2 } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { FilePlus, Info, Pencil, PenTool, Pin, Star, Tag, Trash2 } from "lucide-react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
@@ -11,7 +11,14 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import type { Node } from "@/db/schema/graph";
-import { useTagChildren, useNodeMutations } from "@/lib/graph-hooks";
+import { ROOT_TAG_ID } from "@/hooks/use-current-user";
+import {
+  useFavoriteNotes,
+  useNodeMutations,
+  usePinnedNotes,
+  usePreferenceMutations,
+  useTagChildren,
+} from "@/lib/graph-hooks";
 import { TreeNode } from "./tree-node";
 
 interface TagTreeProps {
@@ -26,8 +33,10 @@ interface TreeBranchProps {
   onToggle: (id: string) => void;
   onExpandTag: (id: string) => void;
   onSelectNode?: (node: Node) => void;
-  draggedNode: string | null;
-  setDraggedNode: (id: string | null) => void;
+  favoriteIds: Set<string>;
+  pinnedIds: Set<string>;
+  draggedNode: { id: string; type: Node["type"] } | null;
+  setDraggedNode: (node: { id: string; type: Node["type"] } | null) => void;
   dragOverNode: string | null;
   setDragOverNode: (id: string | null) => void;
   onTriggerRename: (nodeId: string) => void;
@@ -41,6 +50,8 @@ function TreeBranch({
   onToggle,
   onExpandTag,
   onSelectNode,
+  favoriteIds,
+  pinnedIds,
   draggedNode,
   setDraggedNode,
   dragOverNode,
@@ -50,15 +61,16 @@ function TreeBranch({
 }: TreeBranchProps) {
   const children = useTagChildren(parentId);
   const navigate = useNavigate();
-  const { createNote, createTag, deleteNode, moveNode } = useNodeMutations();
+  const { createNote, createTag, createCanvas, deleteNode, moveTag, addTag } = useNodeMutations();
+  const { setFavorite, pinNode, unpinNode } = usePreferenceMutations();
   const { openConfirmDialog } = useConfirmDialog();
   const [, startTransition] = useTransition();
 
   const handleDragStart = useCallback(
-    (e: React.DragEvent, nodeId: string) => {
+    (e: React.DragEvent, node: Node) => {
       e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", nodeId);
-      setDraggedNode(nodeId);
+      e.dataTransfer.setData("text/plain", node.id);
+      setDraggedNode({ id: node.id, type: node.type });
     },
     [setDraggedNode],
   );
@@ -66,7 +78,7 @@ function TreeBranch({
   const handleDragOver = useCallback(
     (e: React.DragEvent, node: Node) => {
       e.preventDefault();
-      if (node.type === "tag" && draggedNode && draggedNode !== node.id) {
+      if (node.type === "tag" && draggedNode && draggedNode.id !== node.id) {
         e.dataTransfer.dropEffect = "move";
         setDragOverNode(node.id);
       }
@@ -78,15 +90,21 @@ function TreeBranch({
     (e: React.DragEvent, targetNode: Node) => {
       e.preventDefault();
       const sourceId = e.dataTransfer.getData("text/plain");
-      if (sourceId && targetNode.type === "tag" && sourceId !== targetNode.id) {
-        startTransition(async () => {
-          await moveNode(sourceId, targetNode.id);
-        });
+      if (sourceId && targetNode.type === "tag" && draggedNode && sourceId !== targetNode.id) {
+        if (draggedNode.type === "tag") {
+          startTransition(async () => {
+            await moveTag(sourceId, targetNode.id);
+          });
+        } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
+          startTransition(async () => {
+            await addTag(sourceId, targetNode.id);
+          });
+        }
       }
       setDraggedNode(null);
       setDragOverNode(null);
     },
-    [moveNode, setDraggedNode, setDragOverNode, startTransition],
+    [addTag, draggedNode, moveTag, setDraggedNode, setDragOverNode, startTransition],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -119,9 +137,24 @@ function TreeBranch({
     [createTag, onExpandTag, startTransition],
   );
 
+  const handleCreateCanvas = useCallback(
+    (tagId: string) => {
+      onExpandTag(tagId);
+      startTransition(async () => {
+        const canvas = await createCanvas("New Canvas", tagId);
+        navigate({ to: "/canvas/$canvasId", params: { canvasId: canvas.id } });
+        setTimeout(() => {
+          const el = document.querySelector(`[data-node-id="${canvas.id}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 100);
+      });
+    },
+    [createCanvas, navigate, onExpandTag, startTransition],
+  );
+
   const handleDelete = useCallback(
     (node: Node) => {
-      if (node.id === "root") return;
+      if (node.id === ROOT_TAG_ID) return;
       openConfirmDialog({
         title: `Delete ${node.type}?`,
         description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
@@ -141,6 +174,8 @@ function TreeBranch({
       {children.map((child) => {
         const isTag = child.type === "tag";
         const isExpanded = expandedIds.has(child.id);
+        const isFavorite = favoriteIds.has(child.id);
+        const isPinned = pinnedIds.has(child.id);
 
         return (
           <li key={child.id}>
@@ -153,7 +188,7 @@ function TreeBranch({
                   node={child}
                   onSelect={() => onSelectNode?.(child)}
                   onToggle={isTag ? () => onToggle(child.id) : undefined}
-                  onDragStart={(e) => handleDragStart(e, child.id)}
+                  onDragStart={(e) => handleDragStart(e, child)}
                   onDragOver={(e) => handleDragOver(e, child)}
                   onDrop={(e) => handleDrop(e, child)}
                   isDragOver={dragOverNode === child.id}
@@ -166,6 +201,10 @@ function TreeBranch({
                       <FilePlus className="mr-2 size-4" />
                       New Note
                     </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleCreateCanvas(child.id)}>
+                      <PenTool className="mr-2 size-4" />
+                      New Canvas
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleCreateTag(child.id)}>
                       <Tag className="mr-2 size-4" />
                       New Tag
@@ -175,6 +214,20 @@ function TreeBranch({
                 )}
                 {child.type === "note" && (
                   <>
+                    <ContextMenuItem
+                      onClick={() => setFavorite(child.id, !isFavorite)}
+                      className={isFavorite ? "text-foreground" : undefined}
+                    >
+                      <Star className="mr-2 size-4" />
+                      {isFavorite ? "Unfavorite" : "Favorite"}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => (isPinned ? unpinNode(child.id) : pinNode(child.id))}
+                    >
+                      <Pin className="mr-2 size-4" />
+                      {isPinned ? "Unpin" : "Pin"}
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
                     <ContextMenuItem onClick={() => onOpenDetails(child.id)}>
                       <Info className="mr-2 size-4" />
                       Details
@@ -186,7 +239,7 @@ function TreeBranch({
                   <Pencil className="mr-2 size-4" />
                   Rename
                 </ContextMenuItem>
-                {child.id !== "root" && (
+                {child.id !== ROOT_TAG_ID && (
                   <ContextMenuItem
                     onClick={() => handleDelete(child)}
                     className="text-destructive focus:text-destructive"
@@ -204,6 +257,8 @@ function TreeBranch({
                 onSelectNode={onSelectNode}
                 onToggle={onToggle}
                 onExpandTag={onExpandTag}
+                favoriteIds={favoriteIds}
+                pinnedIds={pinnedIds}
                 parentId={child.id}
                 draggedNode={draggedNode}
                 setDraggedNode={setDraggedNode}
@@ -220,11 +275,16 @@ function TreeBranch({
   );
 }
 
-export function TagTree({ rootId = "root", onSelectNode }: TagTreeProps) {
+export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
-  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const [draggedNode, setDraggedNode] = useState<{ id: string; type: Node["type"] } | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
   const [detailsNodeId, setDetailsNodeId] = useState<string | null>(null);
+  const pinnedNotes = usePinnedNotes();
+  const favoriteNotes = useFavoriteNotes();
+
+  const pinnedIds = useMemo(() => new Set(pinnedNotes.map((note) => note.id)), [pinnedNotes]);
+  const favoriteIds = useMemo(() => new Set(favoriteNotes.map((note) => note.id)), [favoriteNotes]);
 
   const toggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -270,6 +330,8 @@ export function TagTree({ rootId = "root", onSelectNode }: TagTreeProps) {
           onSelectNode={onSelectNode}
           onToggle={toggle}
           onExpandTag={expandTag}
+          favoriteIds={favoriteIds}
+          pinnedIds={pinnedIds}
           parentId={rootId}
           draggedNode={draggedNode}
           setDraggedNode={setDraggedNode}

@@ -4,8 +4,6 @@ import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanst
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthProvider } from "@/auth/provider";
 import { useUserQueryOptions } from "@/auth/use-user";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
 import appCss from "@/styles/app.css?url";
 import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
 
@@ -48,19 +46,11 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <ConfirmDialogProvider>
-              <Outlet />
-              <Toaster richColors />
-            </ConfirmDialogProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ConfirmDialogProvider>
+            <Outlet />
+          </ConfirmDialogProvider>
+        </AuthProvider>
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />
       </body>

@@ -9,6 +9,7 @@ import { Edit3Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
+import { ROOT_TAG_ID } from "@/hooks/use-current-user";
 import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
 import { wikiLinkAutocomplete } from "./wiki-link-autocomplete";
 
@@ -20,6 +21,7 @@ interface NoteEditorProps {
   debounceMs?: number;
   saveNowRef?: MutableRefObject<(() => void) | null>;
   vimEnabled?: boolean;
+  editorKey?: number;
 }
 
 interface CodeMirrorEditorProps {
@@ -252,6 +254,7 @@ export function NoteEditor({
   debounceMs = 500,
   saveNowRef,
   vimEnabled = false,
+  editorKey = 0,
 }: NoteEditorProps) {
   const [vimMode, setVimMode] = useState<VimModeState>(VIM_MODE_DEFAULT);
   const { nodes } = useGraphData();
@@ -263,8 +266,7 @@ export function NoteEditor({
 
   const handleCreateNote = useCallback(
     async (title: string) => {
-      const rootTagResult = await createNote(title, "");
-      return rootTagResult;
+      return createNote(title, ROOT_TAG_ID);
     },
     [createNote],
   );
@@ -311,7 +313,7 @@ export function NoteEditor({
       <div className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto w-full px-8 py-6">
           <CodeMirrorEditor
-            key={note.id}
+            key={`${note.id}-${editorKey}`}
             content={initialContent}
             onChange={handleContentChange}
             vimEnabled={vimEnabled}
