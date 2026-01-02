@@ -4,7 +4,6 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { NoteToolbar } from "@/components/notes/note-toolbar";
 import { syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { useNodeById, useNodeMutations } from "@/lib/graph-hooks";
@@ -81,12 +80,6 @@ function NoteEditorPage() {
   return (
     <>
       <div className="flex h-full flex-col overflow-hidden">
-        <NoteToolbar
-          note={note}
-          onOpenDetails={handleOpenDetails}
-          onLinkTo={handleOpenLinkDialog}
-          onDelete={handleDelete}
-        />
         <div ref={editorContainerRef} className="flex-1 min-h-0">
           <NoteEditor note={note} onChange={handleContentSave} saveNowRef={saveNowRef} />
         </div>
