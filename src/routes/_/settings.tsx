@@ -42,7 +42,7 @@ function SettingsPage() {
                 <Label htmlFor="settings-theme">Theme</Label>
                 <p className="text-muted-foreground text-xs">Light, dark, or follow system.</p>
               </div>
-              <Select value={themeValue} onValueChange={(value) => setTheme(value)}>
+              <Select value={themeValue} onValueChange={(value) => value && setTheme(value)}>
                 <SelectTrigger id="settings-theme" className="w-36">
                   <SelectValue />
                 </SelectTrigger>

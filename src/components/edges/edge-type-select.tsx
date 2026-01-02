@@ -46,8 +46,8 @@ export function EdgeTypeSelect({ value, onValueChange, open, onOpenChange }: Edg
     valueRef.current = value;
   }, [value]);
 
-  const handleValueChange = (nextValue: EdgeType) => {
-    if (valueRef.current === nextValue) {
+  const handleValueChange = (nextValue: EdgeType | null) => {
+    if (nextValue === null || valueRef.current === nextValue) {
       return;
     }
     valueRef.current = nextValue;
@@ -64,7 +64,7 @@ export function EdgeTypeSelect({ value, onValueChange, open, onOpenChange }: Edg
         onOpenChange={onOpenChange}
       >
         <SelectTrigger aria-label="Edge type" id="edge-type-select" className="w-full">
-          <SelectValue placeholder="Choose type" />
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {EDGE_TYPE_OPTIONS.map((option) => (

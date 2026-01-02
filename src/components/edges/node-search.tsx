@@ -32,7 +32,10 @@ export function NodeSearch({
     [excludeId, results],
   );
 
-  const handleSelect = (nodeId: string) => {
+  const handleSelect = (nodeId: string | null) => {
+    if (!nodeId) {
+      return;
+    }
     const match = notes.find((node) => node.id === nodeId);
     if (!match) {
       return;

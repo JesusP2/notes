@@ -7,6 +7,7 @@ import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import type { Node } from "@/db/schema/graph";
 import { useNodeMutations } from "@/lib/graph-hooks";
+import type { ShortcutDefinition } from "@/lib/shortcuts";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { usePlatform } from "@/lib/use-shortcut";
 
@@ -46,7 +47,7 @@ export function AppSidebar() {
   }, [createTag]);
 
   const handleOpenCommandPalette = useCallback(() => {
-    const shortcut = SHORTCUTS.COMMAND_PALETTE;
+    const shortcut: ShortcutDefinition = SHORTCUTS.COMMAND_PALETTE;
     document.dispatchEvent(
       new KeyboardEvent("keydown", {
         key: shortcut.key,

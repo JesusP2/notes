@@ -41,7 +41,7 @@ describe("LinkDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create Link" }));
 
     await waitFor(async () => {
-      const edges = await db.query(
+      const edges = await db.query<{ type: string }>(
         "SELECT type FROM edges WHERE source_id = $1 AND target_id = $2",
         ["note-source", "note-target"],
       );

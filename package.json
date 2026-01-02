@@ -96,6 +96,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.13.7",
+		"@playwright/test": "^1.57.0",
 		"@tailwindcss/postcss": "^4.1.15",
 		"@tailwindcss/typography": "^0.5.19",
 		"@testing-library/dom": "^10.4.1",
