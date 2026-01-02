@@ -410,10 +410,10 @@ export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
        nodes.title AS note_title
      FROM tasks
      JOIN nodes ON nodes.id = tasks.note_id
-     WHERE tasks.user_id = $1 AND nodes.user_id = $1
+     WHERE tasks.user_id = $1 AND nodes.user_id = $2
        ${showDone ? "" : "AND tasks.is_done = false"}
      ORDER BY tasks.is_done ASC, tasks.due_at ASC NULLS LAST, tasks.position ASC`,
-    [userId],
+    [userId, userId],
   );
 
   return (
