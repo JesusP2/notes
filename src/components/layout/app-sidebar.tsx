@@ -1,9 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FilePlusIcon, FolderIcon, FolderPlusIcon, Network, SearchIcon } from "lucide-react";
+import { FilePlusIcon, Network, SearchIcon, Tag, TagIcon } from "lucide-react";
 import { useCallback, useTransition } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
-import { FolderTree } from "@/components/tree/folder-tree";
-import { TagsSection } from "@/components/tree/tags-section";
+import { TagTree } from "@/components/tree/tag-tree";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -12,7 +11,7 @@ import { useNodeMutations } from "@/lib/graph-hooks";
 
 export function AppSidebar() {
   const navigate = useNavigate();
-  const { createFolder, createNote } = useNodeMutations();
+  const { createTag, createNote } = useNodeMutations();
   const [isPending, startTransition] = useTransition();
 
   const handleSelectNode = useCallback(
@@ -38,11 +37,11 @@ export function AppSidebar() {
     });
   }, [createNote, navigate]);
 
-  const handleCreateFolder = useCallback(() => {
+  const handleCreateTag = useCallback(() => {
     startTransition(async () => {
-      await createFolder("New Folder", "root");
+      await createTag("New Tag", "root");
     });
-  }, [createFolder]);
+  }, [createTag]);
 
   return (
     <aside className="bg-sidebar text-sidebar-foreground flex h-full flex-col border-r shadow-sm">
@@ -50,7 +49,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5 font-bold tracking-tight text-lg">
             <div className="bg-primary/10 p-1.5 rounded-md text-primary">
-              <FolderIcon className="size-4 fill-current" />
+              <TagIcon className="size-4" />
             </div>
             Notes
           </div>
@@ -81,33 +80,21 @@ export function AppSidebar() {
             New Note
           </Button>
           <Button
-            onClick={handleCreateFolder}
+            onClick={handleCreateTag}
             size="icon"
             className="h-8 w-8"
             variant="ghost"
-            title="New Folder"
+            title="New Tag"
             disabled={isPending}
           >
-            <FolderPlusIcon className="size-4 opacity-70" />
+            <Tag className="size-4 opacity-70" />
           </Button>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2 flex-1 overflow-auto">
-        <div className="space-y-6 py-2">
-          <div>
-            <div className="px-2 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Folders
-            </div>
-            <FolderTree onSelectNode={handleSelectNode} />
-          </div>
-
-          <div className="mt-6">
-            <div className="px-2 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Tags
-            </div>
-            <TagsSection onSelectNode={handleSelectNode} />
-          </div>
+        <div className="py-2">
+          <TagTree onSelectNode={handleSelectNode} />
         </div>
       </SidebarContent>
 

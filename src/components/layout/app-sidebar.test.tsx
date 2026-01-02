@@ -52,21 +52,21 @@ describe("AppSidebar", () => {
     expect(call?.to).toBe("/notes/$noteId");
     expect(noteId).toEqual(expect.any(String));
 
-    const result = await db.query("SELECT id, type FROM nodes WHERE id = $1", [noteId]);
+    const result = await db.query<{ type: string }>("SELECT id, type FROM nodes WHERE id = $1", [noteId]);
     expect(result.rows[0]?.type).toBe("note");
   });
 
-  it("creates a new folder under the root", async () => {
+  it("creates a new tag under the root", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
     render(<AppSidebar />, { wrapper: Wrapper });
 
-    fireEvent.click(screen.getByRole("button", { name: "New Folder" }));
+    fireEvent.click(screen.getByRole("button", { name: "New Tag" }));
 
     await waitFor(async () => {
       const result = await db.query(
-        "SELECT id FROM nodes WHERE type = 'folder' AND title = 'New Folder'",
+        "SELECT id FROM nodes WHERE type = 'tag' AND title = 'New Tag'",
       );
       expect(result.rows).toHaveLength(1);
     });

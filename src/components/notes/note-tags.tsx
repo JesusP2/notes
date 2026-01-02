@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Node } from "@/db/schema/graph";
-import { useNodeMutations, useNoteTags, useTags } from "@/lib/graph-hooks";
+import { useNodeMutations, useParentTags, useTags } from "@/lib/graph-hooks";
 import { cn } from "@/lib/utils";
 
 interface NoteTagsProps {
@@ -13,46 +13,49 @@ interface NoteTagsProps {
 
 export function NoteTags({ noteId }: NoteTagsProps) {
   const allTags = useTags();
-  const noteTags = useNoteTags(noteId);
-  const { tagNote, untagNote } = useNodeMutations();
+  const parentTags = useParentTags(noteId);
+  const { addParent, removeParent } = useNodeMutations();
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
 
-  const noteTagIds = new Set(noteTags.map((t) => t.id));
-  const availableTags = allTags.filter((t) => !noteTagIds.has(t.id));
+  const parentTagIds = new Set(parentTags.map((t) => t.id));
+  const availableTags = allTags.filter((t) => !parentTagIds.has(t.id) && t.id !== "root");
 
   const handleAddTag = useCallback(
     (tag: Node) => {
       startTransition(async () => {
-        await tagNote(noteId, tag.id);
+        await addParent(noteId, tag.id);
       });
     },
-    [noteId, tagNote, startTransition],
+    [noteId, addParent],
   );
 
   const handleRemoveTag = useCallback(
     (tag: Node) => {
+      if (parentTags.length <= 1) return;
       startTransition(async () => {
-        await untagNote(noteId, tag.id);
+        await removeParent(noteId, tag.id);
       });
     },
-    [noteId, untagNote, startTransition],
+    [noteId, removeParent, parentTags.length],
   );
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {noteTags.map((tag) => (
+      {parentTags.map((tag) => (
         <Badge key={tag.id} variant="secondary" className="gap-1 pr-1">
           <Tag className="size-3" />
           {tag.title}
-          <button
-            type="button"
-            onClick={() => handleRemoveTag(tag)}
-            className="hover:bg-muted-foreground/20 rounded-sm p-0.5"
-            aria-label={`Remove tag ${tag.title}`}
-          >
-            <X className="size-3" />
-          </button>
+          {parentTags.length > 1 && (
+            <button
+              type="button"
+              onClick={() => handleRemoveTag(tag)}
+              className="hover:bg-muted-foreground/20 rounded-sm p-0.5"
+              aria-label={`Remove tag ${tag.title}`}
+            >
+              <X className="size-3" />
+            </button>
+          )}
         </Badge>
       ))}
       <Popover open={open} onOpenChange={setOpen}>
@@ -66,7 +69,7 @@ export function NoteTags({ noteId }: NoteTagsProps) {
           }
         >
           <Plus className="size-3" />
-          {noteTags.length === 0 && "Add tag"}
+          {parentTags.length === 0 && "Add tag"}
         </PopoverTrigger>
         <PopoverContent align="start" className="w-48 p-1">
           {availableTags.length === 0 ? (

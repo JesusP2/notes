@@ -11,7 +11,7 @@ describe("runMigrations", () => {
       "SELECT name FROM _migrations ORDER BY version",
     );
 
-    expect(result.rows.map((row) => row.name)).toEqual(["initial_schema", "seed_root_folder"]);
+    expect(result.rows.map((row) => row.name)).toEqual(["initial_schema", "seed_root_tag"]);
   });
 
   it("skips already-applied migrations", async () => {
@@ -26,7 +26,7 @@ describe("runMigrations", () => {
     expect(result.rows[0]?.count).toBe(2);
   });
 
-  it("seeds the root folder", async () => {
+  it("seeds the root tag", async () => {
     const db = await PGlite.create();
     await runMigrations(db);
 
@@ -37,8 +37,8 @@ describe("runMigrations", () => {
 
     expect(result.rows[0]).toEqual({
       id: "root",
-      type: "folder",
-      title: "Root",
+      type: "tag",
+      title: "#root",
     });
   });
 });

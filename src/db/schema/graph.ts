@@ -36,11 +36,5 @@ export type NewNode = typeof nodes.$inferInsert;
 export type Edge = typeof edges.$inferSelect;
 export type NewEdge = typeof edges.$inferInsert;
 
-export type NodeType = "note" | "folder" | "tag";
-export type EdgeType =
-  | "part_of"
-  | "tagged_with"
-  | "references"
-  | "supports"
-  | "contradicts"
-  | "related_to";
+export type NodeType = "note" | "tag";
+export type EdgeType = "part_of" | "references" | "supports" | "contradicts" | "related_to";

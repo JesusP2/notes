@@ -5,8 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
-import { FolderTree } from "./folder-tree";
-import { TagsSection } from "./tags-section";
+import { TagTree } from "./tag-tree";
 
 function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -14,14 +13,14 @@ function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
   };
 }
 
-describe("FolderTree", () => {
+describe("TagTree", () => {
   it("renders root children without showing root itself", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["folder-1", "folder", "Folder 1"],
+      ["tag-1", "tag", "Tag 1"],
     );
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -29,27 +28,27 @@ describe("FolderTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-folder", "folder-1", "root", "part_of"],
+      ["edge-tag", "tag-1", "root", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
       ["edge-note", "note-1", "root", "part_of"],
     );
 
-    render(<FolderTree />, { wrapper: Wrapper });
+    render(<TagTree />, { wrapper: Wrapper });
 
-    await waitFor(() => expect(screen.queryByText("Folder 1")).not.toBeNull());
+    await waitFor(() => expect(screen.queryByText("Tag 1")).not.toBeNull());
     await waitFor(() => expect(screen.queryByText("Note 1")).not.toBeNull());
-    expect(screen.queryByText("Root")).toBeNull();
+    expect(screen.queryByText("#root")).toBeNull();
   });
 
-  it("expands and collapses folders", async () => {
+  it("expands and collapses tags", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["folder-1", "folder", "Folder 1"],
+      ["tag-1", "tag", "Tag 1"],
     );
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -57,16 +56,16 @@ describe("FolderTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-folder", "folder-1", "root", "part_of"],
+      ["edge-tag", "tag-1", "root", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "folder-1", "part_of"],
+      ["edge-note", "note-1", "tag-1", "part_of"],
     );
 
-    render(<FolderTree />, { wrapper: Wrapper });
+    render(<TagTree />, { wrapper: Wrapper });
 
-    const toggle = await screen.findByLabelText("Toggle folder Folder 1");
+    const toggle = await screen.findByLabelText("Toggle tag Tag 1");
     expect(screen.queryByText("Nested Note")).toBeNull();
 
     fireEvent.click(toggle);
@@ -76,17 +75,17 @@ describe("FolderTree", () => {
     await waitFor(() => expect(screen.queryByText("Nested Note")).toBeNull());
   });
 
-  it("shows notes in multiple folders with an indicator", async () => {
+  it("shows notes in multiple tags with an indicator", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["folder-a", "folder", "Folder A"],
+      ["tag-a", "tag", "Tag A"],
     );
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["folder-b", "folder", "Folder B"],
+      ["tag-b", "tag", "Tag B"],
     );
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -94,25 +93,25 @@ describe("FolderTree", () => {
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-root-a", "folder-a", "root", "part_of"],
+      ["edge-root-a", "tag-a", "root", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-root-b", "folder-b", "root", "part_of"],
+      ["edge-root-b", "tag-b", "root", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-a", "note-shared", "folder-a", "part_of"],
+      ["edge-a", "note-shared", "tag-a", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-b", "note-shared", "folder-b", "part_of"],
+      ["edge-b", "note-shared", "tag-b", "part_of"],
     );
 
-    render(<FolderTree />, { wrapper: Wrapper });
+    render(<TagTree />, { wrapper: Wrapper });
 
-    fireEvent.click(await screen.findByLabelText("Toggle folder Folder A"));
-    fireEvent.click(await screen.findByLabelText("Toggle folder Folder B"));
+    fireEvent.click(await screen.findByLabelText("Toggle tag Tag A"));
+    fireEvent.click(await screen.findByLabelText("Toggle tag Tag B"));
 
     await waitFor(() => expect(screen.getAllByText("Shared Note")).toHaveLength(2));
     await waitFor(() => expect(screen.getAllByLabelText("Multiple parents")).toHaveLength(2));
@@ -132,67 +131,51 @@ describe("FolderTree", () => {
       ["edge-note", "note-1", "root", "part_of"],
     );
 
-    render(<FolderTree onSelectNode={handleSelect} />, { wrapper: Wrapper });
+    render(<TagTree onSelectNode={handleSelect} />, { wrapper: Wrapper });
 
     await waitFor(() => expect(screen.queryByText("Note 1")).not.toBeNull());
     fireEvent.click(screen.getByText("Note 1"));
 
     expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "note-1" }));
   });
-});
 
-describe("TagsSection", () => {
-  it("expands tags to show tagged notes", async () => {
+  it("supports nested tags", async () => {
     const db = await createTestDb();
     const Wrapper = createWrapper(db);
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-1", "tag", "Alpha"],
+      ["parent-tag", "tag", "Parent Tag"],
     );
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Tagged Note"],
+      ["child-tag", "tag", "Child Tag"],
+    );
+    await db.query(
+      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+      ["note-1", "note", "Nested Note"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-tag", "note-1", "tag-1", "tagged_with"],
-    );
-
-    render(<TagsSection />, { wrapper: Wrapper });
-
-    const toggle = await screen.findByLabelText("Toggle tag Alpha");
-    expect(screen.queryByText("Tagged Note")).toBeNull();
-
-    fireEvent.click(toggle);
-    await waitFor(() => expect(screen.queryByText("Tagged Note")).not.toBeNull());
-  });
-
-  it("calls onSelectNode when a tagged note is clicked", async () => {
-    const db = await createTestDb();
-    const Wrapper = createWrapper(db);
-    const handleSelect = vi.fn();
-
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-1", "tag", "Alpha"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Tagged Note"],
+      ["edge-parent", "parent-tag", "root", "part_of"],
     );
     await db.query(
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-tag", "note-1", "tag-1", "tagged_with"],
+      ["edge-child", "child-tag", "parent-tag", "part_of"],
+    );
+    await db.query(
+      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
+      ["edge-note", "note-1", "child-tag", "part_of"],
     );
 
-    render(<TagsSection onSelectNode={handleSelect} />, { wrapper: Wrapper });
+    render(<TagTree />, { wrapper: Wrapper });
 
-    fireEvent.click(await screen.findByLabelText("Toggle tag Alpha"));
-    await waitFor(() => expect(screen.queryByText("Tagged Note")).not.toBeNull());
+    // Expand parent tag
+    fireEvent.click(await screen.findByLabelText("Toggle tag Parent Tag"));
+    await waitFor(() => expect(screen.queryByText("Child Tag")).not.toBeNull());
 
-    fireEvent.click(screen.getByText("Tagged Note"));
-
-    expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "note-1" }));
+    // Expand child tag
+    fireEvent.click(await screen.findByLabelText("Toggle tag Child Tag"));
+    await waitFor(() => expect(screen.queryByText("Nested Note")).not.toBeNull());
   });
 });

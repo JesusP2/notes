@@ -7,7 +7,7 @@ export const migration = {
     await db.exec(`
       CREATE TABLE nodes (
         id TEXT PRIMARY KEY,
-        type TEXT NOT NULL CHECK (type IN ('note', 'folder', 'tag')),
+        type TEXT NOT NULL CHECK (type IN ('note', 'tag')),
         title TEXT NOT NULL,
         content TEXT,
         color TEXT,
@@ -21,7 +21,6 @@ export const migration = {
         target_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
         type TEXT NOT NULL CHECK (type IN (
           'part_of',
-          'tagged_with',
           'references',
           'supports',
           'contradicts',

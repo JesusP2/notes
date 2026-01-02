@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, Folder, Link2, Tag } from "lucide-react";
+import { ChevronRight, FileText, Link2, Tag } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import type { Node } from "@/db/schema/graph";
@@ -21,8 +21,6 @@ interface TreeNodeProps {
 
 function nodeIcon(type: Node["type"]) {
   switch (type) {
-    case "folder":
-      return <Folder className="size-3.5" />;
     case "tag":
       return <Tag className="size-3.5" />;
     default:

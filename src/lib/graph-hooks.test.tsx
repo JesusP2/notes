@@ -7,13 +7,12 @@ import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import {
   useEdgeMutations,
-  useFolderChildren,
+  useTagChildren,
   useGraphData,
   useNodeById,
   useNodeEdges,
   useNodeMutations,
   useSearchNodes,
-  useTaggedNotes,
   useTags,
 } from "./graph-hooks";
 
@@ -23,10 +22,10 @@ function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
   };
 }
 
-describe("useFolderChildren", () => {
-  it("returns empty array for empty folder", async () => {
+describe("useTagChildren", () => {
+  it("returns empty array for empty tag", async () => {
     const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useFolderChildren("root"), {
+    const { result, unmount } = renderHook(() => useTagChildren("root"), {
       wrapper: createWrapper(db),
     });
 
@@ -37,16 +36,16 @@ describe("useFolderChildren", () => {
     }
   });
 
-  it("returns direct children only and sorts folders before notes", async () => {
+  it("returns direct children only and sorts tags before notes", async () => {
     const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useFolderChildren("root"), {
+    const { result, unmount } = renderHook(() => useTagChildren("root"), {
       wrapper: createWrapper(db),
     });
 
     try {
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-z", "folder", "Zoo"],
+        ["tag-z", "tag", "Zoo"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -58,7 +57,7 @@ describe("useFolderChildren", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-root-folder", "folder-z", "root", "part_of"],
+        ["edge-root-tag", "tag-z", "root", "part_of"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
@@ -66,11 +65,11 @@ describe("useFolderChildren", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-folder-note", "note-nested", "folder-z", "part_of"],
+        ["edge-tag-note", "note-nested", "tag-z", "part_of"],
       );
 
       await waitFor(() => expect(result.current).toHaveLength(2));
-      expect(result.current.map((node) => node.id)).toEqual(["folder-z", "note-a"]);
+      expect(result.current.map((node) => node.id)).toEqual(["tag-z", "note-a"]);
     } finally {
       unmount();
     }
@@ -78,7 +77,7 @@ describe("useFolderChildren", () => {
 
   it("updates when a child is added and removed", async () => {
     const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useFolderChildren("root"), {
+    const { result, unmount } = renderHook(() => useTagChildren("root"), {
       wrapper: createWrapper(db),
     });
 
@@ -226,84 +225,8 @@ describe("useTags", () => {
         ["note-1", "note", "Note 1"],
       );
 
-      await waitFor(() => expect(result.current).toHaveLength(2));
-      expect(result.current.map((tag) => tag.title)).toEqual(["Alpha", "beta"]);
-    } finally {
-      unmount();
-    }
-  });
-});
-
-describe("useTaggedNotes", () => {
-  it("returns notes connected to the tag", async () => {
-    const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useTaggedNotes("tag-1"), {
-      wrapper: createWrapper(db),
-    });
-
-    try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-1", "tag", "Tag 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-2", "tag", "Tag 2"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Tagged Note"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Other Note"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-tag-1", "note-1", "tag-1", "tagged_with"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-tag-2", "note-2", "tag-2", "tagged_with"],
-      );
-
-      await waitFor(() => expect(result.current).toHaveLength(1));
-      expect(result.current[0]?.id).toBe("note-1");
-    } finally {
-      unmount();
-    }
-  });
-
-  it("returns tagged notes sorted by title", async () => {
-    const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useTaggedNotes("tag-1"), {
-      wrapper: createWrapper(db),
-    });
-
-    try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-1", "tag", "Tag 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-a", "note", "Alpha"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-b", "note", "beta"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-a", "note-a", "tag-1", "tagged_with"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-b", "note-b", "tag-1", "tagged_with"],
-      );
-
-      await waitFor(() => expect(result.current).toHaveLength(2));
-      expect(result.current.map((node) => node.title)).toEqual(["Alpha", "beta"]);
+      await waitFor(() => expect(result.current).toHaveLength(3));
+      expect(result.current.map((tag) => tag.title)).toEqual(["#root", "Alpha", "beta"]);
     } finally {
       unmount();
     }
@@ -480,7 +403,7 @@ describe("useEdgeMutations", () => {
         await result.current.changeEdgeType("edge-1", "supports");
       });
 
-      const edges = await db.query("SELECT type FROM edges WHERE id = $1", ["edge-1"]);
+      const edges = await db.query<{ type: string }>("SELECT type FROM edges WHERE id = $1", ["edge-1"]);
       expect(edges.rows[0]?.type).toBe("supports");
     } finally {
       unmount();
@@ -591,11 +514,11 @@ describe("useNodeMutations", () => {
     try {
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-1", "folder", "Folder 1"],
+        ["tag-1", "tag", "Tag 1"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-2", "folder", "Folder 2"],
+        ["tag-2", "tag", "Tag 2"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -603,11 +526,11 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "folder-1", "part_of"],
+        ["edge-1", "note-1", "tag-1", "part_of"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-2", "note-1", "folder-2", "part_of"],
+        ["edge-2", "note-1", "tag-2", "part_of"],
       );
 
       await act(async () => {
@@ -624,41 +547,7 @@ describe("useNodeMutations", () => {
     }
   });
 
-  it("createFolder creates a folder and part_of edge", async () => {
-    const db = await createTestDb();
-    const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
-    });
-
-    try {
-      let folderId = "";
-      await act(async () => {
-        const created = await result.current.createFolder("Folder", "root");
-        folderId = created.id;
-      });
-
-      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [folderId]);
-      const edges = await db.query(
-        "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
-        [folderId],
-      );
-
-      expect(nodes.rows[0]).toEqual({
-        id: folderId,
-        type: "folder",
-        title: "Folder",
-      });
-      expect(edges.rows[0]).toEqual({
-        source_id: folderId,
-        target_id: "root",
-        type: "part_of",
-      });
-    } finally {
-      unmount();
-    }
-  });
-
-  it("createTag creates a tag node without edges", async () => {
+  it("createTag creates a tag node with optional parent edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(db),
@@ -667,15 +556,34 @@ describe("useNodeMutations", () => {
     try {
       let tagId = "";
       await act(async () => {
-        const created = await result.current.createTag("Tag");
+        const created = await result.current.createTag("Standalone Tag");
         tagId = created.id;
       });
 
-      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [tagId]);
-      const edges = await db.query("SELECT id FROM edges WHERE source_id = $1", [tagId]);
+      const standaloneNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [tagId]);
+      const standaloneEdges = await db.query("SELECT id FROM edges WHERE source_id = $1", [tagId]);
 
-      expect(nodes.rows[0]).toEqual({ id: tagId, type: "tag", title: "Tag" });
-      expect(edges.rows).toHaveLength(0);
+      expect(standaloneNodes.rows[0]).toEqual({ id: tagId, type: "tag", title: "Standalone Tag" });
+      expect(standaloneEdges.rows).toHaveLength(0);
+
+      let childTagId = "";
+      await act(async () => {
+        const created = await result.current.createTag("Child Tag", "root");
+        childTagId = created.id;
+      });
+
+      const childNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [childTagId]);
+      const childEdges = await db.query(
+        "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
+        [childTagId],
+      );
+
+      expect(childNodes.rows[0]).toEqual({ id: childTagId, type: "tag", title: "Child Tag" });
+      expect(childEdges.rows[0]).toEqual({
+        source_id: childTagId,
+        target_id: "root",
+        type: "part_of",
+      });
     } finally {
       unmount();
     }
@@ -724,11 +632,11 @@ describe("useNodeMutations", () => {
     try {
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-a", "folder", "Folder A"],
+        ["tag-a", "tag", "Tag A"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-b", "folder", "Folder B"],
+        ["tag-b", "tag", "Tag B"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -736,20 +644,20 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "folder-a", "part_of"],
+        ["edge-1", "note-1", "tag-a", "part_of"],
       );
 
       await act(async () => {
-        await result.current.moveNode("note-1", "folder-b");
+        await result.current.moveNode("note-1", "tag-b");
       });
 
-      const edges = await db.query(
+      const edges = await db.query<{ target_id: string }>(
         "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
         ["note-1"],
       );
 
       expect(edges.rows).toHaveLength(1);
-      expect(edges.rows[0]?.target_id).toBe("folder-b");
+      expect(edges.rows[0]?.target_id).toBe("tag-b");
     } finally {
       unmount();
     }
@@ -764,15 +672,15 @@ describe("useNodeMutations", () => {
     try {
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-a", "folder", "Folder A"],
+        ["tag-a", "tag", "Tag A"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-b", "folder", "Folder B"],
+        ["tag-b", "tag", "Tag B"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["folder-c", "folder", "Folder C"],
+        ["tag-c", "tag", "Tag C"],
       );
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -780,24 +688,24 @@ describe("useNodeMutations", () => {
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-a", "note-1", "folder-a", "part_of"],
+        ["edge-a", "note-1", "tag-a", "part_of"],
       );
       await db.query(
         "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-b", "note-1", "folder-b", "part_of"],
+        ["edge-b", "note-1", "tag-b", "part_of"],
       );
 
       await act(async () => {
-        await result.current.moveNode("note-1", "folder-c");
+        await result.current.moveNode("note-1", "tag-c");
       });
 
-      const edges = await db.query(
+      const edges = await db.query<{ target_id: string }>(
         "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
         ["note-1"],
       );
 
       expect(edges.rows).toHaveLength(1);
-      expect(edges.rows[0]?.target_id).toBe("folder-c");
+      expect(edges.rows[0]?.target_id).toBe("tag-c");
     } finally {
       unmount();
     }

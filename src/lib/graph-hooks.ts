@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { useCallback } from "react";
 import { ulid } from "ulidx";
-import type { Edge, EdgeType, Node, NodeType } from "@/db/schema/graph";
+import type { Edge, EdgeType, Node } from "@/db/schema/graph";
 
 const dialect = new PgDialect();
 
@@ -41,13 +41,13 @@ function edgesSelect() {
   `;
 }
 
-export function useFolderChildren(folderId: string): Node[] {
+export function useTagChildren(tagId: string): Node[] {
   const query = sql`
     ${nodesSelect()}
     JOIN edges e ON nodes.id = e.source_id
-    WHERE e.target_id = ${folderId} AND e.type = 'part_of'
+    WHERE e.target_id = ${tagId} AND e.type = 'part_of'
     ORDER BY
-      CASE nodes.type WHEN 'folder' THEN 0 ELSE 1 END,
+      CASE nodes.type WHEN 'tag' THEN 0 ELSE 1 END,
       LOWER(nodes.title) ASC
   `;
 
@@ -148,24 +148,11 @@ export function useTags(): Node[] {
   return result?.rows ?? [];
 }
 
-export function useTaggedNotes(tagId: string): Node[] {
-  const query = sql`
-    ${nodesSelect()}
-    JOIN edges e ON nodes.id = e.source_id
-    WHERE e.target_id = ${tagId} AND e.type = 'tagged_with'
-    ORDER BY LOWER(nodes.title) ASC
-  `;
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
-}
-
-export function useNoteTags(noteId: string): Node[] {
+export function useParentTags(nodeId: string): Node[] {
   const query = sql`
     ${nodesSelect()}
     JOIN edges e ON nodes.id = e.target_id
-    WHERE e.source_id = ${noteId} AND e.type = 'tagged_with'
+    WHERE e.source_id = ${nodeId} AND e.type = 'part_of' AND nodes.type = 'tag'
     ORDER BY LOWER(nodes.title) ASC
   `;
   const { sql: sqlString, params } = sqlToQuery(query);
@@ -177,31 +164,10 @@ export function useNoteTags(noteId: string): Node[] {
 export function useNodeMutations() {
   const db = usePGlite();
 
-  const createNode = useCallback(
-    async (type: NodeType, title: string) => {
-      const id = ulid();
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, type, title, created_at, updated_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           type,
-           title,
-           content,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [id, type, title],
-      );
-      return result.rows[0];
-    },
-    [db],
-  );
-
   const createNote = useCallback(
-    async (title: string, parentFolderId: string) => {
+    async (title: string, parentTagId: string) => {
       const id = ulid();
-      const content = `# ${title}\n\n`;
+      const content = `<h1>${title}</h1><p></p>`;
       const result = await db.query<Node>(
         `INSERT INTO nodes (id, type, title, content, created_at, updated_at)
          VALUES ($1, 'note', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -220,32 +186,41 @@ export function useNodeMutations() {
         `INSERT INTO edges (id, source_id, target_id, type, created_at)
          VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
          ON CONFLICT (source_id, target_id, type) DO NOTHING`,
-        [ulid(), node.id, parentFolderId],
+        [ulid(), node.id, parentTagId],
       );
       return node;
     },
     [db],
   );
 
-  const createFolder = useCallback(
-    async (title: string, parentFolderId: string) => {
-      const node = await createNode("folder", title);
-      await db.query(
-        `INSERT INTO edges (id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
-         ON CONFLICT (source_id, target_id, type) DO NOTHING`,
-        [ulid(), node.id, parentFolderId],
+  const createTag = useCallback(
+    async (title: string, parentTagId?: string) => {
+      const id = ulid();
+      const result = await db.query<Node>(
+        `INSERT INTO nodes (id, type, title, created_at, updated_at)
+         VALUES ($1, 'tag', $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING
+           id,
+           type,
+           title,
+           content,
+           color,
+           created_at AS "createdAt",
+           updated_at AS "updatedAt"`,
+        [id, title],
       );
+      const node = result.rows[0];
+      if (parentTagId) {
+        await db.query(
+          `INSERT INTO edges (id, source_id, target_id, type, created_at)
+           VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
+           ON CONFLICT (source_id, target_id, type) DO NOTHING`,
+          [ulid(), node.id, parentTagId],
+        );
+      }
       return node;
     },
-    [createNode, db],
-  );
-
-  const createTag = useCallback(
-    async (title: string) => {
-      return createNode("tag", title);
-    },
-    [createNode],
+    [db],
   );
 
   const updateNode = useCallback(
@@ -296,36 +271,36 @@ export function useNodeMutations() {
     [db],
   );
 
+  const addParent = useCallback(
+    async (nodeId: string, parentTagId: string) => {
+      await db.query(
+        `INSERT INTO edges (id, source_id, target_id, type, created_at)
+         VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
+         ON CONFLICT (source_id, target_id, type) DO NOTHING`,
+        [ulid(), nodeId, parentTagId],
+      );
+    },
+    [db],
+  );
+
+  const removeParent = useCallback(
+    async (nodeId: string, parentTagId: string) => {
+      await db.query(
+        "DELETE FROM edges WHERE source_id = $1 AND target_id = $2 AND type = 'part_of'",
+        [nodeId, parentTagId],
+      );
+    },
+    [db],
+  );
+
   const moveNode = useCallback(
-    async (nodeId: string, newParentId: string) => {
+    async (nodeId: string, newParentTagId: string) => {
       await db.query("DELETE FROM edges WHERE source_id = $1 AND type = 'part_of'", [nodeId]);
       await db.query(
         `INSERT INTO edges (id, source_id, target_id, type, created_at)
          VALUES ($1, $2, $3, 'part_of', CURRENT_TIMESTAMP)
          ON CONFLICT (source_id, target_id, type) DO NOTHING`,
-        [ulid(), nodeId, newParentId],
-      );
-    },
-    [db],
-  );
-
-  const tagNote = useCallback(
-    async (noteId: string, tagId: string) => {
-      await db.query(
-        `INSERT INTO edges (id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, 'tagged_with', CURRENT_TIMESTAMP)
-         ON CONFLICT (source_id, target_id, type) DO NOTHING`,
-        [ulid(), noteId, tagId],
-      );
-    },
-    [db],
-  );
-
-  const untagNote = useCallback(
-    async (noteId: string, tagId: string) => {
-      await db.query(
-        "DELETE FROM edges WHERE source_id = $1 AND target_id = $2 AND type = 'tagged_with'",
-        [noteId, tagId],
+        [ulid(), nodeId, newParentTagId],
       );
     },
     [db],
@@ -333,13 +308,12 @@ export function useNodeMutations() {
 
   return {
     createNote,
-    createFolder,
     createTag,
     updateNode,
     deleteNode,
+    addParent,
+    removeParent,
     moveNode,
-    tagNote,
-    untagNote,
   };
 }
 

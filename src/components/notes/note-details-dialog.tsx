@@ -37,8 +37,7 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
     return map;
   }, [nodes]);
 
-  const parentEdges = outgoing.filter((edge) => edge.type === "part_of");
-  const tagEdges = outgoing.filter((edge) => edge.type === "tagged_with");
+  const parentTagEdges = outgoing.filter((edge) => edge.type === "part_of");
   const outgoingLinks = outgoing.filter((edge) => LINK_TYPES.has(edge.type));
   const incomingLinks = incoming.filter((edge) => LINK_TYPES.has(edge.type));
 
@@ -62,27 +61,16 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
               Link to...
             </Button>
 
-            <Section title="Parent Folders" count={parentEdges.length} emptyLabel="No folders yet.">
-              {parentEdges.map((edge) => {
-                const node = nodesById.get(edge.targetId);
-                return (
-                  <div key={edge.id} className="flex items-center justify-between text-xs">
-                    <span>{node?.title ?? "Unknown folder"}</span>
-                    <Badge variant="outline">folder</Badge>
-                  </div>
-                );
-              })}
-            </Section>
-
-            <Separator />
-
-            <Section title="Tags" count={tagEdges.length} emptyLabel="No tags yet.">
-              {tagEdges.map((edge) => {
+            <Section
+              title="Parent Tags"
+              count={parentTagEdges.length}
+              emptyLabel="No parent tags yet."
+            >
+              {parentTagEdges.map((edge) => {
                 const node = nodesById.get(edge.targetId);
                 return (
                   <div key={edge.id} className="flex items-center justify-between text-xs">
                     <span>{node?.title ?? "Unknown tag"}</span>
-                    <Badge variant="outline">tag</Badge>
                   </div>
                 );
               })}
