@@ -167,7 +167,7 @@ export function useNodeMutations() {
   const createNote = useCallback(
     async (title: string, parentTagId: string) => {
       const id = ulid();
-      const content = `<h1>${title}</h1><p></p>`;
+      const content = `# ${title}\n\n`;
       const result = await db.query<Node>(
         `INSERT INTO nodes (id, type, title, content, created_at, updated_at)
          VALUES ($1, 'note', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)

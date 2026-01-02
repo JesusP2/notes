@@ -158,23 +158,20 @@
   }
 }
 
-.tiptap-wrapper {
+.note-editor-wrapper {
   height: 100%;
 }
 
-.tiptap-wrapper .tiptap {
+.note-editor-wrapper .cm-editor {
   height: 100%;
+  background: transparent;
+}
+
+.note-editor-wrapper .cm-scroller {
+  font-family: inherit;
   padding: 1rem 0;
 }
 
-.tiptap-wrapper .tiptap:focus {
+.note-editor-wrapper .cm-focused {
   outline: none;
-}
-
-.tiptap-wrapper .tiptap p.is-editor-empty:first-child::before {
-  color: var(--muted-foreground);
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
 }

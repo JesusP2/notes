@@ -102,8 +102,11 @@ function NoteEditorPage() {
           onDelete={handleDelete}
           vimEnabled={vimEnabled}
           onToggleVim={() => {
-            setVimEnabled((prev) => !prev);
-            localStorage.setItem("vim-mode", vimEnabled ? "true" : "false");
+            setVimEnabled((prev) => {
+              const next = !prev;
+              localStorage.setItem("vim-mode", String(next));
+              return next;
+            });
           }}
         />
         <div ref={editorContainerRef} className="flex-1 min-h-0">
