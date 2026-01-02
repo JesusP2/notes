@@ -50,6 +50,9 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.2.8
         version: 5.2.8
+      '@lezer/highlight':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@openrouter/ai-sdk-provider':
         specifier: ^1.2.5
         version: 1.5.4(ai@5.0.117(zod@4.3.2))(zod@4.3.2)

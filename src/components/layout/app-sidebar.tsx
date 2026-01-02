@@ -4,15 +4,18 @@ import { useCallback, useTransition } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { TagTree } from "@/components/tree/tag-tree";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import type { Node } from "@/db/schema/graph";
 import { useNodeMutations } from "@/lib/graph-hooks";
+import { SHORTCUTS } from "@/lib/shortcuts";
+import { usePlatform } from "@/lib/use-shortcut";
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const { createTag, createNote } = useNodeMutations();
   const [isPending, startTransition] = useTransition();
+  const platform = usePlatform();
 
   const handleSelectNode = useCallback(
     (node: Node) => {
@@ -43,6 +46,20 @@ export function AppSidebar() {
     });
   }, [createTag]);
 
+  const handleOpenCommandPalette = useCallback(() => {
+    const shortcut = SHORTCUTS.COMMAND_PALETTE;
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: shortcut.key,
+        metaKey: Boolean(shortcut.modifiers?.meta && platform === "mac"),
+        ctrlKey: Boolean(shortcut.modifiers?.meta && platform !== "mac"),
+        altKey: Boolean(shortcut.modifiers?.alt),
+        shiftKey: Boolean(shortcut.modifiers?.shift),
+        bubbles: true,
+      }),
+    );
+  }, [platform]);
+
   return (
     <aside className="bg-sidebar text-sidebar-foreground flex h-full flex-col border-r shadow-sm">
       <SidebarHeader className="p-4 pb-2">
@@ -58,14 +75,12 @@ export function AppSidebar() {
 
         <button
           type="button"
-          onClick={() => {
-            document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
-          }}
+          onClick={handleOpenCommandPalette}
           className="relative flex items-center w-full h-9 px-3 text-sm text-muted-foreground bg-background/50 border border-transparent hover:border-border rounded-md transition-all shadow-sm mb-2"
         >
           <SearchIcon className="size-4 mr-2 opacity-60" />
           <span>Search notes...</span>
-          <Kbd className="ml-auto">⌘K</Kbd>
+          <ShortcutHint shortcut={SHORTCUTS.COMMAND_PALETTE} className="ml-auto" />
         </button>
 
         <div className="flex gap-1.5 mt-2">

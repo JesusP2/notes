@@ -1,8 +1,10 @@
 import { history } from "@codemirror/commands";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
-import { Compartment, EditorState, Prec } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { Compartment, EditorState } from "@codemirror/state";
+import { EditorView, drawSelection } from "@codemirror/view";
 import { getCM, vim } from "@replit/codemirror-vim";
+import { tags } from "@lezer/highlight";
 import { Edit3Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Node } from "@/db/schema/graph";
@@ -26,6 +28,23 @@ interface CodeMirrorEditorProps {
 }
 
 const VIM_MODE_DEFAULT: VimModeState = "insert";
+
+const markdownHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading1, fontSize: "1.8em", fontWeight: "700", lineHeight: "1.3" },
+  { tag: tags.heading2, fontSize: "1.5em", fontWeight: "700", lineHeight: "1.35" },
+  { tag: tags.heading3, fontSize: "1.25em", fontWeight: "600", lineHeight: "1.4" },
+  { tag: tags.heading4, fontSize: "1.1em", fontWeight: "600", lineHeight: "1.45" },
+  { tag: tags.heading5, fontSize: "1em", fontWeight: "600", lineHeight: "1.5" },
+  { tag: tags.heading6, fontSize: "1em", fontWeight: "600", lineHeight: "1.5" },
+  { tag: tags.strong, fontWeight: "700" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strikethrough, textDecoration: "line-through" },
+  { tag: tags.link, textDecoration: "underline" },
+  { tag: tags.url, textDecoration: "underline" },
+  { tag: tags.quote, fontStyle: "italic", color: "var(--muted-foreground)" },
+  { tag: tags.monospace, fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)" },
+  { tag: tags.processingInstruction, opacity: "0.45" },
+]);
 
 function normalizeVimMode(mode?: string | null): VimModeState {
   if (!mode) return VIM_MODE_DEFAULT;
@@ -77,7 +96,6 @@ function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeM
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onModeChangeRef = useRef(onModeChange);
-  const suppressChangeRef = useRef(false);
   const initialContentRef = useRef(content);
   const initialVimEnabledRef = useRef(vimEnabled);
   const vimCompartment = useRef(new Compartment());
@@ -94,20 +112,13 @@ function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeM
   const baseExtensions = useMemo(
     () => [
       EditorView.lineWrapping,
+      drawSelection(),
       EditorView.theme({
         "&": { height: "100%" },
         ".cm-scroller": { fontFamily: "inherit" },
+        ".cm-content": { lineHeight: "1.6", fontSize: "1rem" },
       }),
-      Prec.highest(
-        EditorView.domEventHandlers({
-          keydown(event) {
-            if (event.metaKey || event.ctrlKey) {
-              return true;
-            }
-            return false;
-          },
-        }),
-      ),
+      syntaxHighlighting(markdownHighlightStyle),
       history(),
       markdown(),
     ],
@@ -136,7 +147,7 @@ function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeM
     if (!containerRef.current) return;
 
     const updateListener = EditorView.updateListener.of((update) => {
-      if (!update.docChanged || suppressChangeRef.current) return;
+      if (!update.docChanged) return;
       onChangeRef.current(update.state.doc.toString());
     });
 
@@ -190,20 +201,6 @@ function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeM
     }
   }, [vimEnabled]);
 
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    const current = view.state.doc.toString();
-    if (current === content) return;
-
-    suppressChangeRef.current = true;
-    view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: content },
-    });
-    suppressChangeRef.current = false;
-  }, [content]);
-
   return <div ref={containerRef} className="note-editor-wrapper min-h-full" data-testid="note-editor" />;
 }
 
@@ -237,6 +234,12 @@ export function NoteEditor({
     },
     [debouncedSave],
   );
+
+  useEffect(() => {
+    return () => {
+      flushSave();
+    };
+  }, [flushSave, note?.id]);
 
   if (!note) {
     return (

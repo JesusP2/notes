@@ -38,6 +38,7 @@
 		"@electric-sql/pglite": "^0.3.14",
 		"@electric-sql/pglite-react": "^0.2.32",
 		"@fontsource-variable/inter": "^5.2.8",
+		"@lezer/highlight": "^1.2.3",
 		"@openrouter/ai-sdk-provider": "^1.2.5",
 		"@replit/codemirror-vim": "^6.3.0",
 		"@tailwindcss/vite": "^4.1.17",

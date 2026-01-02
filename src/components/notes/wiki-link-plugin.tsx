@@ -67,12 +67,14 @@ export function renderWikiLinks(content: string, linkTargets: Record<string, str
   });
 }
 
+type QueryableDb = Pick<PGlite, "query">;
+
 export async function syncWikiLinks({
   db,
   noteId,
   content,
 }: {
-  db: PGlite;
+  db: QueryableDb;
   noteId: string;
   content: string;
 }): Promise<{ resolved: string[]; unresolved: string[] }> {

@@ -77,8 +77,8 @@ export const SHORTCUTS = {
   },
   DELETE_NOTE: {
     id: "delete-note",
-    key: "Backspace",
-    modifiers: { meta: true, shift: true },
+    key: "x",
+    modifiers: { meta: true, alt: true },
     description: "Delete note",
     scope: "editor",
     category: "editor",
