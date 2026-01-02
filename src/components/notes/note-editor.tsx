@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Edit3Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 
@@ -9,6 +9,7 @@ interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
   debounceMs?: number;
+  saveNowRef?: MutableRefObject<(() => void) | null>;
 }
 
 interface TipTapEditorProps {
@@ -45,7 +46,7 @@ function TipTapEditor({ content, onChange }: TipTapEditorProps) {
   );
 }
 
-export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps) {
+export function NoteEditor({ note, onChange, debounceMs = 500, saveNowRef }: NoteEditorProps) {
   const [editorKey, setEditorKey] = useState(note?.id ?? "empty");
   const lastTitleRef = useRef<string | null>(null);
 
@@ -54,9 +55,20 @@ export function NoteEditor({ note, onChange, debounceMs = 500 }: NoteEditorProps
     lastTitleRef.current = null;
   }
 
-  const debouncedSave = useDebouncedCallback((nextContent: string) => {
-    onChange(nextContent);
-  }, debounceMs);
+  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback(
+    (nextContent: string) => {
+      onChange(nextContent);
+    },
+    debounceMs,
+  );
+
+  useEffect(() => {
+    if (!saveNowRef) return;
+    saveNowRef.current = flushSave;
+    return () => {
+      saveNowRef.current = null;
+    };
+  }, [flushSave, saveNowRef]);
 
   const handleContentChange = useCallback(
     (newContent: string) => {

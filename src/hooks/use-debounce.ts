@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 export function useDebouncedCallback<T extends (...args: any[]) => void>(
   callback: T,
   delay: number,
-) {
+): {
+  call: (...args: Parameters<T>) => void;
+  cancel: () => void;
+  flush: () => void;
+} {
   const callbackRef = useRef(callback);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastArgsRef = useRef<Parameters<T> | null>(null);
+  const lastCallbackRef = useRef(callback);
 
   useEffect(() => {
     callbackRef.current = callback;
@@ -16,19 +22,41 @@ export function useDebouncedCallback<T extends (...args: any[]) => void>(
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    lastArgsRef.current = null;
   }, []);
 
-  const debounced = useCallback(
+  const call = useCallback(
     (...args: Parameters<T>) => {
-      cancel();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      lastCallbackRef.current = callbackRef.current;
+      lastArgsRef.current = args;
       timeoutRef.current = setTimeout(() => {
-        callbackRef.current(...args);
+        timeoutRef.current = null;
+        const lastArgs = lastArgsRef.current;
+        lastArgsRef.current = null;
+        if (lastArgs) {
+          lastCallbackRef.current(...lastArgs);
+        }
       }, delay);
     },
-    [cancel, delay],
+    [delay],
   );
+
+  const flush = useCallback(() => {
+    if (!timeoutRef.current) return;
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    const lastArgs = lastArgsRef.current;
+    lastArgsRef.current = null;
+    if (lastArgs) {
+      lastCallbackRef.current(...lastArgs);
+    }
+  }, []);
 
   useEffect(() => cancel, [cancel]);
 
-  return debounced;
+  return useMemo(() => ({ call, cancel, flush }), [call, cancel, flush]);
 }
