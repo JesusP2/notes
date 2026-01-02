@@ -9,7 +9,9 @@ import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppSettingsProvider } from "@/components/providers/app-settings";
 import { Button } from "@/components/ui/button";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNodeMutations } from "@/lib/graph-hooks";
 import { dbPromise } from "@/lib/pglite";
 import { SHORTCUTS } from "@/lib/shortcuts";
@@ -133,19 +135,29 @@ function MainLayout() {
         <ResizableHandle className="hover:bg-primary/20 w-1" />
         <ResizablePanel>
           <main className="flex h-full flex-col relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="absolute top-2 left-2 z-10 h-8 w-8 opacity-60 hover:opacity-100"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpenIcon className="size-4" />
-              ) : (
-                <PanelLeftCloseIcon className="size-4" />
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2 z-10 h-8 w-8 opacity-60 hover:opacity-100"
+                  />
+                }
+                onClick={toggleSidebar}
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isCollapsed ? (
+                  <PanelLeftOpenIcon className="size-4" />
+                ) : (
+                  <PanelLeftCloseIcon className="size-4" />
+                )}
+              </TooltipTrigger>
+              <TooltipContent className="flex items-center gap-2">
+                <span>{isCollapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
+                <ShortcutHint shortcut={SHORTCUTS.TOGGLE_SIDEBAR} />
+              </TooltipContent>
+            </Tooltip>
             <Outlet />
           </main>
         </ResizablePanel>
