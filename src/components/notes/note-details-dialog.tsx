@@ -1,13 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { Info } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { Info, Plus, Tag, X } from "lucide-react";
+import { type ReactNode, useMemo, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import type { Node } from "@/db/schema/graph";
-import { useGraphData, useNodeById, useNodeEdges } from "@/lib/graph-hooks";
+import { useGraphData, useNodeById, useNodeEdges, useNodeMutations, useParentTags, useTags } from "@/lib/graph-hooks";
+import { cn } from "@/lib/utils";
 
 const LINK_TYPES = new Set(["references", "supports", "contradicts", "related_to"]);
 const LINK_LABELS: Record<string, string> = {
@@ -27,7 +29,12 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
   const note = useNodeById(noteId ?? "");
   const { outgoing, incoming } = useNodeEdges(noteId ?? "");
   const { nodes } = useGraphData();
+  const parentTags = useParentTags(noteId ?? "");
+  const allTags = useTags();
+  const { addParent, removeParent } = useNodeMutations();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
   const nodesById = useMemo(() => {
     const map = new Map<string, Node>();
@@ -37,7 +44,24 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
     return map;
   }, [nodes]);
 
-  const parentTagEdges = outgoing.filter((edge) => edge.type === "part_of");
+  const parentTagIds = new Set(parentTags.map((t) => t.id));
+  const availableTags = allTags.filter((t) => !parentTagIds.has(t.id) && t.id !== "root");
+
+  const handleAddTag = (tagId: string) => {
+    if (!noteId) return;
+    startTransition(async () => {
+      await addParent(noteId, tagId);
+    });
+    setTagPopoverOpen(false);
+  };
+
+  const handleRemoveTag = (tagId: string) => {
+    if (!noteId || parentTags.length <= 1) return;
+    startTransition(async () => {
+      await removeParent(noteId, tagId);
+    });
+  };
+
   const outgoingLinks = outgoing.filter((edge) => LINK_TYPES.has(edge.type));
   const incomingLinks = incoming.filter((edge) => LINK_TYPES.has(edge.type));
 
@@ -61,20 +85,70 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
               Link to...
             </Button>
 
-            <Section
-              title="Parent Tags"
-              count={parentTagEdges.length}
-              emptyLabel="No parent tags yet."
-            >
-              {parentTagEdges.map((edge) => {
-                const node = nodesById.get(edge.targetId);
-                return (
-                  <div key={edge.id} className="flex items-center justify-between text-xs">
-                    <span>{node?.title ?? "Unknown tag"}</span>
-                  </div>
-                );
-              })}
-            </Section>
+            <section className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
+                <span>Parent Tags</span>
+                <Badge variant="secondary">{parentTags.length}</Badge>
+              </div>
+              {parentTags.length > 0 ? (
+                <div className="space-y-1">
+                  {parentTags.map((tag) => (
+                    <div key={tag.id} className="flex items-center justify-between text-xs group">
+                      <span className="flex items-center gap-1.5">
+                        <Tag className="size-3 text-muted-foreground" />
+                        {tag.title}
+                      </span>
+                      {parentTags.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag.id)}
+                          className="opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 rounded-sm p-0.5 transition-opacity"
+                          aria-label={`Remove tag ${tag.title}`}
+                        >
+                          <X className="size-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-xs">No parent tags yet.</p>
+              )}
+              <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button variant="ghost" size="sm" className="h-6 gap-1 px-2 text-xs text-muted-foreground w-full justify-start" />
+                  }
+                >
+                  <Plus className="size-3" />
+                  Add tag
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-48 p-1">
+                  {availableTags.length === 0 ? (
+                    <div className="px-2 py-1.5 text-muted-foreground text-xs">
+                      {allTags.length <= 1 ? "No other tags exist yet." : "All tags already added."}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {availableTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => handleAddTag(tag.id)}
+                          className={cn(
+                            "flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs",
+                            "hover:bg-muted focus:bg-muted outline-none",
+                          )}
+                        >
+                          <Tag className="size-3 text-muted-foreground" />
+                          {tag.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </section>
 
             <Separator />
 
