@@ -7,6 +7,7 @@ import type { ImperativePanelHandle } from "react-resizable-panels";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppSettingsProvider } from "@/components/providers/app-settings";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useNodeMutations } from "@/lib/graph-hooks";
@@ -48,6 +49,10 @@ function MainLayout() {
   const { setTheme, resolvedTheme } = useTheme();
   const { createNote, createTag } = useNodeMutations();
   const [, startTransition] = useTransition();
+  const [vimEnabled, setVimEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("vim-mode") === "true";
+  });
 
   const toggleSidebar = useCallback(() => {
     const panel = sidebarRef.current;
@@ -81,6 +86,11 @@ function MainLayout() {
     setShortcutsOpen(true);
   }, []);
 
+  const handleSetVimEnabled = useCallback((next: boolean) => {
+    setVimEnabled(next);
+    localStorage.setItem("vim-mode", String(next));
+  }, []);
+
   useShortcut(SHORTCUTS.TOGGLE_SIDEBAR, toggleSidebar);
   useShortcut(SHORTCUTS.TOGGLE_THEME, toggleTheme);
   useShortcut(SHORTCUTS.NEW_NOTE, handleCreateNote);
@@ -90,7 +100,14 @@ function MainLayout() {
   useShortcut(SHORTCUTS.SHOW_SHORTCUTS, handleShowShortcuts);
 
   return (
-    <>
+    <AppSettingsProvider
+      value={{
+        isSidebarCollapsed: isCollapsed,
+        toggleSidebar,
+        vimEnabled,
+        setVimEnabled: handleSetVimEnabled,
+      }}
+    >
       <CommandPalette
         onCreateNote={handleCreateNote}
         onCreateTag={handleCreateTag}
@@ -133,6 +150,6 @@ function MainLayout() {
           </main>
         </ResizablePanel>
       </ResizablePanelGroup>
-    </>
+    </AppSettingsProvider>
   );
 }

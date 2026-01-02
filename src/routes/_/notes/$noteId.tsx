@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { NoteToolbar } from "@/components/notes/note-toolbar";
 import { syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
+import { useAppSettings } from "@/components/providers/app-settings";
 import type { Node } from "@/db/schema/graph";
 import { useNodeMutations } from "@/lib/graph-hooks";
 import { SHORTCUTS } from "@/lib/shortcuts";
@@ -30,10 +30,7 @@ function NoteEditorPage() {
   const [noteLoading, setNoteLoading] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
-  const [vimEnabled, setVimEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("vim-mode") === "true";
-  });
+  const { vimEnabled } = useAppSettings();
 
   useEffect(() => {
     let cancelled = false;
@@ -144,20 +141,6 @@ function NoteEditorPage() {
   return (
     <>
       <div className="flex h-full flex-col overflow-hidden">
-        <NoteToolbar
-          note={note}
-          onOpenDetails={handleOpenDetails}
-          onLinkTo={handleOpenLinkDialog}
-          onDelete={handleDelete}
-          vimEnabled={vimEnabled}
-          onToggleVim={() => {
-            setVimEnabled((prev) => {
-              const next = !prev;
-              localStorage.setItem("vim-mode", String(next));
-              return next;
-            });
-          }}
-        />
         <div ref={editorContainerRef} className="flex-1 min-h-0">
           {noteLoading ? (
             <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">

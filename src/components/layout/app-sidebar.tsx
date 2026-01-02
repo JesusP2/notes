@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FilePlusIcon, Network, SearchIcon, Tag, TagIcon } from "lucide-react";
+import { FilePlusIcon, Network, SearchIcon, Settings, Tag, TagIcon } from "lucide-react";
 import { useCallback, useTransition } from "react";
-import { ModeToggle } from "@/components/mode-toggle";
 import { TagTree } from "@/components/tree/tag-tree";
 import { Button } from "@/components/ui/button";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
@@ -63,14 +62,13 @@ export function AppSidebar() {
   return (
     <aside className="bg-sidebar text-sidebar-foreground flex h-full flex-col border-r shadow-sm">
       <SidebarHeader className="p-4 pb-2">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center mb-4">
           <div className="flex items-center gap-2.5 font-bold tracking-tight text-lg">
             <div className="bg-primary/10 p-1.5 rounded-md text-primary">
               <TagIcon className="size-4" />
             </div>
             Notes
           </div>
-          <ModeToggle />
         </div>
 
         <button
@@ -114,13 +112,22 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t">
-        <Link
-          to="/graph"
-          className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-        >
-          <Network className="size-4" />
-          Graph View
-        </Link>
+        <div className="space-y-1">
+          <Link
+            to="/graph"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+          >
+            <Network className="size-4" />
+            Graph View
+          </Link>
+          <Link
+            to="/settings"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+          >
+            <Settings className="size-4" />
+            Settings
+          </Link>
+        </div>
       </SidebarFooter>
     </aside>
   );

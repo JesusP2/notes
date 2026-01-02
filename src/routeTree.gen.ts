@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RouteImport } from './routes/_'
 import { Route as IndexRouteImport } from './routes/_.index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
+import { Route as SettingsRouteImport } from './routes/_/settings'
 import { Route as GraphRouteImport } from './routes/_/graph'
 import { Route as ApiUploadSplatRouteImport } from './routes/api/upload.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -30,6 +31,11 @@ const AuthIdRoute = AuthIdRouteImport.update({
   id: '/auth/$id',
   path: '/auth/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => Route,
 } as any)
 const GraphRoute = GraphRouteImport.update({
   id: '/graph',
@@ -54,6 +60,7 @@ const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/graph': typeof GraphRoute
+  '/settings': typeof SettingsRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/graph': typeof GraphRoute
+  '/settings': typeof SettingsRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_': typeof RouteWithChildren
   '/_/graph': typeof GraphRoute
+  '/_/settings': typeof SettingsRoute
   '/auth/$id': typeof AuthIdRoute
   '/_/': typeof IndexRoute
   '/_/notes/$noteId': typeof NotesNoteIdRoute
@@ -82,6 +91,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/graph'
+    | '/settings'
     | '/auth/$id'
     | '/'
     | '/notes/$noteId'
@@ -90,6 +100,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/graph'
+    | '/settings'
     | '/auth/$id'
     | '/'
     | '/notes/$noteId'
@@ -99,6 +110,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_'
     | '/_/graph'
+    | '/_/settings'
     | '/auth/$id'
     | '/_/'
     | '/_/notes/$noteId'
@@ -136,6 +148,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_/settings': {
+      id: '/_/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof Route
+    }
     '/_/graph': {
       id: '/_/graph'
       path: '/graph'
@@ -169,12 +188,14 @@ declare module '@tanstack/react-router' {
 
 interface RouteChildren {
   GraphRoute: typeof GraphRoute
+  SettingsRoute: typeof SettingsRoute
   IndexRoute: typeof IndexRoute
   NotesNoteIdRoute: typeof NotesNoteIdRoute
 }
 
 const RouteChildren: RouteChildren = {
   GraphRoute: GraphRoute,
+  SettingsRoute: SettingsRoute,
   IndexRoute: IndexRoute,
   NotesNoteIdRoute: NotesNoteIdRoute,
 }
