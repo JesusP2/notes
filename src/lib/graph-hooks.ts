@@ -33,6 +33,22 @@ function parseJson<T>(value: unknown, fallback: T): T {
   return value as T;
 }
 
+function normalizeCanvasAppState(appState: AppState | null | undefined): AppState {
+  const next = { ...(appState ?? {}) } as AppState & { collaborators?: unknown };
+  if (!(next.collaborators instanceof Map)) {
+    next.collaborators = new Map();
+  }
+  return next;
+}
+
+function stripCanvasAppStateForStorage(
+  appState: AppState | null | undefined,
+): Partial<AppState> {
+  if (!appState) return {};
+  const { collaborators, ...rest } = appState as AppState & { collaborators?: unknown };
+  return rest;
+}
+
 function nodesSelect() {
   return sql`
     SELECT
@@ -910,7 +926,9 @@ export function useCanvasScene(canvasId: string): CanvasScene | null {
 
   return {
     elements: parseJson<ExcalidrawElement[]>(row.elements_json, []),
-    appState: parseJson<AppState>(row.app_state_json, {} as AppState),
+    appState: normalizeCanvasAppState(
+      parseJson<AppState>(row.app_state_json, {} as AppState),
+    ),
     files: parseJson<BinaryFiles>(row.files_json, {} as BinaryFiles),
   };
 }
@@ -945,6 +963,7 @@ export function useCanvasMutations() {
 
   const upsertCanvasScene = useCallback(
     async (canvasId: string, scene: CanvasScene) => {
+      const appStateForStorage = stripCanvasAppStateForStorage(scene.appState);
       await db.query(
         `INSERT INTO canvas_scenes (canvas_id, user_id, elements_json, app_state_json, files_json, created_at, updated_at)
          VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -957,7 +976,7 @@ export function useCanvasMutations() {
           canvasId,
           userId,
           JSON.stringify(scene.elements ?? []),
-          JSON.stringify(scene.appState ?? {}),
+          JSON.stringify(appStateForStorage),
           JSON.stringify(scene.files ?? {}),
         ],
       );
