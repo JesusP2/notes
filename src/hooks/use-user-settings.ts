@@ -8,7 +8,7 @@ function parseValue<T>(value: unknown, fallback: T): T {
     try {
       return JSON.parse(value) as T;
     } catch {
-      return fallback;
+      return value as T;
     }
   }
   return value as T;

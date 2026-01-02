@@ -6,16 +6,11 @@ import { LinkDialog } from "@/components/edges/link-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { NotePreviewPanel } from "@/components/notes/note-preview-panel";
-import { NoteToolbar, type NoteViewMode } from "@/components/notes/note-toolbar";
 import { syncEmbeds, syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { useAppSettings } from "@/components/providers/app-settings";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import type { Node } from "@/db/schema/graph";
 import { useCurrentUserId } from "@/hooks/use-current-user";
-import { useDebouncedCallback } from "@/hooks/use-debounce";
-import { useUserSetting } from "@/hooks/use-user-settings";
 import { useNodeMutations, useVersionMutations } from "@/lib/graph-hooks";
 import { buildNoteExcerpt } from "@/lib/note-excerpt";
 import { SHORTCUTS } from "@/lib/shortcuts";
@@ -25,8 +20,6 @@ import { useEditorShortcut } from "@/lib/use-shortcut";
 export const Route = createFileRoute("/_/notes/$noteId")({
   component: NoteEditorPage,
 });
-
-const DEFAULT_SPLIT_SIZES = [60, 40];
 
 function NoteEditorPage() {
   const { noteId } = Route.useParams();
@@ -43,16 +36,8 @@ function NoteEditorPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-  const { vimEnabled, setVimEnabled } = useAppSettings();
+  const { vimEnabled } = useAppSettings();
   const userId = useCurrentUserId();
-  const [viewMode, setViewMode] = useUserSetting<NoteViewMode>("note.view_mode", "edit");
-  const [splitSizes, setSplitSizes] = useUserSetting<number[]>(
-    "layout.note_split",
-    DEFAULT_SPLIT_SIZES,
-  );
-  const { call: persistSplitSizes } = useDebouncedCallback((next: number[]) => {
-    void setSplitSizes(next);
-  }, 200);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,22 +151,6 @@ function NoteEditorPage() {
     [db, noteId, startTransition, userId],
   );
 
-  const handleViewModeChange = useCallback(
-    (mode: NoteViewMode) => {
-      void setViewMode(mode);
-    },
-    [setViewMode],
-  );
-
-  const handleSplitLayout = useCallback(
-    (sizes: number[]) => {
-      persistSplitSizes(sizes);
-    },
-    [persistSplitSizes],
-  );
-
-  const resolvedSplitSizes = splitSizes.length === 2 ? splitSizes : DEFAULT_SPLIT_SIZES;
-
   useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {
     enabled: !!note && !noteLoading,
   });
@@ -198,101 +167,27 @@ function NoteEditorPage() {
   return (
     <>
       <div className="flex h-full flex-col overflow-hidden">
-        <NoteToolbar
-          note={note}
-          onOpenDetails={handleOpenDetails}
-          onLinkTo={handleOpenLinkDialog}
-          onDelete={handleDelete}
-          vimEnabled={vimEnabled}
-          onToggleVim={() => setVimEnabled(!vimEnabled)}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-        />
-        {viewMode === "split" ? (
-          <ResizablePanelGroup
-            className="flex-1 min-h-0"
-            direction="horizontal"
-            onLayout={handleSplitLayout}
-          >
-            <ResizablePanel defaultSize={resolvedSplitSizes[0]} minSize={30}>
-              <div ref={editorContainerRef} className="h-full">
-                {noteLoading ? (
-                  <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
-                    <div className="rounded-full bg-muted p-4 mb-4">
-                      <Edit3Icon className="size-8 text-muted-foreground/50" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                      Fetching the latest version from your database.
-                    </p>
-                  </div>
-                ) : (
-                  <NoteEditor
-                    note={note}
-                    onChange={handleContentSave}
-                    saveNowRef={saveNowRef}
-                    vimEnabled={vimEnabled}
-                    editorKey={editorKey}
-                  />
-                )}
+        <div ref={editorContainerRef} className="flex-1 min-h-0">
+          {noteLoading ? (
+            <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Edit3Icon className="size-8 text-muted-foreground/50" />
               </div>
-            </ResizablePanel>
-            <ResizableHandle className="hover:bg-primary/20 w-1" />
-            <ResizablePanel defaultSize={resolvedSplitSizes[1]} minSize={20}>
-              {noteLoading ? (
-                <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <Edit3Icon className="size-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
-                  <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                    Fetching the latest version from your database.
-                  </p>
-                </div>
-              ) : (
-                <NotePreviewPanel note={note} />
-              )}
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : viewMode === "preview" ? (
-          <div className="flex-1 min-h-0">
-            {noteLoading ? (
-              <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Edit3Icon className="size-8 text-muted-foreground/50" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
-                <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                  Fetching the latest version from your database.
-                </p>
-              </div>
-            ) : (
-              <NotePreviewPanel note={note} />
-            )}
-          </div>
-        ) : (
-          <div ref={editorContainerRef} className="flex-1 min-h-0">
-            {noteLoading ? (
-              <div className="flex h-full flex-col items-center justify-center bg-muted/10 p-8 text-center animate-in fade-in-50">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Edit3Icon className="size-8 text-muted-foreground/50" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
-                <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                  Fetching the latest version from your database.
-                </p>
-              </div>
-            ) : (
-              <NoteEditor
-                note={note}
-                onChange={handleContentSave}
-                saveNowRef={saveNowRef}
-                vimEnabled={vimEnabled}
-                editorKey={editorKey}
-              />
-            )}
-          </div>
-        )}
+              <h3 className="text-lg font-semibold text-foreground">Loading Note</h3>
+              <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                Fetching the latest version from your database.
+              </p>
+            </div>
+          ) : (
+            <NoteEditor
+              note={note}
+              onChange={handleContentSave}
+              saveNowRef={saveNowRef}
+              vimEnabled={vimEnabled}
+              editorKey={editorKey}
+            />
+          )}
+        </div>
         {note && <BacklinksPanel noteId={note.id} />}
       </div>
       <NoteDetailsDialog
