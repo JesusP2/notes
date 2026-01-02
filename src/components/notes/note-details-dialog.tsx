@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Info, Plus, Tag, X } from "lucide-react";
-import { type ReactNode, useMemo, useState, useTransition } from "react";
+import { Download, Info, Plus, Printer, Tag, X } from "lucide-react";
+import { type ReactNode, useCallback, useMemo, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import type { Node } from "@/db/schema/graph";
-import { useGraphData, useNodeById, useNodeEdges, useNodeMutations, useParentTags, useTags } from "@/lib/graph-hooks";
+import { exportAsMarkdown, exportAsPdf } from "@/lib/export-note";
+import {
+  useGraphData,
+  useNodeById,
+  useNodeEdges,
+  useNodeMutations,
+  useParentTags,
+  useTags,
+} from "@/lib/graph-hooks";
 import { cn } from "@/lib/utils";
 
 const LINK_TYPES = new Set(["references", "supports", "contradicts", "related_to"]);
@@ -65,6 +73,16 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
   const outgoingLinks = outgoing.filter((edge) => LINK_TYPES.has(edge.type));
   const incomingLinks = incoming.filter((edge) => LINK_TYPES.has(edge.type));
 
+  const handleExportMarkdown = useCallback(() => {
+    if (!note) return;
+    exportAsMarkdown(note.title, note.content ?? "");
+  }, [note]);
+
+  const handleExportPdf = useCallback(() => {
+    if (!note) return;
+    exportAsPdf(note.title, note.content ?? "");
+  }, [note]);
+
   if (!noteId || !note) {
     return null;
   }
@@ -81,9 +99,19 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            <Button onClick={() => setLinkDialogOpen(true)} size="sm" variant="outline">
-              Link to...
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setLinkDialogOpen(true)} size="sm" variant="outline">
+                Link to...
+              </Button>
+              <Button onClick={handleExportMarkdown} size="sm" variant="outline">
+                <Download className="size-4 mr-1" />
+                Markdown
+              </Button>
+              <Button onClick={handleExportPdf} size="sm" variant="outline">
+                <Printer className="size-4 mr-1" />
+                PDF
+              </Button>
+            </div>
 
             <section className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
@@ -117,7 +145,11 @@ export function NoteDetailsDialog({ noteId, open, onOpenChange }: NoteDetailsDia
               <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
                 <PopoverTrigger
                   render={
-                    <Button variant="ghost" size="sm" className="h-6 gap-1 px-2 text-xs text-muted-foreground w-full justify-start" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-xs text-muted-foreground w-full justify-start"
+                    />
                   }
                 >
                   <Plus className="size-3" />

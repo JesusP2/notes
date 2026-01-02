@@ -9,6 +9,8 @@ import { Edit3Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
+import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
+import { wikiLinkAutocomplete } from "./wiki-link-autocomplete";
 
 type VimModeState = "insert" | "normal" | "visual" | "visual block" | "replace";
 
@@ -26,6 +28,8 @@ interface CodeMirrorEditorProps {
   vimEnabled: boolean;
   vimMode: VimModeState;
   onModeChange: (mode: VimModeState) => void;
+  notes: Node[];
+  onCreateNote?: (title: string) => Promise<Node | null>;
 }
 
 const VIM_MODE_DEFAULT: VimModeState = "insert";
@@ -43,7 +47,10 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: tags.link, textDecoration: "underline" },
   { tag: tags.url, textDecoration: "underline" },
   { tag: tags.quote, fontStyle: "italic", color: "var(--muted-foreground)" },
-  { tag: tags.monospace, fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)" },
+  {
+    tag: tags.monospace,
+    fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)",
+  },
   { tag: tags.processingInstruction, opacity: "0.45" },
 ]);
 
@@ -98,6 +105,8 @@ function CodeMirrorEditor({
   vimEnabled,
   vimMode,
   onModeChange,
+  notes,
+  onCreateNote,
 }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -107,6 +116,16 @@ function CodeMirrorEditor({
   const initialVimEnabledRef = useRef(vimEnabled);
   const vimCompartment = useRef(new Compartment());
   const detachVimListenerRef = useRef<(() => void) | null>(null);
+  const notesRef = useRef(notes);
+  const onCreateNoteRef = useRef(onCreateNote);
+
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+
+  useEffect(() => {
+    onCreateNoteRef.current = onCreateNote;
+  }, [onCreateNote]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -128,6 +147,15 @@ function CodeMirrorEditor({
       syntaxHighlighting(markdownHighlightStyle),
       history(),
       markdown(),
+      wikiLinkAutocomplete({
+        getNotes: () => notesRef.current,
+        onCreateNote: (title) => {
+          if (onCreateNoteRef.current) {
+            return onCreateNoteRef.current(title);
+          }
+          return Promise.resolve(null);
+        },
+      }),
     ],
     [],
   );
@@ -226,12 +254,19 @@ export function NoteEditor({
   vimEnabled = false,
 }: NoteEditorProps) {
   const [vimMode, setVimMode] = useState<VimModeState>(VIM_MODE_DEFAULT);
+  const { nodes } = useGraphData();
+  const { createNote } = useNodeMutations();
 
-  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback(
-    (nextContent: string) => {
-      onChange(nextContent);
+  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback((nextContent: string) => {
+    onChange(nextContent);
+  }, debounceMs);
+
+  const handleCreateNote = useCallback(
+    async (title: string) => {
+      const rootTagResult = await createNote(title, "");
+      return rootTagResult;
     },
-    debounceMs,
+    [createNote],
   );
 
   useEffect(() => {
@@ -282,6 +317,8 @@ export function NoteEditor({
             vimEnabled={vimEnabled}
             vimMode={vimMode}
             onModeChange={setVimMode}
+            notes={nodes}
+            onCreateNote={handleCreateNote}
           />
         </div>
       </div>

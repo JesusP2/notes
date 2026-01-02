@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Edit3Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
+import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { syncWikiLinks } from "@/components/notes/wiki-link-plugin";
@@ -115,22 +116,12 @@ function NoteEditorPage() {
     saveNowRef.current?.();
   }, []);
 
-  useEditorShortcut(
-    SHORTCUTS.NOTE_DETAILS,
-    handleOpenDetails,
-    editorContainerRef,
-    {
-      enabled: !!note && !noteLoading,
-    },
-  );
-  useEditorShortcut(
-    SHORTCUTS.LINK_TO,
-    handleOpenLinkDialog,
-    editorContainerRef,
-    {
-      enabled: !!note && !noteLoading,
-    },
-  );
+  useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {
+    enabled: !!note && !noteLoading,
+  });
+  useEditorShortcut(SHORTCUTS.LINK_TO, handleOpenLinkDialog, editorContainerRef, {
+    enabled: !!note && !noteLoading,
+  });
   useEditorShortcut(SHORTCUTS.DELETE_NOTE, handleDelete, editorContainerRef, {
     enabled: !!note && !noteLoading,
   });
@@ -161,6 +152,7 @@ function NoteEditorPage() {
             />
           )}
         </div>
+        {note && <BacklinksPanel noteId={note.id} />}
       </div>
       <NoteDetailsDialog
         noteId={note?.id ?? null}

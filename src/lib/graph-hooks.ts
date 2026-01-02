@@ -136,6 +136,34 @@ export function useSearchNodes(queryText: string): Node[] {
   return result?.rows ?? [];
 }
 
+export function useRecentNotes(limit = 10): Node[] {
+  const query = sql`
+    ${nodesSelect()}
+    WHERE nodes.type = 'note'
+    ORDER BY updated_at DESC
+    LIMIT ${limit}
+  `;
+
+  const { sql: sqlString, params } = sqlToQuery(query);
+  const result = useLiveQuery<Node>(sqlString, params);
+
+  return result?.rows ?? [];
+}
+
+export function useBacklinks(noteId: string): Node[] {
+  const query = sql`
+    ${nodesSelect()}
+    JOIN edges e ON nodes.id = e.source_id
+    WHERE e.target_id = ${noteId} AND e.type = 'references'
+    ORDER BY nodes.updated_at DESC
+  `;
+
+  const { sql: sqlString, params } = sqlToQuery(query);
+  const result = useLiveQuery<Node>(sqlString, params);
+
+  return result?.rows ?? [];
+}
+
 export function useTags(): Node[] {
   const query = sql`
     ${nodesSelect()}

@@ -2,9 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAppSettings } from "@/components/providers/app-settings";
+import { ShortcutEditor } from "@/components/settings/shortcut-editor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_/settings")({
@@ -95,6 +102,8 @@ function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <ShortcutEditor />
       </div>
     </div>
   );

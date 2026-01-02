@@ -52,7 +52,9 @@ describe("AppSidebar", () => {
     expect(call?.to).toBe("/notes/$noteId");
     expect(noteId).toEqual(expect.any(String));
 
-    const result = await db.query<{ type: string }>("SELECT id, type FROM nodes WHERE id = $1", [noteId]);
+    const result = await db.query<{ type: string }>("SELECT id, type FROM nodes WHERE id = $1", [
+      noteId,
+    ]);
     expect(result.rows[0]?.type).toBe("note");
   });
 

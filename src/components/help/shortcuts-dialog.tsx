@@ -7,11 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
-import {
-  CATEGORY_LABELS,
-  getShortcutsByCategory,
-  type ShortcutCategory,
-} from "@/lib/shortcuts";
+import { CATEGORY_LABELS, getShortcutsByCategory, type ShortcutCategory } from "@/lib/shortcuts";
 
 const CATEGORY_ORDER: ShortcutCategory[] = ["navigation", "notes", "editor", "view", "help"];
 
@@ -28,7 +24,9 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>Quick access to navigation, editing, and view commands.</DialogDescription>
+          <DialogDescription>
+            Quick access to navigation, editing, and view commands.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
           {CATEGORY_ORDER.map((category) => {

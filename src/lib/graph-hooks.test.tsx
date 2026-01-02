@@ -403,7 +403,9 @@ describe("useEdgeMutations", () => {
         await result.current.changeEdgeType("edge-1", "supports");
       });
 
-      const edges = await db.query<{ type: string }>("SELECT type FROM edges WHERE id = $1", ["edge-1"]);
+      const edges = await db.query<{ type: string }>("SELECT type FROM edges WHERE id = $1", [
+        "edge-1",
+      ]);
       expect(edges.rows[0]?.type).toBe("supports");
     } finally {
       unmount();
@@ -560,7 +562,9 @@ describe("useNodeMutations", () => {
         tagId = created.id;
       });
 
-      const standaloneNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [tagId]);
+      const standaloneNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
+        tagId,
+      ]);
       const standaloneEdges = await db.query("SELECT id FROM edges WHERE source_id = $1", [tagId]);
 
       expect(standaloneNodes.rows[0]).toEqual({ id: tagId, type: "tag", title: "Standalone Tag" });
@@ -572,7 +576,9 @@ describe("useNodeMutations", () => {
         childTagId = created.id;
       });
 
-      const childNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [childTagId]);
+      const childNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
+        childTagId,
+      ]);
       const childEdges = await db.query(
         "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
         [childTagId],

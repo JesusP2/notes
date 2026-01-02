@@ -13,8 +13,13 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import type { Node } from "@/db/schema/graph";
-import { COMMANDS, COMMAND_GROUP_LABELS, getThemeIcon, type CommandDefinition } from "@/lib/commands";
-import { useSearchNodes } from "@/lib/graph-hooks";
+import {
+  COMMANDS,
+  COMMAND_GROUP_LABELS,
+  getThemeIcon,
+  type CommandDefinition,
+} from "@/lib/commands";
+import { useRecentNotes, useSearchNodes } from "@/lib/graph-hooks";
 import { formatShortcut, SHORTCUTS } from "@/lib/shortcuts";
 import { usePlatform, useShortcut } from "@/lib/use-shortcut";
 
@@ -45,6 +50,7 @@ export function CommandPalette({
   const navigate = useNavigate();
   const platform = usePlatform();
   const results = useSearchNodes(query);
+  const recentNotes = useRecentNotes();
 
   useShortcut(SHORTCUTS.COMMAND_PALETTE, () => setOpen((prev) => !prev));
 
@@ -119,9 +125,7 @@ export function CommandPalette({
     for (const command of COMMANDS) {
       const existing = groups.get(command.group) ?? [];
       const displayCommand =
-        command.id === "toggle-theme"
-          ? { ...command, icon: getThemeIcon(isDarkMode) }
-          : command;
+        command.id === "toggle-theme" ? { ...command, icon: getThemeIcon(isDarkMode) } : command;
       existing.push(displayCommand);
       groups.set(command.group, existing);
     }
@@ -130,6 +134,7 @@ export function CommandPalette({
 
   const hasQuery = query.trim().length > 0;
   const hasResults = results.length > 0;
+  const hasRecentNotes = recentNotes.length > 0;
 
   return (
     <CommandDialog
@@ -146,6 +151,27 @@ export function CommandPalette({
         />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
+
+          {!hasQuery && hasRecentNotes && (
+            <>
+              <CommandGroup heading="Recent Notes">
+                {recentNotes.map((node) => {
+                  const Icon = NODE_ICONS[node.type];
+                  return (
+                    <CommandItem
+                      key={node.id}
+                      value={`recent-${node.id}`}
+                      onSelect={() => handleSelectNode(node)}
+                    >
+                      <Icon className="size-4 text-muted-foreground" />
+                      <span>{node.title}</span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
 
           {hasQuery && hasResults && (
             <>
