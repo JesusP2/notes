@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardList,
   FilePlusIcon,
+  LayoutTemplate,
   Network,
   Pin,
   PenTool,
@@ -189,10 +190,10 @@ export function AppSidebar() {
                     key={note.id}
                     type="button"
                     onClick={() => handleSelectNode(note)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted text-left"
+                    className="flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted text-left"
                   >
-                    <Pin className="size-3 text-muted-foreground" />
-                    <span className="truncate">{note.title}</span>
+                    <Pin className="size-3 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate">{note.title}</span>
                   </button>
                 ))}
               </div>
@@ -210,10 +211,10 @@ export function AppSidebar() {
                     key={note.id}
                     type="button"
                     onClick={() => handleSelectNode(note)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted text-left"
+                    className="flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted text-left"
                   >
-                    <Star className="size-3 text-muted-foreground" />
-                    <span className="truncate">{note.title}</span>
+                    <Star className="size-3 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate">{note.title}</span>
                   </button>
                 ))}
               </div>
@@ -223,7 +224,7 @@ export function AppSidebar() {
             <section className="space-y-2">
               <div className="flex items-center justify-between px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <TagIcon className="size-3" />
+                  <LayoutTemplate className="size-3" />
                   Templates
                 </div>
                 <Button
@@ -247,10 +248,10 @@ export function AppSidebar() {
                       onClick={() =>
                         navigate({ to: "/notes/$noteId", params: { noteId: template.id } })
                       }
-                      className="flex flex-1 items-center gap-2 text-left"
+                      className="flex flex-1 min-w-0 items-center gap-2 text-left"
                     >
-                      <TagIcon className="size-3 text-muted-foreground" />
-                      <span className="truncate">{template.title}</span>
+                      <LayoutTemplate className="size-3 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{template.title}</span>
                     </button>
                     <Button
                       variant="ghost"
@@ -270,7 +271,7 @@ export function AppSidebar() {
             <section className="space-y-2">
               <div className="flex items-center justify-between px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <TagIcon className="size-3" />
+                  <LayoutTemplate className="size-3" />
                   Templates
                 </div>
                 <Button

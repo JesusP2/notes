@@ -126,19 +126,19 @@ export function TreeNode({
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleRenameSubmit}
           onKeyDown={handleKeyDown}
-          className="h-6 text-xs py-0 px-1.5 flex-1"
+          className="h-6 text-xs py-0 px-1.5 flex-1 min-w-0"
         />
       ) : (
         (() => {
           const button = (
             <button
-              className="hover:bg-muted flex flex-1 items-center gap-2 rounded px-1.5 py-1 text-left"
+              className="hover:bg-muted flex flex-1 min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left"
               onClick={onSelect}
               onDoubleClick={handleDoubleClick}
               type="button"
             >
-              <span className="text-muted-foreground">{nodeIcon(node.type)}</span>
-              <span data-testid="tree-node-label" className="truncate">
+              <span className="text-muted-foreground shrink-0">{nodeIcon(node.type)}</span>
+              <span data-testid="tree-node-label" className="min-w-0 flex-1 truncate">
                 {node.title}
               </span>
             </button>
