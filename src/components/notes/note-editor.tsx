@@ -24,6 +24,7 @@ interface CodeMirrorEditorProps {
   content: string;
   onChange: (content: string) => void;
   vimEnabled: boolean;
+  vimMode: VimModeState;
   onModeChange: (mode: VimModeState) => void;
 }
 
@@ -91,7 +92,13 @@ function getInitialContent(note: Node) {
   return note.content;
 }
 
-function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({
+  content,
+  onChange,
+  vimEnabled,
+  vimMode,
+  onModeChange,
+}: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -201,7 +208,14 @@ function CodeMirrorEditor({ content, onChange, vimEnabled, onModeChange }: CodeM
     }
   }, [vimEnabled]);
 
-  return <div ref={containerRef} className="note-editor-wrapper min-h-full" data-testid="note-editor" />;
+  return (
+    <div
+      ref={containerRef}
+      className="note-editor-wrapper min-h-full"
+      data-testid="note-editor"
+      data-vim-mode={vimMode}
+    />
+  );
 }
 
 export function NoteEditor({
@@ -266,6 +280,7 @@ export function NoteEditor({
             content={initialContent}
             onChange={handleContentChange}
             vimEnabled={vimEnabled}
+            vimMode={vimMode}
             onModeChange={setVimMode}
           />
         </div>
