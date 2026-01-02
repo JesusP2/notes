@@ -9,6 +9,12 @@ vi.mock("@tiptap/react", () => ({
   useEditor: () => ({
     destroy: vi.fn(),
     getHTML: () => "<p>test</p>",
+    storage: {
+      vimMode: {
+        enabled: false,
+        mode: "insert",
+      },
+    },
   }),
   EditorContent: () => <div data-testid="tiptap-editor-content">TipTap Editor</div>,
 }));

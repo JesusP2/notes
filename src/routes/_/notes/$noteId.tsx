@@ -1,9 +1,10 @@
 import { usePGlite } from "@electric-sql/pglite-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
+import { NoteToolbar } from "@/components/notes/note-toolbar";
 import { syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { useNodeById, useNodeMutations } from "@/lib/graph-hooks";
@@ -26,6 +27,10 @@ function NoteEditorPage() {
   const saveNowRef = useRef<(() => void) | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [vimEnabled, setVimEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("vim-mode") === "true";
+  });
 
   const handleContentSave = useCallback(
     (content: string) => {
@@ -64,12 +69,22 @@ function NoteEditorPage() {
     saveNowRef.current?.();
   }, []);
 
-  useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {
-    enabled: !!note,
-  });
-  useEditorShortcut(SHORTCUTS.LINK_TO, handleOpenLinkDialog, editorContainerRef, {
-    enabled: !!note,
-  });
+  useEditorShortcut(
+    SHORTCUTS.NOTE_DETAILS,
+    handleOpenDetails,
+    editorContainerRef,
+    {
+      enabled: !!note,
+    },
+  );
+  useEditorShortcut(
+    SHORTCUTS.LINK_TO,
+    handleOpenLinkDialog,
+    editorContainerRef,
+    {
+      enabled: !!note,
+    },
+  );
   useEditorShortcut(SHORTCUTS.DELETE_NOTE, handleDelete, editorContainerRef, {
     enabled: !!note,
   });
@@ -80,8 +95,24 @@ function NoteEditorPage() {
   return (
     <>
       <div className="flex h-full flex-col overflow-hidden">
+        <NoteToolbar
+          note={note}
+          onOpenDetails={handleOpenDetails}
+          onLinkTo={handleOpenLinkDialog}
+          onDelete={handleDelete}
+          vimEnabled={vimEnabled}
+          onToggleVim={() => {
+            setVimEnabled((prev) => !prev);
+            localStorage.setItem("vim-mode", vimEnabled ? "true" : "false");
+          }}
+        />
         <div ref={editorContainerRef} className="flex-1 min-h-0">
-          <NoteEditor note={note} onChange={handleContentSave} saveNowRef={saveNowRef} />
+          <NoteEditor
+            note={note}
+            onChange={handleContentSave}
+            saveNowRef={saveNowRef}
+            vimEnabled={vimEnabled}
+          />
         </div>
       </div>
       <NoteDetailsDialog

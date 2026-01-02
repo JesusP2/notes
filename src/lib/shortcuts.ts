@@ -19,8 +19,8 @@ export interface ShortcutDefinition {
 export const SHORTCUTS = {
   COMMAND_PALETTE: {
     id: "command-palette",
-    key: "k",
-    modifiers: { meta: true },
+    key: "p",
+    modifiers: { meta: true, alt: true },
     description: "Open command palette",
     scope: "global",
     category: "navigation",
@@ -28,7 +28,7 @@ export const SHORTCUTS = {
   GRAPH_VIEW: {
     id: "graph-view",
     key: "g",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Go to graph view",
     scope: "global",
     category: "navigation",
@@ -36,7 +36,7 @@ export const SHORTCUTS = {
   GO_HOME: {
     id: "go-home",
     key: "h",
-    modifiers: { meta: true, shift: true },
+    modifiers: { meta: true, alt: true, shift: true },
     description: "Go home",
     scope: "global",
     category: "navigation",
@@ -45,7 +45,7 @@ export const SHORTCUTS = {
   NEW_NOTE: {
     id: "new-note",
     key: "n",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Create new note",
     scope: "global",
     category: "notes",
@@ -53,7 +53,7 @@ export const SHORTCUTS = {
   NEW_TAG: {
     id: "new-tag",
     key: "n",
-    modifiers: { meta: true, shift: true },
+    modifiers: { meta: true, alt: true, shift: true },
     description: "Create new tag",
     scope: "global",
     category: "notes",
@@ -61,8 +61,8 @@ export const SHORTCUTS = {
 
   NOTE_DETAILS: {
     id: "note-details",
-    key: "i",
-    modifiers: { meta: true },
+    key: "d",
+    modifiers: { meta: true, alt: true },
     description: "Open note details",
     scope: "editor",
     category: "editor",
@@ -70,7 +70,7 @@ export const SHORTCUTS = {
   LINK_TO: {
     id: "link-to",
     key: "l",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Link to another note",
     scope: "editor",
     category: "editor",
@@ -78,7 +78,7 @@ export const SHORTCUTS = {
   DELETE_NOTE: {
     id: "delete-note",
     key: "Backspace",
-    modifiers: { meta: true },
+    modifiers: { meta: true, shift: true },
     description: "Delete note",
     scope: "editor",
     category: "editor",
@@ -86,7 +86,7 @@ export const SHORTCUTS = {
   SAVE_NOW: {
     id: "save-now",
     key: "s",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Save immediately",
     scope: "editor",
     category: "editor",
@@ -95,15 +95,15 @@ export const SHORTCUTS = {
   TOGGLE_SIDEBAR: {
     id: "toggle-sidebar",
     key: "b",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Toggle sidebar",
     scope: "global",
     category: "view",
   },
   TOGGLE_THEME: {
     id: "toggle-theme",
-    key: "j",
-    modifiers: { meta: true },
+    key: "t",
+    modifiers: { meta: true, alt: true },
     description: "Toggle dark/light mode",
     scope: "global",
     category: "view",
@@ -112,7 +112,7 @@ export const SHORTCUTS = {
   SHOW_SHORTCUTS: {
     id: "show-shortcuts",
     key: "/",
-    modifiers: { meta: true },
+    modifiers: { meta: true, alt: true },
     description: "Show keyboard shortcuts",
     scope: "global",
     category: "help",
@@ -167,11 +167,33 @@ function formatKey(key: string, platform: "mac" | "other"): string {
   return key;
 }
 
-export function matchesShortcut(event: KeyboardEvent, shortcut: ShortcutDefinition): boolean {
+function matchesKey(event: KeyboardEvent, key: string): boolean {
   const eventKey = event.key.toLowerCase();
-  const shortcutKey = shortcut.key.toLowerCase();
+  const shortcutKey = key.toLowerCase();
 
-  if (eventKey !== shortcutKey) {
+  if (eventKey === shortcutKey) {
+    return true;
+  }
+
+  if (key.length === 1) {
+    const upper = key.toUpperCase();
+    if (/[A-Z]/.test(upper) && event.code === `Key${upper}`) {
+      return true;
+    }
+    if (/[0-9]/.test(upper) && event.code === `Digit${upper}`) {
+      return true;
+    }
+  }
+
+  if (key === "/" && event.code === "Slash") {
+    return true;
+  }
+
+  return false;
+}
+
+export function matchesShortcut(event: KeyboardEvent, shortcut: ShortcutDefinition): boolean {
+  if (!matchesKey(event, shortcut.key)) {
     return false;
   }
 

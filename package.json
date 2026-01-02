@@ -45,6 +45,7 @@
 		"@tanstack/react-start": "1.144.0",
 		"@tanstack/react-table": "^8.21.3",
 		"@tanstack/router-plugin": "1.144.0",
+		"@tiptap/core": "3.14.0",
 		"@tiptap/pm": "^3.14.0",
 		"@tiptap/react": "^3.14.0",
 		"@tiptap/starter-kit": "^3.14.0",

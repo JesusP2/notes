@@ -1,27 +1,32 @@
+import type { Extension } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Edit3Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
+import { VimModeExtension, type VimModeState } from "./vim-mode";
 
 interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
   debounceMs?: number;
   saveNowRef?: MutableRefObject<(() => void) | null>;
+  vimEnabled?: boolean;
 }
 
 interface TipTapEditorProps {
   content: string;
   onChange: (content: string) => void;
+  extensions: Extension[];
+  vimEnabled: boolean;
 }
 
-function TipTapEditor({ content, onChange }: TipTapEditorProps) {
+function TipTapEditor({ content, onChange, extensions, vimEnabled }: TipTapEditorProps) {
   const initialContentRef = useRef(content);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions,
     content: initialContentRef.current,
     editorProps: {
       attributes: {
@@ -39,16 +44,33 @@ function TipTapEditor({ content, onChange }: TipTapEditorProps) {
     };
   }, [editor]);
 
+  useEffect(() => {
+    if (!editor) return;
+    editor.storage.vimMode.enabled = vimEnabled;
+    if (vimEnabled) {
+      editor.storage.vimMode.mode = "normal";
+    } else {
+      editor.storage.vimMode.mode = "insert";
+    }
+  }, [editor, vimEnabled]);
+
   return (
-    <div className="tiptap-wrapper h-full overflow-auto" data-testid="tiptap-editor">
-      <EditorContent editor={editor} className="h-full" />
+    <div className="tiptap-wrapper min-h-full" data-testid="tiptap-editor">
+      <EditorContent editor={editor} className="min-h-full" />
     </div>
   );
 }
 
-export function NoteEditor({ note, onChange, debounceMs = 500, saveNowRef }: NoteEditorProps) {
+export function NoteEditor({
+  note,
+  onChange,
+  debounceMs = 500,
+  saveNowRef,
+  vimEnabled = false,
+}: NoteEditorProps) {
   const [editorKey, setEditorKey] = useState(note?.id ?? "empty");
   const lastTitleRef = useRef<string | null>(null);
+  const [vimMode, setVimMode] = useState<VimModeState>("insert");
 
   if (note?.id && note.id !== editorKey) {
     setEditorKey(note.id);
@@ -70,12 +92,20 @@ export function NoteEditor({ note, onChange, debounceMs = 500, saveNowRef }: Not
     };
   }, [flushSave, saveNowRef]);
 
+  useEffect(() => {
+    setVimMode(vimEnabled ? "normal" : "insert");
+  }, [vimEnabled]);
+
   const handleContentChange = useCallback(
     (newContent: string) => {
       debouncedSave(newContent);
     },
     [debouncedSave],
   );
+
+  const extensions = useMemo(() => {
+    return [StarterKit, VimModeExtension.configure({ onModeChange: setVimMode })];
+  }, [setVimMode]);
 
   if (!note) {
     return (
@@ -94,14 +124,24 @@ export function NoteEditor({ note, onChange, debounceMs = 500, saveNowRef }: Not
   const initialContent = note.content || `<h1>${note.title || "Untitled"}</h1><p></p>`;
 
   return (
-    <div className="h-full overflow-auto bg-background">
-      <div className="max-w-3xl mx-auto w-full px-8 py-6">
-        <TipTapEditor
-          key={editorKey}
-          content={initialContent}
-          onChange={handleContentChange}
-        />
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-3xl mx-auto w-full px-8 py-6">
+          <TipTapEditor
+            key={editorKey}
+            content={initialContent}
+            onChange={handleContentChange}
+            extensions={extensions}
+            vimEnabled={vimEnabled}
+          />
+        </div>
       </div>
+      {vimEnabled && (
+        <div className="flex items-center justify-between border-t px-4 py-1 text-xs text-muted-foreground">
+          <span>Vim mode</span>
+          <span className="font-medium uppercase text-foreground">{vimMode}</span>
+        </div>
+      )}
     </div>
   );
 }
