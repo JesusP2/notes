@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus, Info, Pencil, PenTool, Pin, Star, Tag, Trash2 } from "lucide-react";
+import { FilePlus, Info, Pencil, PenTool, Pin, Tag, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
@@ -13,7 +13,6 @@ import {
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID } from "@/hooks/use-current-user";
 import {
-  useFavoriteNotes,
   useNodeMutations,
   usePinnedNotes,
   usePreferenceMutations,
@@ -33,7 +32,6 @@ interface TreeBranchProps {
   onToggle: (id: string) => void;
   onExpandTag: (id: string) => void;
   onSelectNode?: (node: Node) => void;
-  favoriteIds: Set<string>;
   pinnedIds: Set<string>;
   draggedNode: { id: string; type: Node["type"] } | null;
   setDraggedNode: (node: { id: string; type: Node["type"] } | null) => void;
@@ -50,7 +48,6 @@ function TreeBranch({
   onToggle,
   onExpandTag,
   onSelectNode,
-  favoriteIds,
   pinnedIds,
   draggedNode,
   setDraggedNode,
@@ -62,7 +59,7 @@ function TreeBranch({
   const children = useTagChildren(parentId);
   const navigate = useNavigate();
   const { createNote, createTag, createCanvas, deleteNode, moveTag, addTag } = useNodeMutations();
-  const { setFavorite, pinNode, unpinNode } = usePreferenceMutations();
+  const { pinNode, unpinNode } = usePreferenceMutations();
   const { openConfirmDialog } = useConfirmDialog();
   const [, startTransition] = useTransition();
 
@@ -153,7 +150,6 @@ function TreeBranch({
       {children.map((child) => {
         const isTag = child.type === "tag";
         const isExpanded = expandedIds.has(child.id);
-        const isFavorite = favoriteIds.has(child.id);
         const isPinned = pinnedIds.has(child.id);
 
         return (
@@ -194,13 +190,6 @@ function TreeBranch({
                 {child.type === "note" && (
                   <>
                     <ContextMenuItem
-                      onClick={() => setFavorite(child.id, !isFavorite)}
-                      className={isFavorite ? "text-foreground" : undefined}
-                    >
-                      <Star className="mr-2 size-4" />
-                      {isFavorite ? "Unfavorite" : "Favorite"}
-                    </ContextMenuItem>
-                    <ContextMenuItem
                       onClick={() => (isPinned ? unpinNode(child.id) : pinNode(child.id))}
                     >
                       <Pin className="mr-2 size-4" />
@@ -236,7 +225,6 @@ function TreeBranch({
                 onSelectNode={onSelectNode}
                 onToggle={onToggle}
                 onExpandTag={onExpandTag}
-                favoriteIds={favoriteIds}
                 pinnedIds={pinnedIds}
                 parentId={child.id}
                 draggedNode={draggedNode}
@@ -260,10 +248,8 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
   const [detailsNodeId, setDetailsNodeId] = useState<string | null>(null);
   const pinnedNotes = usePinnedNotes();
-  const favoriteNotes = useFavoriteNotes();
 
   const pinnedIds = new Set(pinnedNotes.map((note) => note.id));
-  const favoriteIds = new Set(favoriteNotes.map((note) => note.id));
 
   const toggle = (id: string) => {
     setExpandedIds((prev) => {
@@ -309,7 +295,6 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
           onSelectNode={onSelectNode}
           onToggle={toggle}
           onExpandTag={expandTag}
-          favoriteIds={favoriteIds}
           pinnedIds={pinnedIds}
           parentId={rootId}
           draggedNode={draggedNode}

@@ -5,11 +5,10 @@ import {
   LayoutTemplate,
   Network,
   NotebookPen,
-  Pin,
   PenTool,
+  Pin,
   SearchIcon,
   Settings,
-  Star,
   Tag,
 } from "lucide-react";
 import { useTransition, type FocusEvent } from "react";
@@ -34,7 +33,6 @@ import {
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID } from "@/hooks/use-current-user";
 import {
-  useFavoriteNotes,
   useNodeMutations,
   usePinnedNotes,
   useTemplates,
@@ -48,7 +46,6 @@ export function AppSidebar() {
   const { createTag, createNote, createTemplate, createNoteFromTemplate, createCanvas } =
     useNodeMutations();
   const pinnedNotes = usePinnedNotes();
-  const favoriteNotes = useFavoriteNotes();
   const templates = useTemplates();
   const [isPending, startTransition] = useTransition();
   const platform = usePlatform();
@@ -185,7 +182,6 @@ export function AppSidebar() {
         {pinnedNotes.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>
-              <Pin />
               Pinned
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -203,30 +199,17 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {favoriteNotes.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              <Star />
-              Favorites
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {favoriteNotes.map((note) => (
-                  <SidebarMenuItem key={note.id}>
-                    <SidebarMenuButton onClick={() => handleSelectNode(note)} type="button">
-                      <Star className="text-muted-foreground" />
-                      <span>{note.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            Notes
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <TagTree onSelectNode={handleSelectNode} />
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel>
-            <LayoutTemplate />
             Templates
           </SidebarGroupLabel>
           <SidebarGroupAction
@@ -270,16 +253,6 @@ export function AppSidebar() {
             ) : (
               <div className="px-2 pl-6 text-xs text-muted-foreground">No templates yet.</div>
             )}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            <NotebookPen />
-            Notes
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <TagTree onSelectNode={handleSelectNode} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
