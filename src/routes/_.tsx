@@ -14,35 +14,30 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CurrentUserProvider, ROOT_TAG_ID } from "@/hooks/use-current-user";
 import { useUserSetting } from "@/hooks/use-user-settings";
 import { useNodeMutations } from "@/lib/graph-hooks";
-import { dbPromise } from "@/lib/pglite";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { useShortcut } from "@/lib/use-shortcut";
+import { pgliteInstance } from "@/lib/pglite";
+import { todosCollection } from "@/lib/todos-db";
 
 export const Route = createFileRoute("/_")({
   component: RouteComponent,
   ssr: false,
   beforeLoad: async () => {
-    const db = await dbPromise;
-    return {
-      db: db?.db ?? null,
-      pglite: db?.pglite ?? null,
-    };
+    await todosCollection.preload();
   },
 });
 
 function RouteComponent() {
-  const { pglite } = Route.useRouteContext();
-
-  if (!pglite) {
-    return <div>Loading...</div>;
-  }
-
   return (
-    <PGliteProvider db={pglite}>
+    <PGliteProvider db={pgliteInstance}>
       <MainLayout />
     </PGliteProvider>
   );
@@ -84,7 +79,10 @@ function MainLayoutContent() {
   );
 
   return (
-    <SidebarProvider open={!layout.collapsed} onOpenChange={handleSidebarOpenChange}>
+    <SidebarProvider
+      open={!layout.collapsed}
+      onOpenChange={handleSidebarOpenChange}
+    >
       <MainLayoutShell />
     </SidebarProvider>
   );
@@ -96,7 +94,10 @@ function MainLayoutShell() {
   const { setTheme, resolvedTheme } = useTheme();
   const { createNote, createTag } = useNodeMutations();
   const [, startTransition] = useTransition();
-  const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>("vim_enabled", false);
+  const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>(
+    "vim_enabled",
+    false,
+  );
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
 

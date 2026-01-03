@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RouteImport } from './routes/_'
 import { Route as IndexRouteImport } from './routes/_.index'
 import { Route as AuthIdRouteImport } from './routes/auth.$id'
+import { Route as TodosRouteImport } from './routes/_/todos'
 import { Route as TasksRouteImport } from './routes/_/tasks'
 import { Route as SettingsRouteImport } from './routes/_/settings'
 import { Route as GraphRouteImport } from './routes/_/graph'
@@ -33,6 +34,11 @@ const AuthIdRoute = AuthIdRouteImport.update({
   id: '/auth/$id',
   path: '/auth/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TodosRoute = TodosRouteImport.update({
+  id: '/todos',
+  path: '/todos',
+  getParentRoute: () => Route,
 } as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/graph': typeof GraphRoute
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
+  '/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/graph': typeof GraphRoute
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
+  '/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/': typeof IndexRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/_/graph': typeof GraphRoute
   '/_/settings': typeof SettingsRoute
   '/_/tasks': typeof TasksRoute
+  '/_/todos': typeof TodosRoute
   '/auth/$id': typeof AuthIdRoute
   '/_/': typeof IndexRoute
   '/_/canvas/$canvasId': typeof CanvasCanvasIdRoute
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/settings'
     | '/tasks'
+    | '/todos'
     | '/auth/$id'
     | '/'
     | '/canvas/$canvasId'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/graph'
     | '/settings'
     | '/tasks'
+    | '/todos'
     | '/auth/$id'
     | '/'
     | '/canvas/$canvasId'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/_/graph'
     | '/_/settings'
     | '/_/tasks'
+    | '/_/todos'
     | '/auth/$id'
     | '/_/'
     | '/_/canvas/$canvasId'
@@ -171,6 +183,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/$id'
       preLoaderRoute: typeof AuthIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_/todos': {
+      id: '/_/todos'
+      path: '/todos'
+      fullPath: '/todos'
+      preLoaderRoute: typeof TodosRouteImport
+      parentRoute: typeof Route
     }
     '/_/tasks': {
       id: '/_/tasks'
@@ -228,6 +247,7 @@ interface RouteChildren {
   GraphRoute: typeof GraphRoute
   SettingsRoute: typeof SettingsRoute
   TasksRoute: typeof TasksRoute
+  TodosRoute: typeof TodosRoute
   IndexRoute: typeof IndexRoute
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   NotesNoteIdRoute: typeof NotesNoteIdRoute
@@ -237,6 +257,7 @@ const RouteChildren: RouteChildren = {
   GraphRoute: GraphRoute,
   SettingsRoute: SettingsRoute,
   TasksRoute: TasksRoute,
+  TodosRoute: TodosRoute,
   IndexRoute: IndexRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   NotesNoteIdRoute: NotesNoteIdRoute,

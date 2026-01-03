@@ -196,6 +196,27 @@ export const tasks = pgTable(
   ],
 );
 
+export const todos = pgTable(
+  "todos",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    isDone: boolean("is_done").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("idx_todos_user").on(table.userId),
+    index("idx_todos_done").on(table.userId, table.isDone),
+  ],
+);
+
 export const canvasScenes = pgTable(
   "canvas_scenes",
   {

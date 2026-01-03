@@ -37,6 +37,7 @@ async function migrateLocalUser(db: ReturnType<typeof usePGlite>, userId: string
     "templates_meta",
     "node_versions",
     "tasks",
+    "todos",
     "canvas_scenes",
     "canvas_links",
   ];
