@@ -187,7 +187,7 @@ function TreeBranch({
                     <ContextMenuSeparator />
                   </>
                 )}
-                {child.type === "note" && (
+                {(child.type === "note" || child.type === "canvas") && (
                   <>
                     <ContextMenuItem
                       onClick={() => (isPinned ? unpinNode(child.id) : pinNode(child.id))}

@@ -121,18 +121,22 @@ export function NoteDetailsDialog({
               <Button onClick={() => setLinkDialogOpen(true)} size="sm" variant="outline">
                 Link to...
               </Button>
-              <Button onClick={() => setHistoryOpen(true)} size="sm" variant="outline">
-                <History className="size-4 mr-1" />
-                History
-              </Button>
-              <Button onClick={handleExportMarkdown} size="sm" variant="outline">
-                <Download className="size-4 mr-1" />
-                Markdown
-              </Button>
-              <Button onClick={handleExportPdf} size="sm" variant="outline">
-                <Printer className="size-4 mr-1" />
-                PDF
-              </Button>
+              {note.type === "note" && (
+                <>
+                  <Button onClick={() => setHistoryOpen(true)} size="sm" variant="outline">
+                    <History className="size-4 mr-1" />
+                    History
+                  </Button>
+                  <Button onClick={handleExportMarkdown} size="sm" variant="outline">
+                    <Download className="size-4 mr-1" />
+                    Markdown
+                  </Button>
+                  <Button onClick={handleExportPdf} size="sm" variant="outline">
+                    <Printer className="size-4 mr-1" />
+                    PDF
+                  </Button>
+                </>
+              )}
             </div>
 
             <section className="space-y-2">
