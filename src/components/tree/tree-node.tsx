@@ -1,5 +1,5 @@
 import { ChevronRight, FileText, Link2, PenTool, Tag } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NotePreviewCard } from "@/components/notes/note-preview-card";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,6 @@ export function TreeNode({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(node.title);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [, startTransition] = useTransition();
 
   const parentCount = outgoing.filter((edge) => edge.type === "tagged_with").length;
   const showMultiParent = (node.type === "note" || node.type === "canvas") && parentCount > 1;
@@ -72,9 +71,7 @@ export function TreeNode({
   const handleRenameSubmit = () => {
     const trimmed = editValue.trim();
     if (trimmed && trimmed !== node.title) {
-      startTransition(async () => {
-        await updateNode(node.id, { title: trimmed });
-      });
+      updateNode(node.id, { title: trimmed });
     }
     setIsEditing(false);
   };

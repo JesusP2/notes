@@ -2,7 +2,7 @@ import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Edit3Icon } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
@@ -26,7 +26,6 @@ function NoteEditorPage() {
   const { noteId } = Route.useParams();
   const { updateNode, deleteNode } = useNodeMutations();
   const { createNoteVersion } = useVersionMutations();
-  const [, startTransition] = useTransition();
   const navigate = useNavigate();
   const { openConfirmDialog } = useConfirmDialog();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -47,17 +46,15 @@ function NoteEditorPage() {
   const note = noteQuery.data?.[0] ?? null;
   const noteLoading = Boolean(noteId) && noteQuery.isLoading;
 
-  const handleContentSave = (content: string) => {
+  const handleContentSave = async (content: string) => {
     const excerpt = buildNoteExcerpt(content);
-    startTransition(async () => {
-      await updateNode(noteId, { content, excerpt, updatedAt: new Date() });
-      await syncWikiLinks({ noteId, userId, content });
-      await syncEmbeds({ noteId, userId, content });
-      await syncTasks({ userId, noteId, content });
-      if (note?.title) {
-        await createNoteVersion(noteId, note.title, content, "autosave");
-      }
-    });
+    updateNode(noteId, { content, excerpt, updatedAt: new Date() });
+    syncWikiLinks({ noteId, userId, content });
+    syncEmbeds({ noteId, userId, content });
+    syncTasks({ userId, noteId, content });
+    if (note?.title) {
+      await createNoteVersion(noteId, note.title, content, "autosave");
+    }
   };
 
   const handleOpenDetails = () => {
@@ -73,11 +70,9 @@ function NoteEditorPage() {
     openConfirmDialog({
       title: "Delete note?",
       description: `Are you sure you want to delete "${note.title}"? This cannot be undone.`,
-      handleConfirm: () => {
-        startTransition(async () => {
-          await deleteNode(note.id);
-          navigate({ to: "/" });
-        });
+      handleConfirm: async () => {
+        await deleteNode(note.id);
+        navigate({ to: "/" });
       },
       variant: "destructive",
     });
@@ -89,11 +84,9 @@ function NoteEditorPage() {
 
   const handleVersionRestored = (content: string, _title: string) => {
     setEditorKey((prev) => prev + 1);
-    startTransition(async () => {
-      await syncWikiLinks({ noteId, userId, content });
-      await syncEmbeds({ noteId, userId, content });
-      await syncTasks({ userId, noteId, content });
-    });
+    syncWikiLinks({ noteId, userId, content });
+    syncEmbeds({ noteId, userId, content });
+    syncTasks({ userId, noteId, content });
   };
 
   useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {

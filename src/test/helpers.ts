@@ -1,6 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { runMigrations } from "@/db/migrations";
-import { resetCollectionsForDb } from "@/lib/collections";
+import { preloadCoreCollections, resetCollectionsForDb } from "@/lib/collections";
 import { setPgliteInstance } from "@/lib/pglite";
 
 export async function createTestDb() {
@@ -8,7 +8,13 @@ export async function createTestDb() {
   setPgliteInstance(db);
   resetCollectionsForDb();
   await runMigrations(db);
+  await preloadCoreCollections();
   return db;
+}
+
+export async function reloadCollectionsFromDb() {
+  resetCollectionsForDb();
+  await preloadCoreCollections();
 }
 
 export function waitForLiveUpdate(ms = 100) {

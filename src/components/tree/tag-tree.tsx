@@ -8,7 +8,7 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
@@ -87,7 +87,6 @@ function TreeBranch({
   } = useNodeMutations();
   const { pinNode, unpinNode } = usePreferenceMutations();
   const { openConfirmDialog } = useConfirmDialog();
-  const [, startTransition] = useTransition();
 
   const handleDragStart = (e: React.DragEvent, node: Node) => {
     e.dataTransfer.effectAllowed = node.type === "tag" ? "move" : "copyMove";
@@ -115,20 +114,14 @@ function TreeBranch({
       sourceId !== targetNode.id
     ) {
       if (draggedNode.type === "tag") {
-        startTransition(async () => {
-          await moveTag(sourceId, targetNode.id);
-        });
+        moveTag(sourceId, targetNode.id);
       } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
         const sourceTagId = draggedNode.sourceTagId;
         const isCopy = e.altKey || altKeyPressedRef.current;
         if (isCopy) {
-          startTransition(async () => {
-            await addTag(sourceId, targetNode.id);
-          });
+          addTag(sourceId, targetNode.id);
         } else if (sourceTagId) {
-          startTransition(async () => {
-            await moveTaggedNode(sourceId, sourceTagId, targetNode.id);
-          });
+          moveTaggedNode(sourceId, sourceTagId, targetNode.id);
         }
       }
     }
@@ -143,42 +136,35 @@ function TreeBranch({
 
   const handleCreateNote = (tagId: string) => {
     onExpandTag(tagId);
-    startTransition(async () => {
-      const note = await createNote("Untitled", tagId);
-      navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
-      setTimeout(() => {
-        const el = document.querySelector(`[data-node-id="${note.id}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
-    });
+    const note = createNote("Untitled", tagId);
+    navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-node-id="${note.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
   };
 
   const handleCreateTag = (parentTagId: string) => {
     onExpandTag(parentTagId);
-    startTransition(async () => {
-      await createTag("New Tag", parentTagId);
-    });
+    createTag("New Tag", parentTagId);
   };
 
   const handleCreateCanvas = (tagId: string) => {
     onExpandTag(tagId);
-    startTransition(async () => {
-      const canvas = await createCanvas("New Canvas", tagId);
-      navigate({ to: "/canvas/$canvasId", params: { canvasId: canvas.id } });
-      setTimeout(() => {
-        const el = document.querySelector(`[data-node-id="${canvas.id}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
-    });
+    const canvas = createCanvas("New Canvas", tagId);
+    navigate({ to: "/canvas/$canvasId", params: { canvasId: canvas.id } });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-node-id="${canvas.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
   };
 
-  const handleDelete = async (node: Node) => {
+  const handleDelete = (node: Node) => {
     if (node.id === ROOT_TAG_ID) return;
 
     let tagCount = 0;
     if (node.type === "note" || node.type === "canvas") {
-      const state = await edgesCollection.stateWhenReady();
-      const edges = Array.from(state.values());
+      const edges = Array.from(edgesCollection.state.values());
       tagCount = edges.filter(
         (edge) => edge.sourceId === node.id && edge.type === "tagged_with",
       ).length;
@@ -189,16 +175,12 @@ function TreeBranch({
         title: "Delete this copy or all copies?",
         description: `"${node.title}" is tagged with ${tagCount} tags. Delete this copy to remove it from this tag only, or confirm to delete it everywhere.`,
         handleConfirm: () => {
-          startTransition(async () => {
-            await deleteNode(node.id);
-          });
+          void deleteNode(node.id);
         },
         altAction: {
           label: "Delete this copy",
           onClick: () => {
-            startTransition(async () => {
-              await removeTag(node.id, parentId);
-            });
+            removeTag(node.id, parentId);
           },
         },
         variant: "destructive",
@@ -208,9 +190,7 @@ function TreeBranch({
         title: `Delete ${node.type}?`,
         description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
         handleConfirm: () => {
-          startTransition(async () => {
-            await deleteNode(node.id);
-          });
+          void deleteNode(node.id);
         },
         variant: "destructive",
       });

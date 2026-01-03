@@ -103,7 +103,7 @@ export function stripEmbeds(content: string): string {
     .trim();
 }
 
-export async function syncWikiLinks({
+export function syncWikiLinks({
   noteId,
   userId,
   content,
@@ -111,14 +111,13 @@ export async function syncWikiLinks({
   noteId: string;
   userId: string;
   content: string;
-}): Promise<{ resolved: string[]; unresolved: string[] }> {
+}): { resolved: string[]; unresolved: string[] } {
   const titles = extractWikiLinks(content);
   const normalized = titles.map((title) => title.toLowerCase());
   const normalizedSet = new Set(normalized);
   const resolvedMap = new Map<string, string>();
 
-  const nodesState = await nodesCollection.stateWhenReady();
-  const notes = Array.from(nodesState.values()).filter(
+  const notes = Array.from(nodesCollection.state.values()).filter(
     (node) => node.userId === userId && node.type === "note",
   );
   const sortedNotes = [...notes].sort(
@@ -147,8 +146,7 @@ export async function syncWikiLinks({
     desiredTargets.add(targetId);
   }
 
-  const edgesState = await edgesCollection.stateWhenReady();
-  const existing = Array.from(edgesState.values()).filter(
+  const existing = Array.from(edgesCollection.state.values()).filter(
     (edge) => edge.userId === userId && edge.sourceId === noteId && edge.type === "references",
   );
   const existingByTarget = new Map(existing.map((row) => [row.targetId, row.id]));
@@ -158,7 +156,7 @@ export async function syncWikiLinks({
     if (existingByTarget.has(targetId)) {
       continue;
     }
-    const tx = edgesCollection.insert({
+    edgesCollection.insert({
       id: ulid(),
       userId,
       sourceId: noteId,
@@ -166,13 +164,11 @@ export async function syncWikiLinks({
       type: "references",
       createdAt: now,
     });
-    await tx.isPersisted.promise;
   }
 
   const toDelete = existing.filter((row) => !desiredTargets.has(row.targetId)).map((row) => row.id);
   if (toDelete.length > 0) {
-    const tx = edgesCollection.delete(toDelete);
-    await tx.isPersisted.promise;
+    edgesCollection.delete(toDelete);
   }
 
   return {
@@ -181,7 +177,7 @@ export async function syncWikiLinks({
   };
 }
 
-export async function syncEmbeds({
+export function syncEmbeds({
   noteId,
   userId,
   content,
@@ -189,14 +185,13 @@ export async function syncEmbeds({
   noteId: string;
   userId: string;
   content: string;
-}): Promise<{ resolved: string[]; unresolved: string[] }> {
+}): { resolved: string[]; unresolved: string[] } {
   const titles = extractEmbeds(content);
   const normalized = titles.map((title) => title.toLowerCase());
   const normalizedSet = new Set(normalized);
   const resolvedMap = new Map<string, string>();
 
-  const nodesState = await nodesCollection.stateWhenReady();
-  const notes = Array.from(nodesState.values()).filter(
+  const notes = Array.from(nodesCollection.state.values()).filter(
     (node) => node.userId === userId && node.type === "note",
   );
   const sortedNotes = [...notes].sort(
@@ -225,8 +220,7 @@ export async function syncEmbeds({
     desiredTargets.add(targetId);
   }
 
-  const edgesState = await edgesCollection.stateWhenReady();
-  const existing = Array.from(edgesState.values()).filter(
+  const existing = Array.from(edgesCollection.state.values()).filter(
     (edge) => edge.userId === userId && edge.sourceId === noteId && edge.type === "embeds",
   );
   const existingByTarget = new Map(existing.map((row) => [row.targetId, row.id]));
@@ -236,7 +230,7 @@ export async function syncEmbeds({
     if (existingByTarget.has(targetId)) {
       continue;
     }
-    const tx = edgesCollection.insert({
+    edgesCollection.insert({
       id: ulid(),
       userId,
       sourceId: noteId,
@@ -244,13 +238,11 @@ export async function syncEmbeds({
       type: "embeds",
       createdAt: now,
     });
-    await tx.isPersisted.promise;
   }
 
   const toDelete = existing.filter((row) => !desiredTargets.has(row.targetId)).map((row) => row.id);
   if (toDelete.length > 0) {
-    const tx = edgesCollection.delete(toDelete);
-    await tx.isPersisted.promise;
+    edgesCollection.delete(toDelete);
   }
 
   return {

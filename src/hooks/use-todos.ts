@@ -7,12 +7,12 @@ export function useTodos() {
   const userId = useCurrentUserId();
   const todosQuery = useLiveQuery((q) => q.from({ todos: todosCollection }));
 
-  const addTodo = async (title: string) => {
+  const addTodo = (title: string) => {
     const trimmed = title.trim();
     if (!trimmed) return;
 
     const now = new Date();
-    const tx = todosCollection.insert({
+    todosCollection.insert({
       id: ulid(),
       userId,
       title: trimmed,
@@ -20,20 +20,17 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
     });
-    await tx.isPersisted.promise;
   };
 
-  const toggleTodo = async (todo: TodoRow) => {
-    const tx = todosCollection.update(todo.id, (draft) => {
+  const toggleTodo = (todo: TodoRow) => {
+    todosCollection.update(todo.id, (draft) => {
       draft.isDone = !todo.isDone;
       draft.updatedAt = new Date();
     });
-    await tx.isPersisted.promise;
   };
 
-  const deleteTodo = async (todo: TodoRow) => {
-    const tx = todosCollection.delete(todo.id);
-    await tx.isPersisted.promise;
+  const deleteTodo = (todo: TodoRow) => {
+    todosCollection.delete(todo.id);
   };
 
   const todos = todosQuery.data ?? [];

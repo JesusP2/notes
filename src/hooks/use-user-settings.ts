@@ -18,7 +18,7 @@ function parseValue<T>(value: unknown, fallback: T): T {
 export function useUserSetting<T>(
   key: string,
   defaultValue: T,
-): [T, (next: T) => Promise<void>, () => Promise<void>] {
+): [T, (next: T) => void, () => void] {
   const userId = useCurrentUserId();
 
   const { data = [] } = useLiveQuery(
@@ -34,37 +34,34 @@ export function useUserSetting<T>(
   const setting = data[0];
   const value = parseValue(setting?.value, defaultValue);
 
-  const setValue = async (next: T) => {
+  const setValue = (next: T) => {
     const id = `${userId}:${key}`;
     const now = new Date();
-    const state = await userSettingsCollection.stateWhenReady();
-    const existing = state.get(id);
+    const existing = userSettingsCollection.state.get(id);
 
-    const tx = existing
-      ? userSettingsCollection.update(id, (draft) => {
-          draft.value = next;
-          draft.updatedAt = now;
-        })
-      : userSettingsCollection.insert({
-          id,
-          userId,
-          key,
-          value: next,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-    await tx.isPersisted.promise;
+    if (existing) {
+      userSettingsCollection.update(id, (draft) => {
+        draft.value = next;
+        draft.updatedAt = now;
+      });
+    } else {
+      userSettingsCollection.insert({
+        id,
+        userId,
+        key,
+        value: next,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   };
 
-  const clearValue = async () => {
+  const clearValue = () => {
     const id = `${userId}:${key}`;
-    const state = await userSettingsCollection.stateWhenReady();
-    const existing = state.get(id);
+    const existing = userSettingsCollection.state.get(id);
     if (!existing) return;
 
-    const tx = userSettingsCollection.delete(id);
-    await tx.isPersisted.promise;
+    userSettingsCollection.delete(id);
   };
 
   return [value, setValue, clearValue];

@@ -3,7 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createTestDb } from "@/test/helpers";
+import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
 import { NodeSearch } from "./node-search";
 
 function createWrapper() {
@@ -26,6 +26,7 @@ describe("NodeSearch", () => {
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       ["note-2", "note", "Beta Note"],
     );
+    await reloadCollectionsFromDb();
 
     render(<NodeSearch onSelect={handleSelect} />, { wrapper: Wrapper });
 

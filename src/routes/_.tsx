@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -72,7 +72,6 @@ function MainLayoutShell() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { setTheme, resolvedTheme } = useTheme();
   const { createNote, createTag } = useNodeMutations();
-  const [, startTransition] = useTransition();
   const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>("vim_enabled", false);
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -82,16 +81,12 @@ function MainLayoutShell() {
   };
 
   const handleCreateNote = () => {
-    startTransition(async () => {
-      const note = await createNote("Untitled Note", ROOT_TAG_ID);
-      navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
-    });
+    const note = createNote("Untitled Note", ROOT_TAG_ID);
+    navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
   };
 
   const handleCreateTag = () => {
-    startTransition(async () => {
-      await createTag("New Tag", ROOT_TAG_ID);
-    });
+    createTag("New Tag", ROOT_TAG_ID);
   };
 
   const handleShowShortcuts = () => {

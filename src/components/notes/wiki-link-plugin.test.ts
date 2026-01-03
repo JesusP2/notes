@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTestDb } from "@/test/helpers";
+import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
 import {
   extractEmbeds,
   extractWikiLinks,
@@ -60,6 +60,7 @@ describe("syncWikiLinks", () => {
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       ["note-2", "note", "Target Note"],
     );
+    await reloadCollectionsFromDb();
 
     await syncWikiLinks({
       noteId: "note-1",
@@ -91,6 +92,7 @@ describe("syncWikiLinks", () => {
       "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
       ["edge-1", "note-1", "note-2", "references"],
     );
+    await reloadCollectionsFromDb();
 
     await syncWikiLinks({ noteId: "note-1", userId: "local", content: "No links here." });
 
@@ -113,6 +115,7 @@ describe("syncWikiLinks", () => {
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       ["note-2", "note", "Target Note"],
     );
+    await reloadCollectionsFromDb();
 
     await syncWikiLinks({
       noteId: "note-1",
@@ -141,6 +144,7 @@ describe("syncEmbeds", () => {
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       ["note-2", "note", "Target Note"],
     );
+    await reloadCollectionsFromDb();
 
     await syncEmbeds({
       noteId: "note-1",

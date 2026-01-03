@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Download, History, Info, Plus, Printer, Tag, X } from "lucide-react";
-import { type ReactNode, useCallback, useMemo, useState, useTransition } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,6 @@ export function NoteDetailsDialog({
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [, startTransition] = useTransition();
 
   const nodesById = useMemo(() => {
     const map = new Map<string, Node>();
@@ -75,17 +74,13 @@ export function NoteDetailsDialog({
 
   const handleAddTag = (tagId: string) => {
     if (!noteId) return;
-    startTransition(async () => {
-      await addTag(noteId, tagId);
-    });
+    addTag(noteId, tagId);
     setTagPopoverOpen(false);
   };
 
   const handleRemoveTag = (tagId: string) => {
     if (!noteId) return;
-    startTransition(async () => {
-      await removeTag(noteId, tagId);
-    });
+    removeTag(noteId, tagId);
   };
 
   const outgoingLinks = outgoing.filter((edge) => LINK_TYPES.has(edge.type));

@@ -3,7 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
-import { createTestDb } from "@/test/helpers";
+import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
 import { LinkDialog } from "./link-dialog";
 
 function createWrapper() {
@@ -25,6 +25,7 @@ describe("LinkDialog", () => {
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       ["note-target", "note", "Target Note"],
     );
+    await reloadCollectionsFromDb();
 
     render(<LinkDialog open onOpenChange={() => undefined} sourceId="note-source" />, {
       wrapper: Wrapper,

@@ -11,7 +11,7 @@ import {
   Settings,
   Tag,
 } from "lucide-react";
-import { useTransition, type FocusEvent } from "react";
+import type { FocusEvent } from "react";
 import { TagTree } from "@/components/tree/tag-tree";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import {
@@ -43,7 +43,6 @@ export function AppSidebar() {
     useNodeMutations();
   const pinnedNotes = usePinnedNotes();
   const templates = useTemplates();
-  const [isPending, startTransition] = useTransition();
   const platform = usePlatform();
 
   const handleSelectNode = (node: Node) => {
@@ -61,49 +60,39 @@ export function AppSidebar() {
   };
 
   const handleCreateNote = () => {
-    startTransition(async () => {
-      const note = await createNote("Untitled Note", ROOT_TAG_ID);
-      navigate({
-        to: "/notes/$noteId",
-        params: { noteId: note.id },
-      });
+    const note = createNote("Untitled Note", ROOT_TAG_ID);
+    navigate({
+      to: "/notes/$noteId",
+      params: { noteId: note.id },
     });
   };
 
   const handleCreateTag = () => {
-    startTransition(async () => {
-      await createTag("New Tag", ROOT_TAG_ID);
-    });
+    createTag("New Tag", ROOT_TAG_ID);
   };
 
   const handleCreateCanvas = () => {
-    startTransition(async () => {
-      const canvas = await createCanvas("New Canvas", ROOT_TAG_ID);
-      navigate({
-        to: "/canvas/$canvasId",
-        params: { canvasId: canvas.id },
-      });
+    const canvas = createCanvas("New Canvas", ROOT_TAG_ID);
+    navigate({
+      to: "/canvas/$canvasId",
+      params: { canvasId: canvas.id },
     });
   };
 
   const handleCreateTemplate = () => {
-    startTransition(async () => {
-      const template = await createTemplate("New Template");
-      navigate({
-        to: "/notes/$noteId",
-        params: { noteId: template.id },
-      });
+    const template = createTemplate("New Template");
+    navigate({
+      to: "/notes/$noteId",
+      params: { noteId: template.id },
     });
   };
 
-  const handleUseTemplate = (templateId: string) => {
-    startTransition(async () => {
-      const note = await createNoteFromTemplate(templateId, undefined, ROOT_TAG_ID);
-      if (!note) return;
-      navigate({
-        to: "/notes/$noteId",
-        params: { noteId: note.id },
-      });
+  const handleUseTemplate = async (templateId: string) => {
+    const note = await createNoteFromTemplate(templateId, undefined, ROOT_TAG_ID);
+    if (!note) return;
+    navigate({
+      to: "/notes/$noteId",
+      params: { noteId: note.id },
     });
   };
 
@@ -152,19 +141,19 @@ export function AppSidebar() {
 
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleCreateNote} disabled={isPending} type="button">
+            <SidebarMenuButton onClick={handleCreateNote} type="button">
               <FilePlusIcon />
               <span>New Note</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleCreateTag} disabled={isPending} type="button">
+            <SidebarMenuButton onClick={handleCreateTag} type="button">
               <Tag />
               <span>New Tag</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleCreateCanvas} disabled={isPending} type="button">
+            <SidebarMenuButton onClick={handleCreateCanvas} type="button">
               <PenTool />
               <span>New Canvas</span>
             </SidebarMenuButton>
@@ -206,7 +195,6 @@ export function AppSidebar() {
             onClick={handleCreateTemplate}
             title="New Template"
             type="button"
-            disabled={isPending}
             aria-label="New Template"
           >
             <FilePlusIcon />
@@ -229,11 +217,10 @@ export function AppSidebar() {
                       <span>{template.title}</span>
                     </SidebarMenuButton>
                     <SidebarMenuAction
-                      onClick={() => handleUseTemplate(template.id)}
+                      onClick={() => void handleUseTemplate(template.id)}
                       title="Create note from template"
                       aria-label="Create note from template"
                       type="button"
-                      disabled={isPending}
                     >
                       <FilePlusIcon />
                     </SidebarMenuAction>

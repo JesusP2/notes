@@ -350,7 +350,7 @@ export function useVersionMutations() {
     if (existing) return false;
 
     const now = new Date();
-    const tx = nodeVersionsCollection.insert({
+    nodeVersionsCollection.insert({
       id: ulid(),
       userId,
       nodeId: noteId,
@@ -361,7 +361,6 @@ export function useVersionMutations() {
       createdBy: userId,
       reason: reason ?? null,
     });
-    await tx.isPersisted.promise;
     return true;
   };
 
@@ -423,13 +422,11 @@ export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
 export function useTaskMutations() {
   const userId = useCurrentUserId();
 
-  const toggleTask = async (taskId: string, nextDone?: boolean) => {
-    const tasksState = await tasksCollection.stateWhenReady();
-    const task = tasksState.get(taskId);
+  const toggleTask = (taskId: string, nextDone?: boolean) => {
+    const task = tasksCollection.state.get(taskId);
     if (!task || task.userId !== userId) return;
 
-    const nodesState = await nodesCollection.stateWhenReady();
-    const note = nodesState.get(task.noteId);
+    const note = nodesCollection.state.get(task.noteId);
     if (!note) return;
 
     const content = note.content ?? "";
@@ -444,19 +441,17 @@ export function useTaskMutations() {
     const nextContent = lines.join("\n");
     const now = new Date();
 
-    const noteTx = nodesCollection.update(note.id, (draft) => {
+    nodesCollection.update(note.id, (draft) => {
       draft.content = nextContent;
       draft.excerpt = buildNoteExcerpt(nextContent);
       draft.updatedAt = now;
     });
 
-    const taskTx = tasksCollection.update(taskId, (draft) => {
+    tasksCollection.update(taskId, (draft) => {
       draft.isDone = desiredDone;
       draft.checkedAt = desiredDone ? now : null;
       draft.updatedAt = now;
     });
-
-    await Promise.all([noteTx.isPersisted.promise, taskTx.isPersisted.promise]);
   };
 
   return { toggleTask };
@@ -465,71 +460,68 @@ export function useTaskMutations() {
 export function usePreferenceMutations() {
   const userId = useCurrentUserId();
 
-  const setFavorite = async (nodeId: string, isFavorite: boolean) => {
+  const setFavorite = (nodeId: string, isFavorite: boolean) => {
     const now = new Date();
-    const state = await userNodePrefsCollection.stateWhenReady();
-    const existing = Array.from(state.values()).find(
+    const existing = Array.from(userNodePrefsCollection.state.values()).find(
       (pref) => pref.userId === userId && pref.nodeId === nodeId,
     );
 
-    const tx = existing
-      ? userNodePrefsCollection.update(existing.id, (draft) => {
-          draft.isFavorite = isFavorite;
-          draft.updatedAt = now;
-        })
-      : userNodePrefsCollection.insert({
-          id: ulid(),
-          userId,
-          nodeId,
-          isFavorite,
-          pinnedRank: null,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-    await tx.isPersisted.promise;
+    if (existing) {
+      userNodePrefsCollection.update(existing.id, (draft) => {
+        draft.isFavorite = isFavorite;
+        draft.updatedAt = now;
+      });
+    } else {
+      userNodePrefsCollection.insert({
+        id: ulid(),
+        userId,
+        nodeId,
+        isFavorite,
+        pinnedRank: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   };
 
-  const pinNode = async (nodeId: string) => {
+  const pinNode = (nodeId: string) => {
     const now = new Date();
-    const state = await userNodePrefsCollection.stateWhenReady();
-    const prefs = Array.from(state.values()).filter((pref) => pref.userId === userId);
+    const prefs = Array.from(userNodePrefsCollection.state.values()).filter(
+      (pref) => pref.userId === userId,
+    );
     const existing = prefs.find((pref) => pref.nodeId === nodeId);
     const maxRank = prefs.reduce((max, pref) => Math.max(max, pref.pinnedRank ?? 0), 0);
     const nextRank = maxRank + 1;
 
-    const tx = existing
-      ? userNodePrefsCollection.update(existing.id, (draft) => {
-          draft.pinnedRank = nextRank;
-          draft.updatedAt = now;
-        })
-      : userNodePrefsCollection.insert({
-          id: ulid(),
-          userId,
-          nodeId,
-          isFavorite: false,
-          pinnedRank: nextRank,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-    await tx.isPersisted.promise;
+    if (existing) {
+      userNodePrefsCollection.update(existing.id, (draft) => {
+        draft.pinnedRank = nextRank;
+        draft.updatedAt = now;
+      });
+    } else {
+      userNodePrefsCollection.insert({
+        id: ulid(),
+        userId,
+        nodeId,
+        isFavorite: false,
+        pinnedRank: nextRank,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   };
 
-  const unpinNode = async (nodeId: string) => {
+  const unpinNode = (nodeId: string) => {
     const now = new Date();
-    const state = await userNodePrefsCollection.stateWhenReady();
-    const existing = Array.from(state.values()).find(
+    const existing = Array.from(userNodePrefsCollection.state.values()).find(
       (pref) => pref.userId === userId && pref.nodeId === nodeId,
     );
     if (!existing) return;
 
-    const tx = userNodePrefsCollection.update(existing.id, (draft) => {
+    userNodePrefsCollection.update(existing.id, (draft) => {
       draft.pinnedRank = null;
       draft.updatedAt = now;
     });
-
-    await tx.isPersisted.promise;
   };
 
   return { setFavorite, pinNode, unpinNode };
@@ -538,9 +530,8 @@ export function usePreferenceMutations() {
 export function useNodeMutations() {
   const userId = useCurrentUserId();
 
-  const ensureEdge = async (sourceId: string, targetId: string, type: EdgeType) => {
-    const state = await edgesCollection.stateWhenReady();
-    const exists = Array.from(state.values()).some(
+  const ensureEdge = (sourceId: string, targetId: string, type: EdgeType) => {
+    const exists = Array.from(edgesCollection.state.values()).some(
       (edge) =>
         edge.userId === userId &&
         edge.sourceId === sourceId &&
@@ -550,7 +541,7 @@ export function useNodeMutations() {
 
     if (exists) return;
 
-    const tx = edgesCollection.insert({
+    edgesCollection.insert({
       id: ulid(),
       userId,
       sourceId,
@@ -558,10 +549,9 @@ export function useNodeMutations() {
       type,
       createdAt: new Date(),
     });
-    await tx.isPersisted.promise;
   };
 
-  const createNote = async (title: string, tagId?: string) => {
+  const createNote = (title: string, tagId?: string) => {
     const id = ulid();
     const content = `# ${title}\n\n`;
     const now = new Date();
@@ -577,17 +567,16 @@ export function useNodeMutations() {
       updatedAt: now,
     };
 
-    const tx = nodesCollection.insert(node);
-    await tx.isPersisted.promise;
+    nodesCollection.insert(node);
 
     if (tagId) {
-      await ensureEdge(id, tagId, "tagged_with");
+      ensureEdge(id, tagId, "tagged_with");
     }
 
     return node;
   };
 
-  const createTag = async (title: string, parentTagId: string) => {
+  const createTag = (title: string, parentTagId: string) => {
     const id = ulid();
     const now = new Date();
     const node: Node = {
@@ -602,15 +591,13 @@ export function useNodeMutations() {
       updatedAt: now,
     };
 
-    const tx = nodesCollection.insert(node);
-    await tx.isPersisted.promise;
-
-    await ensureEdge(id, parentTagId, "part_of");
+    nodesCollection.insert(node);
+    ensureEdge(id, parentTagId, "part_of");
 
     return node;
   };
 
-  const createTemplate = async (title: string) => {
+  const createTemplate = (title: string) => {
     const id = ulid();
     const content = `# ${title}\n\n`;
     const now = new Date();
@@ -626,13 +613,12 @@ export function useNodeMutations() {
       updatedAt: now,
     };
 
-    const tx = nodesCollection.insert(node);
-    await tx.isPersisted.promise;
+    nodesCollection.insert(node);
 
     return node;
   };
 
-  const createCanvas = async (title: string, tagId?: string) => {
+  const createCanvas = (title: string, tagId?: string) => {
     const id = ulid();
     const now = new Date();
     const node: Node = {
@@ -647,10 +633,9 @@ export function useNodeMutations() {
       updatedAt: now,
     };
 
-    const nodeTx = nodesCollection.insert(node);
-    await nodeTx.isPersisted.promise;
+    nodesCollection.insert(node);
 
-    const sceneTx = canvasScenesCollection.insert({
+    canvasScenesCollection.insert({
       canvasId: id,
       userId,
       elementsJson: [],
@@ -659,18 +644,16 @@ export function useNodeMutations() {
       createdAt: now,
       updatedAt: now,
     });
-    await sceneTx.isPersisted.promise;
 
     if (tagId) {
-      await ensureEdge(id, tagId, "tagged_with");
+      ensureEdge(id, tagId, "tagged_with");
     }
 
     return node;
   };
 
   const createNoteFromTemplate = async (templateId: string, noteTitle?: string, tagId?: string) => {
-    const nodesState = await nodesCollection.stateWhenReady();
-    const template = nodesState.get(templateId);
+    const template = nodesCollection.state.get(templateId);
     if (!template || template.userId !== userId || template.type !== "template") {
       return null;
     }
@@ -693,33 +676,32 @@ export function useNodeMutations() {
       updatedAt: now,
     };
 
-    const nodeTx = nodesCollection.insert(node);
-    await nodeTx.isPersisted.promise;
-
-    await ensureEdge(noteId, templateId, "derived_from");
+    nodesCollection.insert(node);
+    ensureEdge(noteId, templateId, "derived_from");
     if (tagId) {
-      await ensureEdge(noteId, tagId, "tagged_with");
+      ensureEdge(noteId, tagId, "tagged_with");
     }
 
     const metaState = await templatesMetaCollection.stateWhenReady();
     const existingMeta = metaState.get(templateId);
-    const metaTx = existingMeta
-      ? templatesMetaCollection.update(templateId, (draft) => {
-          draft.lastUsedAt = now;
-        })
-      : templatesMetaCollection.insert({
-          nodeId: templateId,
-          userId,
-          defaultTags: null,
-          lastUsedAt: now,
-          fields: null,
-        });
-    await metaTx.isPersisted.promise;
+    if (existingMeta) {
+      templatesMetaCollection.update(templateId, (draft) => {
+        draft.lastUsedAt = now;
+      });
+    } else {
+      templatesMetaCollection.insert({
+        nodeId: templateId,
+        userId,
+        defaultTags: null,
+        lastUsedAt: now,
+        fields: null,
+      });
+    }
 
     return node;
   };
 
-  const updateNode = async (id: string, updates: Partial<Node>) => {
+  const updateNode = (id: string, updates: Partial<Node>) => {
     const shouldUpdateUpdatedAt = updates.updatedAt === undefined;
     const hasChanges =
       updates.title !== undefined ||
@@ -731,7 +713,7 @@ export function useNodeMutations() {
 
     if (!hasChanges) return;
 
-    const tx = nodesCollection.update(id, (draft) => {
+    nodesCollection.update(id, (draft) => {
       if (updates.title !== undefined) {
         draft.title = updates.title;
       }
@@ -753,13 +735,10 @@ export function useNodeMutations() {
         draft.updatedAt = updates.updatedAt;
       }
     });
-
-    await tx.isPersisted.promise;
   };
 
   const deleteNode = async (id: string) => {
-    const edgesState = await edgesCollection.stateWhenReady();
-    const edgesToDelete = Array.from(edgesState.values())
+    const edgesToDelete = Array.from(edgesCollection.state.values())
       .filter((edge) => edge.sourceId === id || edge.targetId === id)
       .map((edge) => edge.id);
 
@@ -770,36 +749,29 @@ export function useNodeMutations() {
         .map((meta) => meta.edgeId);
 
       if (edgeMetaIds.length > 0) {
-        const metaTx = edgeMetadataCollection.delete(edgeMetaIds);
-        await metaTx.isPersisted.promise;
+        edgeMetadataCollection.delete(edgeMetaIds);
       }
 
-      const edgesTx = edgesCollection.delete(edgesToDelete);
-      await edgesTx.isPersisted.promise;
+      edgesCollection.delete(edgesToDelete);
     }
 
-    const prefsState = await userNodePrefsCollection.stateWhenReady();
-    const prefsToDelete = Array.from(prefsState.values())
+    const prefsToDelete = Array.from(userNodePrefsCollection.state.values())
       .filter((pref) => pref.nodeId === id)
       .map((pref) => pref.id);
     if (prefsToDelete.length > 0) {
-      const prefsTx = userNodePrefsCollection.delete(prefsToDelete);
-      await prefsTx.isPersisted.promise;
+      userNodePrefsCollection.delete(prefsToDelete);
     }
 
-    const tasksState = await tasksCollection.stateWhenReady();
-    const tasksToDelete = Array.from(tasksState.values())
+    const tasksToDelete = Array.from(tasksCollection.state.values())
       .filter((task) => task.noteId === id)
       .map((task) => task.id);
     if (tasksToDelete.length > 0) {
-      const tasksTx = tasksCollection.delete(tasksToDelete);
-      await tasksTx.isPersisted.promise;
+      tasksCollection.delete(tasksToDelete);
     }
 
     const canvasScenesState = await canvasScenesCollection.stateWhenReady();
     if (canvasScenesState.get(id)) {
-      const sceneTx = canvasScenesCollection.delete(id);
-      await sceneTx.isPersisted.promise;
+      canvasScenesCollection.delete(id);
     }
 
     const canvasLinksState = await canvasLinksCollection.stateWhenReady();
@@ -807,21 +779,18 @@ export function useNodeMutations() {
       .filter((link) => link.canvasId === id || link.nodeId === id)
       .map((link) => link.id);
     if (canvasLinksToDelete.length > 0) {
-      const linksTx = canvasLinksCollection.delete(canvasLinksToDelete);
-      await linksTx.isPersisted.promise;
+      canvasLinksCollection.delete(canvasLinksToDelete);
     }
 
-    const nodeTx = nodesCollection.delete(id);
-    await nodeTx.isPersisted.promise;
+    nodesCollection.delete(id);
   };
 
-  const addTag = async (noteId: string, tagId: string) => {
-    await ensureEdge(noteId, tagId, "tagged_with");
+  const addTag = (noteId: string, tagId: string) => {
+    ensureEdge(noteId, tagId, "tagged_with");
   };
 
-  const removeTag = async (noteId: string, tagId: string) => {
-    const state = await edgesCollection.stateWhenReady();
-    const edgesToDelete = Array.from(state.values())
+  const removeTag = (noteId: string, tagId: string) => {
+    const edgesToDelete = Array.from(edgesCollection.state.values())
       .filter(
         (edge) =>
           edge.sourceId === noteId && edge.targetId === tagId && edge.type === "tagged_with",
@@ -829,48 +798,42 @@ export function useNodeMutations() {
       .map((edge) => edge.id);
     if (edgesToDelete.length === 0) return;
 
-    const tx = edgesCollection.delete(edgesToDelete);
-    await tx.isPersisted.promise;
+    edgesCollection.delete(edgesToDelete);
   };
 
-  const moveTaggedNode = async (nodeId: string, fromTagId: string, toTagId: string) => {
+  const moveTaggedNode = (nodeId: string, fromTagId: string, toTagId: string) => {
     if (fromTagId === toTagId) return;
 
-    const state = await edgesCollection.stateWhenReady();
-    const taggedEdges = Array.from(state.values()).filter(
+    const taggedEdges = Array.from(edgesCollection.state.values()).filter(
       (edge) => edge.userId === userId && edge.sourceId === nodeId && edge.type === "tagged_with",
     );
     const sourceEdge = taggedEdges.find((edge) => edge.targetId === fromTagId);
     if (!sourceEdge) {
-      await ensureEdge(nodeId, toTagId, "tagged_with");
+      ensureEdge(nodeId, toTagId, "tagged_with");
       return;
     }
 
     const targetExists = taggedEdges.some((edge) => edge.targetId === toTagId);
     if (targetExists) {
-      const tx = edgesCollection.delete(sourceEdge.id);
-      await tx.isPersisted.promise;
+      edgesCollection.delete(sourceEdge.id);
       return;
     }
 
-    const tx = edgesCollection.update(sourceEdge.id, (draft) => {
+    edgesCollection.update(sourceEdge.id, (draft) => {
       draft.targetId = toTagId;
     });
-    await tx.isPersisted.promise;
   };
 
-  const moveTag = async (tagId: string, newParentTagId: string) => {
-    const state = await edgesCollection.stateWhenReady();
-    const partOfEdges = Array.from(state.values())
+  const moveTag = (tagId: string, newParentTagId: string) => {
+    const partOfEdges = Array.from(edgesCollection.state.values())
       .filter((edge) => edge.sourceId === tagId && edge.type === "part_of")
       .map((edge) => edge.id);
 
     if (partOfEdges.length > 0) {
-      const deleteTx = edgesCollection.delete(partOfEdges);
-      await deleteTx.isPersisted.promise;
+      edgesCollection.delete(partOfEdges);
     }
 
-    await ensureEdge(tagId, newParentTagId, "part_of");
+    ensureEdge(tagId, newParentTagId, "part_of");
   };
 
   return {
@@ -891,9 +854,8 @@ export function useNodeMutations() {
 export function useEdgeMutations() {
   const userId = useCurrentUserId();
 
-  const createEdge = async (sourceId: string, targetId: string, type: EdgeType) => {
-    const state = await edgesCollection.stateWhenReady();
-    const exists = Array.from(state.values()).some(
+  const createEdge = (sourceId: string, targetId: string, type: EdgeType) => {
+    const exists = Array.from(edgesCollection.state.values()).some(
       (edge) =>
         edge.userId === userId &&
         edge.sourceId === sourceId &&
@@ -913,27 +875,23 @@ export function useEdgeMutations() {
       createdAt: new Date(),
     };
 
-    const tx = edgesCollection.insert(edge);
-    await tx.isPersisted.promise;
+    edgesCollection.insert(edge);
     return edge;
   };
 
   const deleteEdge = async (edgeId: string) => {
     const metaState = await edgeMetadataCollection.stateWhenReady();
     if (metaState.get(edgeId)) {
-      const metaTx = edgeMetadataCollection.delete(edgeId);
-      await metaTx.isPersisted.promise;
+      edgeMetadataCollection.delete(edgeId);
     }
 
-    const tx = edgesCollection.delete(edgeId);
-    await tx.isPersisted.promise;
+    edgesCollection.delete(edgeId);
   };
 
-  const changeEdgeType = async (edgeId: string, newType: EdgeType) => {
-    const tx = edgesCollection.update(edgeId, (draft) => {
+  const changeEdgeType = (edgeId: string, newType: EdgeType) => {
+    edgesCollection.update(edgeId, (draft) => {
       draft.type = newType;
     });
-    await tx.isPersisted.promise;
   };
 
   return {
@@ -1011,19 +969,19 @@ export function useCanvasMutations() {
       updatedAt: now,
     };
 
-    const tx = existing
-      ? canvasScenesCollection.update(canvasId, (draft) => {
-          draft.elementsJson = payload.elementsJson;
-          draft.appStateJson = payload.appStateJson;
-          draft.filesJson = payload.filesJson;
-          draft.updatedAt = now;
-        })
-      : canvasScenesCollection.insert({
-          ...payload,
-          createdAt: now,
-        });
-
-    await tx.isPersisted.promise;
+    if (existing) {
+      canvasScenesCollection.update(canvasId, (draft) => {
+        draft.elementsJson = payload.elementsJson;
+        draft.appStateJson = payload.appStateJson;
+        draft.filesJson = payload.filesJson;
+        draft.updatedAt = now;
+      });
+    } else {
+      canvasScenesCollection.insert({
+        ...payload,
+        createdAt: now,
+      });
+    }
   };
 
   const setCanvasLink = async (canvasId: string, elementId: string, nodeId: string) => {
@@ -1033,12 +991,11 @@ export function useCanvasMutations() {
         link.userId === userId && link.canvasId === canvasId && link.elementId === elementId,
     );
     if (existingLinks.length > 0) {
-      const tx = canvasLinksCollection.delete(existingLinks.map((link) => link.id));
-      await tx.isPersisted.promise;
+      canvasLinksCollection.delete(existingLinks.map((link) => link.id));
     }
 
     const now = new Date();
-    const insertTx = canvasLinksCollection.insert({
+    canvasLinksCollection.insert({
       id: ulid(),
       userId,
       canvasId,
@@ -1046,7 +1003,6 @@ export function useCanvasMutations() {
       nodeId,
       createdAt: now,
     });
-    await insertTx.isPersisted.promise;
   };
 
   const removeCanvasLink = async (canvasId: string, elementId: string) => {
@@ -1059,8 +1015,7 @@ export function useCanvasMutations() {
       .map((link) => link.id);
     if (toDelete.length === 0) return;
 
-    const tx = canvasLinksCollection.delete(toDelete);
-    await tx.isPersisted.promise;
+    canvasLinksCollection.delete(toDelete);
   };
 
   const pruneCanvasLinks = async (canvasId: string, elementIds: string[]) => {
@@ -1071,8 +1026,7 @@ export function useCanvasMutations() {
       .map((link) => link.id);
 
     if (toDelete.length === 0) return;
-    const tx = canvasLinksCollection.delete(toDelete);
-    await tx.isPersisted.promise;
+    canvasLinksCollection.delete(toDelete);
   };
 
   return {

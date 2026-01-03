@@ -29,7 +29,7 @@ export function parseTasks(content: string, noteId: string): ParsedTask[] {
   return tasks;
 }
 
-export async function syncTasks({
+export function syncTasks({
   userId,
   noteId,
   content,
@@ -37,10 +37,9 @@ export async function syncTasks({
   userId: string;
   noteId: string;
   content: string;
-}): Promise<void> {
+}): void {
   const tasks = parseTasks(content, noteId);
-  const state = await tasksCollection.stateWhenReady();
-  const existing = Array.from(state.values()).filter(
+  const existing = Array.from(tasksCollection.state.values()).filter(
     (row) => row.userId === userId && row.noteId === noteId,
   );
   const existingByBlock = new Map(existing.map((row) => [row.blockId, row]));
@@ -51,16 +50,15 @@ export async function syncTasks({
     const existingRow = existingByBlock.get(task.blockId);
     seen.add(task.blockId);
     if (existingRow) {
-      const tx = tasksCollection.update(existingRow.id, (draft) => {
+      tasksCollection.update(existingRow.id, (draft) => {
         draft.content = task.content;
         draft.isDone = task.isDone;
         draft.position = task.position;
         draft.checkedAt = task.isDone ? now : null;
         draft.updatedAt = now;
       });
-      await tx.isPersisted.promise;
     } else {
-      const tx = tasksCollection.insert({
+      tasksCollection.insert({
         id: ulid(),
         userId,
         noteId,
@@ -74,13 +72,11 @@ export async function syncTasks({
         createdAt: now,
         updatedAt: now,
       });
-      await tx.isPersisted.promise;
     }
   }
 
   const toDelete = existing.filter((row) => !seen.has(row.blockId)).map((row) => row.id);
   if (toDelete.length > 0) {
-    const tx = tasksCollection.delete(toDelete);
-    await tx.isPersisted.promise;
+    tasksCollection.delete(toDelete);
   }
 }

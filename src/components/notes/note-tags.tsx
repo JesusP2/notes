@@ -1,5 +1,5 @@
 import { Plus, Tag, X } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,28 +17,17 @@ export function NoteTags({ noteId }: NoteTagsProps) {
   const noteTags = useNoteTags(noteId);
   const { addTag, removeTag } = useNodeMutations();
   const [open, setOpen] = useState(false);
-  const [, startTransition] = useTransition();
 
   const noteTagIds = new Set(noteTags.map((t) => t.id));
   const availableTags = allTags.filter((t) => !noteTagIds.has(t.id) && t.id !== ROOT_TAG_ID);
 
-  const handleAddTag = useCallback(
-    (tag: Node) => {
-      startTransition(async () => {
-        await addTag(noteId, tag.id);
-      });
-    },
-    [noteId, addTag],
-  );
+  const handleAddTag = (tag: Node) => {
+    addTag(noteId, tag.id);
+  };
 
-  const handleRemoveTag = useCallback(
-    (tag: Node) => {
-      startTransition(async () => {
-        await removeTag(noteId, tag.id);
-      });
-    },
-    [noteId, removeTag],
-  );
+  const handleRemoveTag = (tag: Node) => {
+    removeTag(noteId, tag.id);
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
