@@ -60,14 +60,15 @@ function createCollections(db: DrizzleDb, pglite: PGlite) {
         prepare,
       }),
     ),
-    edgeMetadataCollection: createCollection(
-      drizzleCollectionOptions({
+    edgeMetadataCollection: createCollection({
+      ...drizzleCollectionOptions({
         db,
         table: edgeMetadata,
         primaryColumn: edgeMetadata.edgeId,
         prepare,
       }),
-    ),
+      getKey: (item) => item.edgeId,
+    }),
     userSettingsCollection: createCollection(
       drizzleCollectionOptions({
         db,
@@ -84,14 +85,15 @@ function createCollections(db: DrizzleDb, pglite: PGlite) {
         prepare,
       }),
     ),
-    templatesMetaCollection: createCollection(
-      drizzleCollectionOptions({
+    templatesMetaCollection: createCollection({
+      ...drizzleCollectionOptions({
         db,
         table: templatesMeta,
         primaryColumn: templatesMeta.nodeId,
         prepare,
       }),
-    ),
+      getKey: (item) => item.nodeId,
+    }),
     nodeVersionsCollection: createCollection(
       drizzleCollectionOptions({
         db,
@@ -116,14 +118,15 @@ function createCollections(db: DrizzleDb, pglite: PGlite) {
         prepare,
       }),
     ),
-    canvasScenesCollection: createCollection(
-      drizzleCollectionOptions({
+    canvasScenesCollection: createCollection({
+      ...drizzleCollectionOptions({
         db,
         table: canvasScenes,
         primaryColumn: canvasScenes.canvasId,
         prepare,
       }),
-    ),
+      getKey: (item) => item.canvasId,
+    }),
     canvasLinksCollection: createCollection(
       drizzleCollectionOptions({
         db,
