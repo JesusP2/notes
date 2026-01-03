@@ -856,6 +856,32 @@ export function useNodeMutations() {
     await tx.isPersisted.promise;
   };
 
+  const moveTaggedNode = async (nodeId: string, fromTagId: string, toTagId: string) => {
+    if (fromTagId === toTagId) return;
+
+    const state = await edgesCollection.stateWhenReady();
+    const taggedEdges = Array.from(state.values()).filter(
+      (edge) => edge.userId === userId && edge.sourceId === nodeId && edge.type === "tagged_with",
+    );
+    const sourceEdge = taggedEdges.find((edge) => edge.targetId === fromTagId);
+    if (!sourceEdge) {
+      await ensureEdge(nodeId, toTagId, "tagged_with");
+      return;
+    }
+
+    const targetExists = taggedEdges.some((edge) => edge.targetId === toTagId);
+    if (targetExists) {
+      const tx = edgesCollection.delete(sourceEdge.id);
+      await tx.isPersisted.promise;
+      return;
+    }
+
+    const tx = edgesCollection.update(sourceEdge.id, (draft) => {
+      draft.targetId = toTagId;
+    });
+    await tx.isPersisted.promise;
+  };
+
   const moveTag = async (tagId: string, newParentTagId: string) => {
     const state = await edgesCollection.stateWhenReady();
     const partOfEdges = Array.from(state.values())
@@ -880,6 +906,7 @@ export function useNodeMutations() {
     deleteNode,
     addTag,
     removeTag,
+    moveTaggedNode,
     moveTag,
   };
 }

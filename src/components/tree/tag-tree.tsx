@@ -1,6 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus, Info, Pencil, PenTool, Pin, Tag, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import {
+  FilePlus,
+  Info,
+  Pencil,
+  PenTool,
+  Pin,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
@@ -25,6 +33,12 @@ interface TagTreeProps {
   onSelectNode?: (node: Node) => void;
 }
 
+type DraggedNode = {
+  id: string;
+  type: Node["type"];
+  sourceTagId: string | null;
+};
+
 interface TreeBranchProps {
   parentId: string;
   level: number;
@@ -33,10 +47,11 @@ interface TreeBranchProps {
   onExpandTag: (id: string) => void;
   onSelectNode?: (node: Node) => void;
   pinnedIds: Set<string>;
-  draggedNode: { id: string; type: Node["type"] } | null;
-  setDraggedNode: (node: { id: string; type: Node["type"] } | null) => void;
+  draggedNode: DraggedNode | null;
+  setDraggedNode: (node: DraggedNode | null) => void;
   dragOverNode: string | null;
   setDragOverNode: (id: string | null) => void;
+  altKeyPressedRef: { current: boolean };
   onTriggerRename: (nodeId: string) => void;
   onOpenDetails: (nodeId: string) => void;
 }
@@ -53,26 +68,37 @@ function TreeBranch({
   setDraggedNode,
   dragOverNode,
   setDragOverNode,
+  altKeyPressedRef,
   onTriggerRename,
   onOpenDetails,
 }: TreeBranchProps) {
   const children = useTagChildren(parentId);
   const navigate = useNavigate();
-  const { createNote, createTag, createCanvas, deleteNode, moveTag, addTag } = useNodeMutations();
+  const {
+    createNote,
+    createTag,
+    createCanvas,
+    deleteNode,
+    moveTag,
+    moveTaggedNode,
+    addTag,
+  } = useNodeMutations();
   const { pinNode, unpinNode } = usePreferenceMutations();
   const { openConfirmDialog } = useConfirmDialog();
   const [, startTransition] = useTransition();
 
   const handleDragStart = (e: React.DragEvent, node: Node) => {
-    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.effectAllowed = node.type === "tag" ? "move" : "copyMove";
     e.dataTransfer.setData("text/plain", node.id);
-    setDraggedNode({ id: node.id, type: node.type });
+    setDraggedNode({ id: node.id, type: node.type, sourceTagId: parentId });
   };
 
   const handleDragOver = (e: React.DragEvent, node: Node) => {
     e.preventDefault();
     if (node.type === "tag" && draggedNode && draggedNode.id !== node.id) {
-      e.dataTransfer.dropEffect = "move";
+      const isCopy =
+        draggedNode.type !== "tag" && (e.altKey || altKeyPressedRef.current);
+      e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
       setDragOverNode(node.id);
     }
   };
@@ -80,15 +106,28 @@ function TreeBranch({
   const handleDrop = (e: React.DragEvent, targetNode: Node) => {
     e.preventDefault();
     const sourceId = e.dataTransfer.getData("text/plain");
-    if (sourceId && targetNode.type === "tag" && draggedNode && sourceId !== targetNode.id) {
+    if (
+      sourceId &&
+      targetNode.type === "tag" &&
+      draggedNode &&
+      sourceId !== targetNode.id
+    ) {
       if (draggedNode.type === "tag") {
         startTransition(async () => {
           await moveTag(sourceId, targetNode.id);
         });
       } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
-        startTransition(async () => {
-          await addTag(sourceId, targetNode.id);
-        });
+        const sourceTagId = draggedNode.sourceTagId;
+        const isCopy = e.altKey || altKeyPressedRef.current;
+        if (isCopy) {
+          startTransition(async () => {
+            await addTag(sourceId, targetNode.id);
+          });
+        } else if (sourceTagId) {
+          startTransition(async () => {
+            await moveTaggedNode(sourceId, sourceTagId, targetNode.id);
+          });
+        }
       }
     }
     setDraggedNode(null);
@@ -176,7 +215,9 @@ function TreeBranch({
                       <FilePlus className="mr-2 size-4" />
                       New Note
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleCreateCanvas(child.id)}>
+                    <ContextMenuItem
+                      onClick={() => handleCreateCanvas(child.id)}
+                    >
                       <PenTool className="mr-2 size-4" />
                       New Canvas
                     </ContextMenuItem>
@@ -190,7 +231,9 @@ function TreeBranch({
                 {(child.type === "note" || child.type === "canvas") && (
                   <>
                     <ContextMenuItem
-                      onClick={() => (isPinned ? unpinNode(child.id) : pinNode(child.id))}
+                      onClick={() =>
+                        isPinned ? unpinNode(child.id) : pinNode(child.id)
+                      }
                     >
                       <Pin className="mr-2 size-4" />
                       {isPinned ? "Unpin" : "Pin"}
@@ -231,6 +274,7 @@ function TreeBranch({
                 setDraggedNode={setDraggedNode}
                 dragOverNode={dragOverNode}
                 setDragOverNode={setDragOverNode}
+                altKeyPressedRef={altKeyPressedRef}
                 onTriggerRename={onTriggerRename}
                 onOpenDetails={onOpenDetails}
               />
@@ -244,13 +288,33 @@ function TreeBranch({
 
 export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
-  const [draggedNode, setDraggedNode] = useState<{
-    id: string;
-    type: Node["type"];
-  } | null>(null);
+  const [draggedNode, setDraggedNode] = useState<DraggedNode | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
   const [detailsNodeId, setDetailsNodeId] = useState<string | null>(null);
+  const altKeyPressedRef = useRef(false);
   const pinnedNotes = usePinnedNotes();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const updateAltKeyState = (event: KeyboardEvent) => {
+      altKeyPressedRef.current = event.altKey;
+    };
+    const clearAltKeyState = () => {
+      altKeyPressedRef.current = false;
+    };
+
+    window.addEventListener("keydown", updateAltKeyState, {
+      signal: controller.signal,
+    });
+    window.addEventListener("keyup", updateAltKeyState, {
+      signal: controller.signal,
+    });
+    window.addEventListener("blur", clearAltKeyState, {
+      signal: controller.signal,
+    });
+
+    return () => controller.abort();
+  }, []);
 
   const pinnedIds = new Set(pinnedNotes.map((note) => note.id));
 
@@ -304,6 +368,7 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
           setDraggedNode={setDraggedNode}
           dragOverNode={dragOverNode}
           setDragOverNode={setDragOverNode}
+          altKeyPressedRef={altKeyPressedRef}
           onTriggerRename={triggerRename}
           onOpenDetails={openDetails}
         />
