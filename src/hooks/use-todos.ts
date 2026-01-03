@@ -1,18 +1,18 @@
+import { useLiveQuery } from "@tanstack/react-db";
 import { ulid } from "ulidx";
 import { useCurrentUserId } from "@/hooks/use-current-user";
 import { todosCollection, type TodoRow } from "@/lib/todos-db";
-import { useLiveQuery } from "@tanstack/react-db";
 
 export function useTodos() {
   const userId = useCurrentUserId();
-  const todos = useLiveQuery((q) => q.from({ todos: todosCollection }));
+  const todosQuery = useLiveQuery((q) => q.from({ todos: todosCollection }));
 
-  const addTodo = (title: string) => {
+  const addTodo = async (title: string) => {
     const trimmed = title.trim();
     if (!trimmed) return;
 
     const now = new Date();
-    todosCollection.insert({
+    const tx = todosCollection.insert({
       id: ulid(),
       userId,
       title: trimmed,
@@ -20,16 +20,24 @@ export function useTodos() {
       createdAt: now,
       updatedAt: now,
     });
+    await tx.isPersisted.promise;
   };
 
-  const toggleTodo = (todo: TodoRow) =>
-    todosCollection.update(todo.id, (draft) => {
+  const toggleTodo = async (todo: TodoRow) => {
+    const tx = todosCollection.update(todo.id, (draft) => {
       draft.isDone = !todo.isDone;
       draft.updatedAt = new Date();
     });
-  const deleteTodo = (todo: TodoRow) => todosCollection.delete(todo.id);
+    await tx.isPersisted.promise;
+  };
 
-  const sortedTodos = todos.data.sort(
+  const deleteTodo = async (todo: TodoRow) => {
+    const tx = todosCollection.delete(todo.id);
+    await tx.isPersisted.promise;
+  };
+
+  const todos = todosQuery.data ?? [];
+  const sortedTodos = [...todos].sort(
     (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
   );
 

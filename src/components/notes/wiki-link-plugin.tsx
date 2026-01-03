@@ -1,6 +1,6 @@
-import type { PGlite } from "@electric-sql/pglite";
 import { ulid } from "ulidx";
 import type { Node } from "@/db/schema/graph";
+import { edgesCollection, nodesCollection } from "@/lib/collections";
 
 const WIKI_LINK_REGEX = /\[\[([^[\]]+)\]\]/g;
 export const EMBED_LINK_REGEX = /!\[\[([^[\]]+)\]\]/g;
@@ -103,40 +103,35 @@ export function stripEmbeds(content: string): string {
     .trim();
 }
 
-type QueryableDb = Pick<PGlite, "query">;
-
 export async function syncWikiLinks({
-  db,
   noteId,
   userId,
   content,
 }: {
-  db: QueryableDb;
   noteId: string;
   userId: string;
   content: string;
 }): Promise<{ resolved: string[]; unresolved: string[] }> {
   const titles = extractWikiLinks(content);
   const normalized = titles.map((title) => title.toLowerCase());
+  const normalizedSet = new Set(normalized);
   const resolvedMap = new Map<string, string>();
 
-  if (normalized.length > 0) {
-    const placeholders = normalized.map((_, index) => `$${index + 1}`).join(", ");
-    const result = await db.query<{ id: string; title: string }>(
-      `SELECT id, title
-       FROM nodes
-       WHERE type = 'note'
-         AND user_id = $${normalized.length + 1}
-         AND LOWER(title) IN (${placeholders})
-       ORDER BY updated_at DESC`,
-      [...normalized, userId],
-    );
+  const nodesState = await nodesCollection.stateWhenReady();
+  const notes = Array.from(nodesState.values()).filter(
+    (node) => node.userId === userId && node.type === "note",
+  );
+  const sortedNotes = [...notes].sort(
+    (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+  );
 
-    for (const row of result.rows) {
-      const key = row.title.trim().toLowerCase();
-      if (!resolvedMap.has(key)) {
-        resolvedMap.set(key, row.id);
-      }
+  for (const note of sortedNotes) {
+    const key = note.title.trim().toLowerCase();
+    if (!normalizedSet.has(key)) {
+      continue;
+    }
+    if (!resolvedMap.has(key)) {
+      resolvedMap.set(key, note.id);
     }
   }
 
@@ -152,30 +147,34 @@ export async function syncWikiLinks({
     desiredTargets.add(targetId);
   }
 
-  const existing = await db.query<{ id: string; target_id: string }>(
-    "SELECT id, target_id FROM edges WHERE source_id = $1 AND type = 'references' AND user_id = $2",
-    [noteId, userId],
+  const edgesState = await edgesCollection.stateWhenReady();
+  const existing = Array.from(edgesState.values()).filter(
+    (edge) => edge.userId === userId && edge.sourceId === noteId && edge.type === "references",
   );
-
-  const existingByTarget = new Map(existing.rows.map((row) => [row.target_id, row.id]));
+  const existingByTarget = new Map(existing.map((row) => [row.targetId, row.id]));
+  const now = new Date();
 
   for (const targetId of desiredTargets) {
     if (existingByTarget.has(targetId)) {
       continue;
     }
-    await db.query(
-      `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-       VALUES ($1, $2, $3, $4, 'references', CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-      [ulid(), userId, noteId, targetId],
-    );
+    const tx = edgesCollection.insert({
+      id: ulid(),
+      userId,
+      sourceId: noteId,
+      targetId,
+      type: "references",
+      createdAt: now,
+    });
+    await tx.isPersisted.promise;
   }
 
-  for (const row of existing.rows) {
-    if (desiredTargets.has(row.target_id)) {
-      continue;
-    }
-    await db.query("DELETE FROM edges WHERE id = $1", [row.id]);
+  const toDelete = existing
+    .filter((row) => !desiredTargets.has(row.targetId))
+    .map((row) => row.id);
+  if (toDelete.length > 0) {
+    const tx = edgesCollection.delete(toDelete);
+    await tx.isPersisted.promise;
   }
 
   return {
@@ -185,37 +184,34 @@ export async function syncWikiLinks({
 }
 
 export async function syncEmbeds({
-  db,
   noteId,
   userId,
   content,
 }: {
-  db: QueryableDb;
   noteId: string;
   userId: string;
   content: string;
 }): Promise<{ resolved: string[]; unresolved: string[] }> {
   const titles = extractEmbeds(content);
   const normalized = titles.map((title) => title.toLowerCase());
+  const normalizedSet = new Set(normalized);
   const resolvedMap = new Map<string, string>();
 
-  if (normalized.length > 0) {
-    const placeholders = normalized.map((_, index) => `$${index + 1}`).join(", ");
-    const result = await db.query<{ id: string; title: string }>(
-      `SELECT id, title
-       FROM nodes
-       WHERE type = 'note'
-         AND user_id = $${normalized.length + 1}
-         AND LOWER(title) IN (${placeholders})
-       ORDER BY updated_at DESC`,
-      [...normalized, userId],
-    );
+  const nodesState = await nodesCollection.stateWhenReady();
+  const notes = Array.from(nodesState.values()).filter(
+    (node) => node.userId === userId && node.type === "note",
+  );
+  const sortedNotes = [...notes].sort(
+    (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+  );
 
-    for (const row of result.rows) {
-      const key = row.title.trim().toLowerCase();
-      if (!resolvedMap.has(key)) {
-        resolvedMap.set(key, row.id);
-      }
+  for (const note of sortedNotes) {
+    const key = note.title.trim().toLowerCase();
+    if (!normalizedSet.has(key)) {
+      continue;
+    }
+    if (!resolvedMap.has(key)) {
+      resolvedMap.set(key, note.id);
     }
   }
 
@@ -231,30 +227,34 @@ export async function syncEmbeds({
     desiredTargets.add(targetId);
   }
 
-  const existing = await db.query<{ id: string; target_id: string }>(
-    "SELECT id, target_id FROM edges WHERE source_id = $1 AND type = 'embeds' AND user_id = $2",
-    [noteId, userId],
+  const edgesState = await edgesCollection.stateWhenReady();
+  const existing = Array.from(edgesState.values()).filter(
+    (edge) => edge.userId === userId && edge.sourceId === noteId && edge.type === "embeds",
   );
-
-  const existingByTarget = new Map(existing.rows.map((row) => [row.target_id, row.id]));
+  const existingByTarget = new Map(existing.map((row) => [row.targetId, row.id]));
+  const now = new Date();
 
   for (const targetId of desiredTargets) {
     if (existingByTarget.has(targetId)) {
       continue;
     }
-    await db.query(
-      `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-       VALUES ($1, $2, $3, $4, 'embeds', CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-      [ulid(), userId, noteId, targetId],
-    );
+    const tx = edgesCollection.insert({
+      id: ulid(),
+      userId,
+      sourceId: noteId,
+      targetId,
+      type: "embeds",
+      createdAt: now,
+    });
+    await tx.isPersisted.promise;
   }
 
-  for (const row of existing.rows) {
-    if (desiredTargets.has(row.target_id)) {
-      continue;
-    }
-    await db.query("DELETE FROM edges WHERE id = $1", [row.id]);
+  const toDelete = existing
+    .filter((row) => !desiredTargets.has(row.targetId))
+    .map((row) => row.id);
+  if (toDelete.length > 0) {
+    const tx = edgesCollection.delete(toDelete);
+    await tx.isPersisted.promise;
   }
 
   return {

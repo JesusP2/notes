@@ -1,22 +1,21 @@
 // @vitest-environment jsdom
 
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { LinkDialog } from "./link-dialog";
 
-function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
+function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <PGliteProvider db={db}>{children}</PGliteProvider>;
+    return <>{children}</>;
   };
 }
 
 describe("LinkDialog", () => {
   it("creates an edge between notes", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",

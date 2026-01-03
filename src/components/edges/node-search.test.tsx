@@ -1,22 +1,21 @@
 // @vitest-environment jsdom
 
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { NodeSearch } from "./node-search";
 
-function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
+function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <PGliteProvider db={db}>{children}</PGliteProvider>;
+    return <>{children}</>;
   };
 }
 
 describe("NodeSearch", () => {
   it("filters and selects a note", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
     const handleSelect = vi.fn();
 
     await db.query(

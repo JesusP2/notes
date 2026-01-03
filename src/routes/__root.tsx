@@ -1,4 +1,3 @@
-import type { PGliteWithLive } from "@electric-sql/pglite/live";
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -9,7 +8,6 @@ import { ConfirmDialogProvider } from "../components/providers/confirm-dialog";
 
 export type RouterAppContext = {
   queryClient: QueryClient;
-  db: PGliteWithLive | null;
 };
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({

@@ -1,6 +1,5 @@
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useCallback, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -24,23 +23,18 @@ import { useUserSetting } from "@/hooks/use-user-settings";
 import { useNodeMutations } from "@/lib/graph-hooks";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { useShortcut } from "@/lib/use-shortcut";
-import { pgliteInstance } from "@/lib/pglite";
-import { todosCollection } from "@/lib/todos-db";
+import { preloadCoreCollections } from "@/lib/collections";
 
 export const Route = createFileRoute("/_")({
   component: RouteComponent,
   ssr: false,
   beforeLoad: async () => {
-    await todosCollection.preload();
+    await preloadCoreCollections();
   },
 });
 
 function RouteComponent() {
-  return (
-    <PGliteProvider db={pgliteInstance}>
-      <MainLayout />
-    </PGliteProvider>
-  );
+  return <MainLayout />;
 }
 
 function MainLayout() {
@@ -69,14 +63,11 @@ function MainLayoutContent() {
     DEFAULT_SIDEBAR_LAYOUT,
   );
 
-  const handleSidebarOpenChange = useCallback(
-    (open: boolean) => {
-      const nextCollapsed = !open;
-      if (nextCollapsed === layout.collapsed) return;
-      void setLayout({ ...layout, collapsed: nextCollapsed });
-    },
-    [layout, setLayout],
-  );
+  const handleSidebarOpenChange = (open: boolean) => {
+    const nextCollapsed = !open;
+    if (nextCollapsed === layout.collapsed) return;
+    void setLayout({ ...layout, collapsed: nextCollapsed });
+  };
 
   return (
     <SidebarProvider
@@ -101,33 +92,30 @@ function MainLayoutShell() {
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }, [resolvedTheme, setTheme]);
+  };
 
-  const handleCreateNote = useCallback(() => {
+  const handleCreateNote = () => {
     startTransition(async () => {
       const note = await createNote("Untitled Note", ROOT_TAG_ID);
       navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
     });
-  }, [createNote, navigate]);
+  };
 
-  const handleCreateTag = useCallback(() => {
+  const handleCreateTag = () => {
     startTransition(async () => {
       await createTag("New Tag", ROOT_TAG_ID);
     });
-  }, [createTag]);
+  };
 
-  const handleShowShortcuts = useCallback(() => {
+  const handleShowShortcuts = () => {
     setShortcutsOpen(true);
-  }, []);
+  };
 
-  const handleSetVimEnabled = useCallback(
-    (next: boolean) => {
-      void setVimEnabledSetting(next);
-    },
-    [setVimEnabledSetting],
-  );
+  const handleSetVimEnabled = (next: boolean) => {
+    void setVimEnabledSetting(next);
+  };
 
   useShortcut(SHORTCUTS.TOGGLE_SIDEBAR, toggleSidebar);
   useShortcut(SHORTCUTS.TOGGLE_THEME, toggleTheme);

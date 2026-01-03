@@ -62,7 +62,6 @@ describe("syncWikiLinks", () => {
     );
 
     await syncWikiLinks({
-      db,
       noteId: "note-1",
       userId: "local",
       content: "Links to [[Target Note]].",
@@ -93,7 +92,7 @@ describe("syncWikiLinks", () => {
       ["edge-1", "note-1", "note-2", "references"],
     );
 
-    await syncWikiLinks({ db, noteId: "note-1", userId: "local", content: "No links here." });
+    await syncWikiLinks({ noteId: "note-1", userId: "local", content: "No links here." });
 
     const edges = await db.query(
       "SELECT id FROM edges WHERE source_id = $1 AND type = 'references'",
@@ -116,7 +115,6 @@ describe("syncWikiLinks", () => {
     );
 
     await syncWikiLinks({
-      db,
       noteId: "note-1",
       userId: "local",
       content: "Embed ![[Target Note]].",
@@ -145,7 +143,6 @@ describe("syncEmbeds", () => {
     );
 
     await syncEmbeds({
-      db,
       noteId: "note-1",
       userId: "local",
       content: "Embed ![[Target Note]].",

@@ -1,25 +1,24 @@
-import { useLiveQuery, usePGlite } from "@electric-sql/pglite-react";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
-import { sql } from "drizzle-orm";
-import { PgDialect } from "drizzle-orm/pg-core";
-import { useCallback } from "react";
+import { and, eq, or } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { ulid } from "ulidx";
 import type { Edge, EdgeType, Node } from "@/db/schema/graph";
 import { useCurrentUserId } from "@/hooks/use-current-user";
 import { hashContent } from "@/lib/content-hash";
 import { buildNoteExcerpt } from "@/lib/note-excerpt";
 import { applyTemplatePlaceholders } from "@/lib/templates";
-
-const dialect = new PgDialect();
-
-function sqlToQuery(query: ReturnType<typeof sql>) {
-  const compiled = dialect.sqlToQuery(query);
-  return {
-    sql: compiled.sql,
-    params: compiled.params as unknown[],
-  };
-}
+import {
+  canvasLinksCollection,
+  canvasScenesCollection,
+  edgeMetadataCollection,
+  edgesCollection,
+  nodeVersionsCollection,
+  nodesCollection,
+  tasksCollection,
+  templatesMetaCollection,
+  userNodePrefsCollection,
+} from "@/lib/collections";
 
 function parseJson<T>(value: unknown, fallback: T): T {
   if (value === null || value === undefined) return fallback;
@@ -33,8 +32,12 @@ function parseJson<T>(value: unknown, fallback: T): T {
   return value as T;
 }
 
-function normalizeCanvasAppState(appState: AppState | null | undefined): AppState {
-  const next = { ...(appState ?? {}) } as AppState & { collaborators?: unknown };
+function normalizeCanvasAppState(
+  appState: AppState | null | undefined,
+): AppState {
+  const next = { ...(appState ?? {}) } as AppState & {
+    collaborators?: unknown;
+  };
   if (!(next.collaborators instanceof Map)) {
     next.collaborators = new Map();
   }
@@ -45,74 +48,76 @@ function stripCanvasAppStateForStorage(
   appState: AppState | null | undefined,
 ): Partial<AppState> {
   if (!appState) return {};
-  const { collaborators, ...rest } = appState as AppState & { collaborators?: unknown };
+  const { collaborators, ...rest } = appState as AppState & {
+    collaborators?: unknown;
+  };
   return rest;
 }
 
-function nodesSelect() {
-  return sql`
-    SELECT
-      nodes.id AS id,
-      nodes.user_id AS "userId",
-      nodes.type AS type,
-      nodes.title AS title,
-      nodes.content AS content,
-      nodes.excerpt AS excerpt,
-      nodes.color AS color,
-      nodes.created_at AS "createdAt",
-      nodes.updated_at AS "updatedAt"
-    FROM nodes
-  `;
+function compareTagFirst(left: Node, right: Node) {
+  if (left.type === right.type) return 0;
+  if (left.type === "tag") return -1;
+  if (right.type === "tag") return 1;
+  return 0;
 }
 
-function edgesSelect() {
-  return sql`
-    SELECT
-      edges.id AS id,
-      edges.user_id AS "userId",
-      edges.source_id AS "sourceId",
-      edges.target_id AS "targetId",
-      edges.type AS type,
-      edges.created_at AS "createdAt"
-    FROM edges
-  `;
+function compareTitle(left: Node, right: Node) {
+  return left.title.toLowerCase().localeCompare(right.title.toLowerCase());
+}
+
+function compareUpdatedDesc(left: Node, right: Node) {
+  return right.updatedAt.getTime() - left.updatedAt.getTime();
 }
 
 export function useTagChildren(tagId: string): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    JOIN edges e ON nodes.id = e.source_id
-    WHERE nodes.user_id = ${userId}
-      AND e.user_id = ${userId}
-      AND e.target_id = ${tagId}
-      AND (
-        (e.type = 'part_of' AND nodes.type = 'tag')
-        OR (e.type = 'tagged_with' AND nodes.type IN ('note', 'canvas'))
-      )
-    ORDER BY
-      CASE nodes.type WHEN 'tag' THEN 0 ELSE 1 END,
-      LOWER(nodes.title) ASC
-  `;
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
+          eq(nodes.id, edges.sourceId),
+        )
+        .where(({ nodes, edges }) =>
+          and(
+            eq(nodes.userId, userId),
+            eq(edges.userId, userId),
+            eq(edges.targetId, tagId),
+            or(
+              and(eq(edges.type, "part_of"), eq(nodes.type, "tag")),
+              and(
+                eq(edges.type, "tagged_with"),
+                or(eq(nodes.type, "note"), eq(nodes.type, "canvas")),
+              ),
+            ),
+          ),
+        )
+        .select(({ nodes }) => ({ ...nodes })),
+    [tagId, userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
+  const sortedChildren = [...data].sort((left, right) => {
+    const typeOrder = compareTagFirst(left, right);
+    if (typeOrder !== 0) return typeOrder;
+    return compareTitle(left, right);
+  });
 
-  return result?.rows ?? [];
+  return sortedChildren;
 }
 
 export function useNodeById(nodeId: string): Node | null {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    WHERE id = ${nodeId} AND nodes.user_id = ${userId}
-    LIMIT 1
-  `;
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.id, nodeId), eq(nodes.userId, userId)),
+        ),
+    [nodeId, userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows[0] ?? null;
+  return data[0] ?? null;
 }
 
 export function useNodeEdges(nodeId: string): {
@@ -120,186 +125,224 @@ export function useNodeEdges(nodeId: string): {
   incoming: Edge[];
 } {
   const userId = useCurrentUserId();
-  const outgoingQuery = sql`
-    ${edgesSelect()}
-    WHERE edges.source_id = ${nodeId} AND edges.user_id = ${userId}
-  `;
-  const incomingQuery = sql`
-    ${edgesSelect()}
-    WHERE edges.target_id = ${nodeId} AND edges.user_id = ${userId}
-  `;
-
-  const outgoingCompiled = sqlToQuery(outgoingQuery);
-  const incomingCompiled = sqlToQuery(incomingQuery);
-
-  const outgoing = useLiveQuery<Edge>(outgoingCompiled.sql, outgoingCompiled.params);
-  const incoming = useLiveQuery<Edge>(incomingCompiled.sql, incomingCompiled.params);
+  const outgoing = useLiveQuery(
+    (q) =>
+      q
+        .from({ edges: edgesCollection })
+        .where(({ edges }) =>
+          and(eq(edges.sourceId, nodeId), eq(edges.userId, userId)),
+        ),
+    [nodeId, userId],
+  );
+  const incoming = useLiveQuery(
+    (q) =>
+      q
+        .from({ edges: edgesCollection })
+        .where(({ edges }) =>
+          and(eq(edges.targetId, nodeId), eq(edges.userId, userId)),
+        ),
+    [nodeId, userId],
+  );
 
   return {
-    outgoing: outgoing?.rows ?? [],
-    incoming: incoming?.rows ?? [],
+    outgoing: outgoing.data ?? [],
+    incoming: incoming.data ?? [],
   };
 }
 
 export function useGraphData(): { nodes: Node[]; edges: Edge[] } {
   const userId = useCurrentUserId();
-  const nodesQuery = sql`
-    ${nodesSelect()}
-    WHERE nodes.user_id = ${userId}
-  `;
-  const edgesQuery = sql`
-    ${edgesSelect()}
-    WHERE edges.user_id = ${userId}
-  `;
-
-  const nodesCompiled = sqlToQuery(nodesQuery);
-  const edgesCompiled = sqlToQuery(edgesQuery);
-
-  const nodesResult = useLiveQuery<Node>(nodesCompiled.sql, nodesCompiled.params);
-  const edgesResult = useLiveQuery<Edge>(edgesCompiled.sql, edgesCompiled.params);
+  const nodesResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) => eq(nodes.userId, userId)),
+    [userId],
+  );
+  const edgesResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ edges: edgesCollection })
+        .where(({ edges }) => eq(edges.userId, userId)),
+    [userId],
+  );
 
   return {
-    nodes: nodesResult?.rows ?? [],
-    edges: edgesResult?.rows ?? [],
+    nodes: nodesResult.data ?? [],
+    edges: edgesResult.data ?? [],
   };
 }
 
 export function useSearchNodes(queryText: string): Node[] {
   const userId = useCurrentUserId();
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) => eq(nodes.userId, userId)),
+    [userId],
+  );
+
   const trimmed = queryText.trim();
-  const query = trimmed
-    ? sql`
-        ${nodesSelect()}
-        WHERE nodes.user_id = ${userId}
-          AND (
-            title ILIKE ${"%" + trimmed + "%"}
-            OR content ILIKE ${"%" + trimmed + "%"}
-          )
-        ORDER BY updated_at DESC
-        LIMIT 20
-      `
-    : sql`
-        ${nodesSelect()}
-        WHERE 1 = 0
-      `;
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
+  if (!trimmed) return [];
+  const query = trimmed.toLowerCase();
+  return data
+    .filter((node) => {
+      const title = node.title.toLowerCase();
+      const content = (node.content ?? "").toLowerCase();
+      return title.includes(query) || content.includes(query);
+    })
+    .sort(compareUpdatedDesc)
+    .slice(0, 20);
 }
 
 export function useRecentNotes(limit = 10): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    WHERE nodes.user_id = ${userId} AND nodes.type = 'note'
-    ORDER BY updated_at DESC
-    LIMIT ${limit}
-  `;
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
+        ),
+    [userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
+  return [...data].sort(compareUpdatedDesc).slice(0, limit);
 }
 
 export function useBacklinks(noteId: string): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    JOIN edges e ON nodes.id = e.source_id
-    WHERE e.target_id = ${noteId}
-      AND e.type = 'references'
-      AND e.user_id = ${userId}
-      AND nodes.user_id = ${userId}
-    ORDER BY nodes.updated_at DESC
-  `;
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
+          eq(nodes.id, edges.sourceId),
+        )
+        .where(({ nodes, edges }) =>
+          and(
+            eq(edges.type, "references"),
+            eq(edges.targetId, noteId),
+            eq(edges.userId, userId),
+            eq(nodes.userId, userId),
+          ),
+        )
+        .select(({ nodes }) => ({ ...nodes })),
+    [noteId, userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
+  return [...data].sort(compareUpdatedDesc);
 }
 
 export function useTags(): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    WHERE nodes.user_id = ${userId} AND nodes.type = 'tag'
-    ORDER BY LOWER(title) ASC
-  `;
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.userId, userId), eq(nodes.type, "tag")),
+        ),
+    [userId],
+  );
 
-  return result?.rows ?? [];
+  return [...data].sort(compareTitle);
 }
 
 export function useTemplates(): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    WHERE nodes.user_id = ${userId} AND nodes.type = 'template'
-    ORDER BY LOWER(title) ASC
-  `;
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.userId, userId), eq(nodes.type, "template")),
+        ),
+    [userId],
+  );
 
-  return result?.rows ?? [];
+  return [...data].sort(compareTitle);
 }
 
 export function useNoteTags(nodeId: string): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    JOIN edges e ON nodes.id = e.target_id
-    WHERE e.source_id = ${nodeId}
-      AND e.type = 'tagged_with'
-      AND nodes.type = 'tag'
-      AND e.user_id = ${userId}
-      AND nodes.user_id = ${userId}
-    ORDER BY LOWER(nodes.title) ASC
-  `;
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
+          eq(nodes.id, edges.targetId),
+        )
+        .where(({ nodes, edges }) =>
+          and(
+            eq(edges.sourceId, nodeId),
+            eq(edges.type, "tagged_with"),
+            eq(edges.userId, userId),
+            eq(nodes.userId, userId),
+            eq(nodes.type, "tag"),
+          ),
+        )
+        .select(({ nodes }) => ({ ...nodes })),
+    [nodeId, userId],
+  );
 
-  return result?.rows ?? [];
+  return [...data].sort(compareTitle);
 }
 
 export function usePinnedNotes(): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    JOIN user_node_prefs p ON nodes.id = p.node_id
-    WHERE nodes.user_id = ${userId}
-      AND p.user_id = ${userId}
-      AND nodes.type = 'note'
-      AND p.pinned_rank IS NOT NULL
-    ORDER BY p.pinned_rank ASC
-  `;
+  const prefsResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ prefs: userNodePrefsCollection })
+        .where(({ prefs }) => eq(prefs.userId, userId)),
+    [userId],
+  );
+  const nodesResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
+        ),
+    [userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
+  const prefs = (prefsResult.data ?? []).filter((pref) => pref.pinnedRank !== null);
+  const nodesById = new Map((nodesResult.data ?? []).map((node) => [node.id, node]));
+  return prefs
+    .sort((left, right) => (left.pinnedRank ?? 0) - (right.pinnedRank ?? 0))
+    .map((pref) => nodesById.get(pref.nodeId))
+    .filter((node): node is Node => Boolean(node));
 }
 
 export function useFavoriteNotes(): Node[] {
   const userId = useCurrentUserId();
-  const query = sql`
-    ${nodesSelect()}
-    JOIN user_node_prefs p ON nodes.id = p.node_id
-    WHERE nodes.user_id = ${userId}
-      AND p.user_id = ${userId}
-      AND nodes.type = 'note'
-      AND p.is_favorite = true
-    ORDER BY nodes.updated_at DESC
-  `;
+  const prefsResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ prefs: userNodePrefsCollection })
+        .where(({ prefs }) => eq(prefs.userId, userId)),
+    [userId],
+  );
+  const nodesResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) =>
+          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
+        ),
+    [userId],
+  );
 
-  const { sql: sqlString, params } = sqlToQuery(query);
-  const result = useLiveQuery<Node>(sqlString, params);
-
-  return result?.rows ?? [];
+  const prefs = (prefsResult.data ?? []).filter((pref) => pref.isFavorite);
+  const nodesById = new Map((nodesResult.data ?? []).map((node) => [node.id, node]));
+  return prefs
+    .map((pref) => nodesById.get(pref.nodeId))
+    .filter((node): node is Node => Boolean(node))
+    .sort(compareUpdatedDesc);
 }
 
 export function useNodePreferences(nodeId: string): {
@@ -307,15 +350,20 @@ export function useNodePreferences(nodeId: string): {
   pinnedRank: number | null;
 } {
   const userId = useCurrentUserId();
-  const result = useLiveQuery<{ is_favorite: boolean; pinned_rank: number | null }>(
-    "SELECT is_favorite, pinned_rank FROM user_node_prefs WHERE user_id = $1 AND node_id = $2 LIMIT 1",
-    [userId, nodeId],
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ prefs: userNodePrefsCollection })
+        .where(({ prefs }) =>
+          and(eq(prefs.userId, userId), eq(prefs.nodeId, nodeId)),
+        ),
+    [nodeId, userId],
   );
 
-  const row = result?.rows[0];
+  const row = data[0];
   return {
-    isFavorite: row?.is_favorite ?? false,
-    pinnedRank: row?.pinned_rank ?? null,
+    isFavorite: row?.isFavorite ?? false,
+    pinnedRank: row?.pinnedRank ?? null,
   };
 }
 
@@ -328,55 +376,62 @@ export function useNoteVersions(noteId: string): Array<{
   reason: string | null;
 }> {
   const userId = useCurrentUserId();
-  const result = useLiveQuery<{
-    id: string;
-    title: string;
-    content: string;
-    content_hash: string;
-    created_at: string | Date;
-    reason: string | null;
-  }>(
-    `SELECT id, title, content, content_hash, created_at, reason
-     FROM node_versions
-     WHERE user_id = $1 AND node_id = $2
-     ORDER BY created_at DESC`,
-    [userId, noteId],
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ versions: nodeVersionsCollection })
+        .where(({ versions }) =>
+          and(eq(versions.userId, userId), eq(versions.nodeId, noteId)),
+        ),
+    [noteId, userId],
   );
 
-  return (
-    result?.rows.map((row) => ({
+  return [...data]
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+    .map((row) => ({
       id: row.id,
       title: row.title,
       content: row.content,
-      contentHash: row.content_hash,
-      createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
+      contentHash: row.contentHash,
+      createdAt: row.createdAt,
       reason: row.reason ?? null,
-    })) ?? []
-  );
+    }));
 }
 
 export function useVersionMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const createNoteVersion = useCallback(
-    async (noteId: string, title: string, content: string, reason?: string) => {
-      const hash = hashContent(`${title}\n${content}`);
-      const existing = await db.query<{ id: string }>(
-        "SELECT id FROM node_versions WHERE user_id = $1 AND node_id = $2 AND content_hash = $3 LIMIT 1",
-        [userId, noteId, hash],
-      );
-      if (existing.rows.length > 0) return false;
+  const createNoteVersion = async (
+    noteId: string,
+    title: string,
+    content: string,
+    reason?: string,
+  ) => {
+    const hash = hashContent(`${title}\n${content}`);
+    const state = await nodeVersionsCollection.stateWhenReady();
+    const existing = Array.from(state.values()).some(
+      (version) =>
+        version.userId === userId &&
+        version.nodeId === noteId &&
+        version.contentHash === hash,
+    );
+    if (existing) return false;
 
-      await db.query(
-        `INSERT INTO node_versions (id, user_id, node_id, title, content, content_hash, created_at, created_by, reason)
-         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8)`,
-        [ulid(), userId, noteId, title, content, hash, userId, reason ?? null],
-      );
-      return true;
-    },
-    [db, userId],
-  );
+    const now = new Date();
+    const tx = nodeVersionsCollection.insert({
+      id: ulid(),
+      userId,
+      nodeId: noteId,
+      title,
+      content,
+      contentHash: hash,
+      createdAt: now,
+      createdBy: userId,
+      reason: reason ?? null,
+    });
+    await tx.isPersisted.promise;
+    return true;
+  };
 
   return { createNoteVersion };
 }
@@ -393,443 +448,482 @@ export type TaskItem = {
 export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
   const userId = useCurrentUserId();
   const { showDone = true } = options;
-  const result = useLiveQuery<{
-    id: string;
-    note_id: string;
-    content: string;
-    is_done: boolean;
-    position: number | null;
-    note_title: string;
-  }>(
-    `SELECT
-       tasks.id,
-       tasks.note_id,
-       tasks.content,
-       tasks.is_done,
-       tasks.position,
-       nodes.title AS note_title
-     FROM tasks
-     JOIN nodes ON nodes.id = tasks.note_id
-     WHERE tasks.user_id = $1 AND nodes.user_id = $2
-       ${showDone ? "" : "AND tasks.is_done = false"}
-     ORDER BY tasks.is_done ASC, tasks.due_at ASC NULLS LAST, tasks.position ASC`,
-    [userId, userId],
+  const tasksResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ tasks: tasksCollection })
+        .where(({ tasks }) => eq(tasks.userId, userId)),
+    [userId],
+  );
+  const nodesResult = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) => eq(nodes.userId, userId)),
+    [userId],
   );
 
-  return (
-    result?.rows.map((row) => ({
-      id: row.id,
-      noteId: row.note_id,
-      content: row.content,
-      isDone: row.is_done,
-      position: row.position,
-      noteTitle: row.note_title,
-    })) ?? []
-  );
+  const tasksData = tasksResult.data ?? [];
+  const nodesData = nodesResult.data ?? [];
+  const nodesById = new Map(nodesData.map((node) => [node.id, node]));
+
+  return tasksData
+    .filter((task) => (showDone ? true : !task.isDone))
+    .map((task) => ({
+      id: task.id,
+      noteId: task.noteId,
+      content: task.content,
+      isDone: task.isDone,
+      position: task.position ?? null,
+      noteTitle: nodesById.get(task.noteId)?.title ?? "",
+    }))
+    .sort((left, right) => {
+      if (left.isDone !== right.isDone) {
+        return left.isDone ? 1 : -1;
+      }
+      const leftDue = left.isDone ? null : (tasksData.find((t) => t.id === left.id)?.dueAt ?? null);
+      const rightDue = right.isDone ? null : (tasksData.find((t) => t.id === right.id)?.dueAt ?? null);
+      const leftDueValue = leftDue ? leftDue.getTime() : Number.POSITIVE_INFINITY;
+      const rightDueValue = rightDue ? rightDue.getTime() : Number.POSITIVE_INFINITY;
+      if (leftDueValue !== rightDueValue) {
+        return leftDueValue - rightDueValue;
+      }
+      return (left.position ?? 0) - (right.position ?? 0);
+    });
 }
 
 export function useTaskMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const toggleTask = useCallback(
-    async (taskId: string, nextDone?: boolean) => {
-      const taskResult = await db.query<{
-        id: string;
-        note_id: string;
-        position: number | null;
-        is_done: boolean;
-      }>("SELECT id, note_id, position, is_done FROM tasks WHERE id = $1 AND user_id = $2", [
-        taskId,
-        userId,
-      ]);
-      const task = taskResult.rows[0];
-      if (!task) return;
+  const toggleTask = async (taskId: string, nextDone?: boolean) => {
+    const tasksState = await tasksCollection.stateWhenReady();
+    const task = tasksState.get(taskId);
+    if (!task || task.userId !== userId) return;
 
-      const noteResult = await db.query<{ content: string | null }>(
-        "SELECT content FROM nodes WHERE id = $1 AND user_id = $2",
-        [task.note_id, userId],
-      );
-      const content = noteResult.rows[0]?.content ?? "";
-      const lines = content.split(/\r?\n/);
-      const index = task.position ?? -1;
-      if (index < 0 || index >= lines.length) return;
+    const nodesState = await nodesCollection.stateWhenReady();
+    const note = nodesState.get(task.noteId);
+    if (!note) return;
 
-      const desiredDone = nextDone ?? !task.is_done;
-      const line = lines[index] ?? "";
-      const updatedLine = line.replace(/\[[ xX]\]/, desiredDone ? "[x]" : "[ ]");
-      lines[index] = updatedLine;
-      const nextContent = lines.join("\n");
+    const content = note.content ?? "";
+    const lines = content.split(/\r?\n/);
+    const index = task.position ?? -1;
+    if (index < 0 || index >= lines.length) return;
 
-      await db.query(
-        `UPDATE nodes
-         SET content = $1,
-             excerpt = $2,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $3 AND user_id = $4`,
-        [nextContent, buildNoteExcerpt(nextContent), task.note_id, userId],
-      );
+    const desiredDone = nextDone ?? !task.isDone;
+    const line = lines[index] ?? "";
+    const updatedLine = line.replace(/\[[ xX]\]/, desiredDone ? "[x]" : "[ ]");
+    lines[index] = updatedLine;
+    const nextContent = lines.join("\n");
+    const now = new Date();
 
-      await db.query(
-        `UPDATE tasks
-         SET is_done = $1,
-             checked_at = CASE WHEN $1 THEN CURRENT_TIMESTAMP ELSE NULL END,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $2 AND user_id = $3`,
-        [desiredDone, taskId, userId],
-      );
-    },
-    [db, userId],
-  );
+    const noteTx = nodesCollection.update(note.id, (draft) => {
+      draft.content = nextContent;
+      draft.excerpt = buildNoteExcerpt(nextContent);
+      draft.updatedAt = now;
+    });
+
+    const taskTx = tasksCollection.update(taskId, (draft) => {
+      draft.isDone = desiredDone;
+      draft.checkedAt = desiredDone ? now : null;
+      draft.updatedAt = now;
+    });
+
+    await Promise.all([noteTx.isPersisted.promise, taskTx.isPersisted.promise]);
+  };
 
   return { toggleTask };
 }
 
 export function usePreferenceMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const setFavorite = useCallback(
-    async (nodeId: string, isFavorite: boolean) => {
-      await db.query(
-        `INSERT INTO user_node_prefs (id, user_id, node_id, is_favorite, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, node_id) DO UPDATE
-         SET is_favorite = EXCLUDED.is_favorite,
-             updated_at = CURRENT_TIMESTAMP`,
-        [ulid(), userId, nodeId, isFavorite],
-      );
-    },
-    [db, userId],
-  );
+  const setFavorite = async (nodeId: string, isFavorite: boolean) => {
+    const now = new Date();
+    const state = await userNodePrefsCollection.stateWhenReady();
+    const existing = Array.from(state.values()).find(
+      (pref) => pref.userId === userId && pref.nodeId === nodeId,
+    );
 
-  const pinNode = useCallback(
-    async (nodeId: string) => {
-      const result = await db.query<{ next_rank: number }>(
-        "SELECT COALESCE(MAX(pinned_rank), 0) + 1 AS next_rank FROM user_node_prefs WHERE user_id = $1",
-        [userId],
-      );
-      const nextRank = result.rows[0]?.next_rank ?? 1;
-      await db.query(
-        `INSERT INTO user_node_prefs (id, user_id, node_id, pinned_rank, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, node_id) DO UPDATE
-         SET pinned_rank = EXCLUDED.pinned_rank,
-             updated_at = CURRENT_TIMESTAMP`,
-        [ulid(), userId, nodeId, nextRank],
-      );
-    },
-    [db, userId],
-  );
+    const tx = existing
+      ? userNodePrefsCollection.update(existing.id, (draft) => {
+          draft.isFavorite = isFavorite;
+          draft.updatedAt = now;
+        })
+      : userNodePrefsCollection.insert({
+          id: ulid(),
+          userId,
+          nodeId,
+          isFavorite,
+          pinnedRank: null,
+          createdAt: now,
+          updatedAt: now,
+        });
 
-  const unpinNode = useCallback(
-    async (nodeId: string) => {
-      await db.query(
-        "UPDATE user_node_prefs SET pinned_rank = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND node_id = $2",
-        [userId, nodeId],
-      );
-    },
-    [db, userId],
-  );
+    await tx.isPersisted.promise;
+  };
+
+  const pinNode = async (nodeId: string) => {
+    const now = new Date();
+    const state = await userNodePrefsCollection.stateWhenReady();
+    const prefs = Array.from(state.values()).filter((pref) => pref.userId === userId);
+    const existing = prefs.find((pref) => pref.nodeId === nodeId);
+    const maxRank = prefs.reduce((max, pref) => Math.max(max, pref.pinnedRank ?? 0), 0);
+    const nextRank = maxRank + 1;
+
+    const tx = existing
+      ? userNodePrefsCollection.update(existing.id, (draft) => {
+          draft.pinnedRank = nextRank;
+          draft.updatedAt = now;
+        })
+      : userNodePrefsCollection.insert({
+          id: ulid(),
+          userId,
+          nodeId,
+          isFavorite: false,
+          pinnedRank: nextRank,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+    await tx.isPersisted.promise;
+  };
+
+  const unpinNode = async (nodeId: string) => {
+    const now = new Date();
+    const state = await userNodePrefsCollection.stateWhenReady();
+    const existing = Array.from(state.values()).find(
+      (pref) => pref.userId === userId && pref.nodeId === nodeId,
+    );
+    if (!existing) return;
+
+    const tx = userNodePrefsCollection.update(existing.id, (draft) => {
+      draft.pinnedRank = null;
+      draft.updatedAt = now;
+    });
+
+    await tx.isPersisted.promise;
+  };
 
   return { setFavorite, pinNode, unpinNode };
 }
 
 export function useNodeMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const createNote = useCallback(
-    async (title: string, tagId?: string) => {
-      const id = ulid();
-      const content = `# ${title}\n\n`;
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, user_id, type, title, content, created_at, updated_at)
-         VALUES ($1, $2, 'note', $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [id, userId, title, content],
-      );
-      const node = result.rows[0];
-      if (tagId) {
-        await db.query(
-          `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-           VALUES ($1, $2, $3, $4, 'tagged_with', CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-          [ulid(), userId, node.id, tagId],
-        );
-      }
-      return node;
-    },
-    [db, userId],
-  );
+  const ensureEdge = async (sourceId: string, targetId: string, type: EdgeType) => {
+    const state = await edgesCollection.stateWhenReady();
+    const exists = Array.from(state.values()).some(
+      (edge) =>
+        edge.userId === userId &&
+        edge.sourceId === sourceId &&
+        edge.targetId === targetId &&
+        edge.type === type,
+    );
 
-  const createTag = useCallback(
-    async (title: string, parentTagId: string) => {
-      const id = ulid();
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, user_id, type, title, created_at, updated_at)
-         VALUES ($1, $2, 'tag', $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [id, userId, title],
-      );
-      const node = result.rows[0];
-      await db.query(
-        `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, $4, 'part_of', CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-        [ulid(), userId, node.id, parentTagId],
-      );
-      return node;
-    },
-    [db, userId],
-  );
+    if (exists) return;
 
-  const createTemplate = useCallback(
-    async (title: string) => {
-      const id = ulid();
-      const content = `# ${title}\n\n`;
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, user_id, type, title, content, created_at, updated_at)
-         VALUES ($1, $2, 'template', $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [id, userId, title, content],
-      );
-      return result.rows[0];
-    },
-    [db, userId],
-  );
+    const tx = edgesCollection.insert({
+      id: ulid(),
+      userId,
+      sourceId,
+      targetId,
+      type,
+      createdAt: new Date(),
+    });
+    await tx.isPersisted.promise;
+  };
 
-  const createCanvas = useCallback(
-    async (title: string, tagId?: string) => {
-      const id = ulid();
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, user_id, type, title, created_at, updated_at)
-         VALUES ($1, $2, 'canvas', $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [id, userId, title],
-      );
+  const createNote = async (title: string, tagId?: string) => {
+    const id = ulid();
+    const content = `# ${title}\n\n`;
+    const now = new Date();
+    const node: Node = {
+      id,
+      userId,
+      type: "note",
+      title,
+      content,
+      excerpt: buildNoteExcerpt(content),
+      color: null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      await db.query(
-        `INSERT INTO canvas_scenes (canvas_id, user_id, elements_json, app_state_json, files_json, created_at, updated_at)
-         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (canvas_id) DO NOTHING`,
-        [id, userId, JSON.stringify([]), JSON.stringify({}), JSON.stringify({})],
-      );
+    const tx = nodesCollection.insert(node);
+    await tx.isPersisted.promise;
 
-      if (tagId) {
-        await db.query(
-          `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-           VALUES ($1, $2, $3, $4, 'tagged_with', CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-          [ulid(), userId, id, tagId],
-        );
-      }
+    if (tagId) {
+      await ensureEdge(id, tagId, "tagged_with");
+    }
 
-      return result.rows[0];
-    },
-    [db, userId],
-  );
+    return node;
+  };
 
-  const createNoteFromTemplate = useCallback(
-    async (templateId: string, noteTitle?: string, tagId?: string) => {
-      const templateResult = await db.query<Node>(
-        `SELECT
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"
-         FROM nodes
-         WHERE id = $1 AND user_id = $2 AND type = 'template'
-         LIMIT 1`,
-        [templateId, userId],
-      );
+  const createTag = async (title: string, parentTagId: string) => {
+    const id = ulid();
+    const now = new Date();
+    const node: Node = {
+      id,
+      userId,
+      type: "tag",
+      title,
+      content: null,
+      excerpt: null,
+      color: null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      const template = templateResult.rows[0];
-      if (!template) return null;
+    const tx = nodesCollection.insert(node);
+    await tx.isPersisted.promise;
 
-      const title = noteTitle?.trim() || template.title;
-      const baseContent = template.content ?? `# ${title}\n\n`;
-      const content = applyTemplatePlaceholders(baseContent, title);
-      const excerpt = buildNoteExcerpt(content);
+    await ensureEdge(id, parentTagId, "part_of");
 
-      const noteId = ulid();
-      const result = await db.query<Node>(
-        `INSERT INTO nodes (id, user_id, type, title, content, excerpt, created_at, updated_at)
-         VALUES ($1, $2, 'note', $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           type,
-           title,
-           content,
-           excerpt,
-           color,
-           created_at AS "createdAt",
-           updated_at AS "updatedAt"`,
-        [noteId, userId, title, content, excerpt],
-      );
+    return node;
+  };
 
-      const note = result.rows[0];
+  const createTemplate = async (title: string) => {
+    const id = ulid();
+    const content = `# ${title}\n\n`;
+    const now = new Date();
+    const node: Node = {
+      id,
+      userId,
+      type: "template",
+      title,
+      content,
+      excerpt: buildNoteExcerpt(content),
+      color: null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      await db.query(
-        `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, $4, 'derived_from', CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-        [ulid(), userId, noteId, templateId],
-      );
+    const tx = nodesCollection.insert(node);
+    await tx.isPersisted.promise;
 
-      if (tagId) {
-        await db.query(
-          `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-           VALUES ($1, $2, $3, $4, 'tagged_with', CURRENT_TIMESTAMP)
-           ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-          [ulid(), userId, noteId, tagId],
-        );
-      }
+    return node;
+  };
 
-      await db.query(
-        `INSERT INTO templates_meta (node_id, user_id, last_used_at)
-         VALUES ($1, $2, CURRENT_TIMESTAMP)
-         ON CONFLICT (node_id) DO UPDATE
-         SET last_used_at = EXCLUDED.last_used_at`,
-        [templateId, userId],
-      );
+  const createCanvas = async (title: string, tagId?: string) => {
+    const id = ulid();
+    const now = new Date();
+    const node: Node = {
+      id,
+      userId,
+      type: "canvas",
+      title,
+      content: null,
+      excerpt: null,
+      color: null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      return note;
-    },
-    [db, userId],
-  );
+    const nodeTx = nodesCollection.insert(node);
+    await nodeTx.isPersisted.promise;
 
-  const updateNode = useCallback(
-    async (id: string, updates: Partial<Node>) => {
-      const fields: string[] = [];
-      const values: unknown[] = [];
+    const sceneTx = canvasScenesCollection.insert({
+      canvasId: id,
+      userId,
+      elementsJson: [],
+      appStateJson: {},
+      filesJson: {},
+      createdAt: now,
+      updatedAt: now,
+    });
+    await sceneTx.isPersisted.promise;
 
+    if (tagId) {
+      await ensureEdge(id, tagId, "tagged_with");
+    }
+
+    return node;
+  };
+
+  const createNoteFromTemplate = async (
+    templateId: string,
+    noteTitle?: string,
+    tagId?: string,
+  ) => {
+    const nodesState = await nodesCollection.stateWhenReady();
+    const template = nodesState.get(templateId);
+    if (!template || template.userId !== userId || template.type !== "template") {
+      return null;
+    }
+
+    const title = noteTitle?.trim() || template.title;
+    const baseContent = template.content ?? `# ${title}\n\n`;
+    const content = applyTemplatePlaceholders(baseContent, title);
+    const excerpt = buildNoteExcerpt(content);
+    const now = new Date();
+    const noteId = ulid();
+    const node: Node = {
+      id: noteId,
+      userId,
+      type: "note",
+      title,
+      content,
+      excerpt,
+      color: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const nodeTx = nodesCollection.insert(node);
+    await nodeTx.isPersisted.promise;
+
+    await ensureEdge(noteId, templateId, "derived_from");
+    if (tagId) {
+      await ensureEdge(noteId, tagId, "tagged_with");
+    }
+
+    const metaState = await templatesMetaCollection.stateWhenReady();
+    const existingMeta = metaState.get(templateId);
+    const metaTx = existingMeta
+      ? templatesMetaCollection.update(templateId, (draft) => {
+          draft.lastUsedAt = now;
+        })
+      : templatesMetaCollection.insert({
+          nodeId: templateId,
+          userId,
+          defaultTags: null,
+          lastUsedAt: now,
+          fields: null,
+        });
+    await metaTx.isPersisted.promise;
+
+    return node;
+  };
+
+  const updateNode = async (id: string, updates: Partial<Node>) => {
+    const shouldUpdateUpdatedAt = updates.updatedAt === undefined;
+    const hasChanges =
+      updates.title !== undefined ||
+      updates.content !== undefined ||
+      updates.excerpt !== undefined ||
+      updates.color !== undefined ||
+      updates.type !== undefined ||
+      updates.updatedAt !== undefined;
+
+    if (!hasChanges) return;
+
+    const tx = nodesCollection.update(id, (draft) => {
       if (updates.title !== undefined) {
-        fields.push(`title = $${values.length + 1}`);
-        values.push(updates.title);
+        draft.title = updates.title;
       }
       if (updates.content !== undefined) {
-        fields.push(`content = $${values.length + 1}`);
-        values.push(updates.content);
+        draft.content = updates.content;
       }
       if (updates.excerpt !== undefined) {
-        fields.push(`excerpt = $${values.length + 1}`);
-        values.push(updates.excerpt);
+        draft.excerpt = updates.excerpt;
       }
       if (updates.color !== undefined) {
-        fields.push(`color = $${values.length + 1}`);
-        values.push(updates.color);
+        draft.color = updates.color;
       }
       if (updates.type !== undefined) {
-        fields.push(`type = $${values.length + 1}`);
-        values.push(updates.type);
+        draft.type = updates.type;
+      }
+      if (shouldUpdateUpdatedAt) {
+        draft.updatedAt = new Date();
+      } else if (updates.updatedAt !== undefined) {
+        draft.updatedAt = updates.updatedAt;
+      }
+    });
+
+    await tx.isPersisted.promise;
+  };
+
+  const deleteNode = async (id: string) => {
+    const edgesState = await edgesCollection.stateWhenReady();
+    const edgesToDelete = Array.from(edgesState.values())
+      .filter((edge) => edge.sourceId === id || edge.targetId === id)
+      .map((edge) => edge.id);
+
+    if (edgesToDelete.length > 0) {
+      const edgeMetaState = await edgeMetadataCollection.stateWhenReady();
+      const edgeMetaIds = Array.from(edgeMetaState.values())
+        .filter((meta) => edgesToDelete.includes(meta.edgeId))
+        .map((meta) => meta.edgeId);
+
+      if (edgeMetaIds.length > 0) {
+        const metaTx = edgeMetadataCollection.delete(edgeMetaIds);
+        await metaTx.isPersisted.promise;
       }
 
-      if (!fields.length && updates.updatedAt === undefined) {
-        return;
-      }
+      const edgesTx = edgesCollection.delete(edgesToDelete);
+      await edgesTx.isPersisted.promise;
+    }
 
-      if (updates.updatedAt === undefined) {
-        fields.push(`updated_at = CURRENT_TIMESTAMP`);
-      } else {
-        const updatedAtValue =
-          updates.updatedAt instanceof Date ? updates.updatedAt.toISOString() : updates.updatedAt;
-        fields.push(`updated_at = $${values.length + 1}`);
-        values.push(updatedAtValue);
-      }
+    const prefsState = await userNodePrefsCollection.stateWhenReady();
+    const prefsToDelete = Array.from(prefsState.values())
+      .filter((pref) => pref.nodeId === id)
+      .map((pref) => pref.id);
+    if (prefsToDelete.length > 0) {
+      const prefsTx = userNodePrefsCollection.delete(prefsToDelete);
+      await prefsTx.isPersisted.promise;
+    }
 
-      const sqlText = `UPDATE nodes SET ${fields.join(", ")} WHERE id = $${values.length + 1} AND user_id = $${values.length + 2}`;
-      await db.query(sqlText, [...values, id, userId]);
-    },
-    [db, userId],
-  );
+    const tasksState = await tasksCollection.stateWhenReady();
+    const tasksToDelete = Array.from(tasksState.values())
+      .filter((task) => task.noteId === id)
+      .map((task) => task.id);
+    if (tasksToDelete.length > 0) {
+      const tasksTx = tasksCollection.delete(tasksToDelete);
+      await tasksTx.isPersisted.promise;
+    }
 
-  const deleteNode = useCallback(
-    async (id: string) => {
-      await db.query("DELETE FROM nodes WHERE id = $1 AND user_id = $2", [id, userId]);
-    },
-    [db, userId],
-  );
+    const canvasScenesState = await canvasScenesCollection.stateWhenReady();
+    if (canvasScenesState.get(id)) {
+      const sceneTx = canvasScenesCollection.delete(id);
+      await sceneTx.isPersisted.promise;
+    }
 
-  const addTag = useCallback(
-    async (noteId: string, tagId: string) => {
-      await db.query(
-        `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, $4, 'tagged_with', CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-        [ulid(), userId, noteId, tagId],
-      );
-    },
-    [db, userId],
-  );
+    const canvasLinksState = await canvasLinksCollection.stateWhenReady();
+    const canvasLinksToDelete = Array.from(canvasLinksState.values())
+      .filter((link) => link.canvasId === id || link.nodeId === id)
+      .map((link) => link.id);
+    if (canvasLinksToDelete.length > 0) {
+      const linksTx = canvasLinksCollection.delete(canvasLinksToDelete);
+      await linksTx.isPersisted.promise;
+    }
 
-  const removeTag = useCallback(
-    async (noteId: string, tagId: string) => {
-      await db.query(
-        "DELETE FROM edges WHERE user_id = $1 AND source_id = $2 AND target_id = $3 AND type = 'tagged_with'",
-        [userId, noteId, tagId],
-      );
-    },
-    [db, userId],
-  );
+    const nodeTx = nodesCollection.delete(id);
+    await nodeTx.isPersisted.promise;
+  };
 
-  const moveTag = useCallback(
-    async (tagId: string, newParentTagId: string) => {
-      await db.query(
-        "DELETE FROM edges WHERE user_id = $1 AND source_id = $2 AND type = 'part_of'",
-        [userId, tagId],
-      );
-      await db.query(
-        `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, $4, 'part_of', CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id, source_id, target_id, type) DO NOTHING`,
-        [ulid(), userId, tagId, newParentTagId],
-      );
-    },
-    [db, userId],
-  );
+  const addTag = async (noteId: string, tagId: string) => {
+    await ensureEdge(noteId, tagId, "tagged_with");
+  };
+
+  const removeTag = async (noteId: string, tagId: string) => {
+    const state = await edgesCollection.stateWhenReady();
+    const edgesToDelete = Array.from(state.values())
+      .filter(
+        (edge) =>
+          edge.sourceId === noteId &&
+          edge.targetId === tagId &&
+          edge.type === "tagged_with",
+      )
+      .map((edge) => edge.id);
+    if (edgesToDelete.length === 0) return;
+
+    const tx = edgesCollection.delete(edgesToDelete);
+    await tx.isPersisted.promise;
+  };
+
+  const moveTag = async (tagId: string, newParentTagId: string) => {
+    const state = await edgesCollection.stateWhenReady();
+    const partOfEdges = Array.from(state.values())
+      .filter((edge) => edge.sourceId === tagId && edge.type === "part_of")
+      .map((edge) => edge.id);
+
+    if (partOfEdges.length > 0) {
+      const deleteTx = edgesCollection.delete(partOfEdges);
+      await deleteTx.isPersisted.promise;
+    }
+
+    await ensureEdge(tagId, newParentTagId, "part_of");
+  };
 
   return {
     createNote,
@@ -846,46 +940,52 @@ export function useNodeMutations() {
 }
 
 export function useEdgeMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const createEdge = useCallback(
-    async (sourceId: string, targetId: string, type: EdgeType) => {
-      const id = ulid();
-      const result = await db.query<Edge>(
-        `INSERT INTO edges (id, user_id, source_id, target_id, type, created_at)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-         RETURNING
-           id,
-           user_id AS "userId",
-           source_id AS "sourceId",
-           target_id AS "targetId",
-           type,
-           created_at AS "createdAt"`,
-        [id, userId, sourceId, targetId, type],
-      );
-      return result.rows[0];
-    },
-    [db, userId],
-  );
+  const createEdge = async (sourceId: string, targetId: string, type: EdgeType) => {
+    const state = await edgesCollection.stateWhenReady();
+    const exists = Array.from(state.values()).some(
+      (edge) =>
+        edge.userId === userId &&
+        edge.sourceId === sourceId &&
+        edge.targetId === targetId &&
+        edge.type === type,
+    );
+    if (exists) {
+      throw new Error("Edge already exists");
+    }
 
-  const deleteEdge = useCallback(
-    async (edgeId: string) => {
-      await db.query("DELETE FROM edges WHERE id = $1 AND user_id = $2", [edgeId, userId]);
-    },
-    [db, userId],
-  );
+    const edge: Edge = {
+      id: ulid(),
+      userId,
+      sourceId,
+      targetId,
+      type,
+      createdAt: new Date(),
+    };
 
-  const changeEdgeType = useCallback(
-    async (edgeId: string, newType: EdgeType) => {
-      await db.query("UPDATE edges SET type = $1 WHERE id = $2 AND user_id = $3", [
-        newType,
-        edgeId,
-        userId,
-      ]);
-    },
-    [db, userId],
-  );
+    const tx = edgesCollection.insert(edge);
+    await tx.isPersisted.promise;
+    return edge;
+  };
+
+  const deleteEdge = async (edgeId: string) => {
+    const metaState = await edgeMetadataCollection.stateWhenReady();
+    if (metaState.get(edgeId)) {
+      const metaTx = edgeMetadataCollection.delete(edgeId);
+      await metaTx.isPersisted.promise;
+    }
+
+    const tx = edgesCollection.delete(edgeId);
+    await tx.isPersisted.promise;
+  };
+
+  const changeEdgeType = async (edgeId: string, newType: EdgeType) => {
+    const tx = edgesCollection.update(edgeId, (draft) => {
+      draft.type = newType;
+    });
+    await tx.isPersisted.promise;
+  };
 
   return {
     createEdge,
@@ -909,127 +1009,137 @@ export type CanvasLink = {
 
 export function useCanvasScene(canvasId: string): CanvasScene | null {
   const userId = useCurrentUserId();
-  const result = useLiveQuery<{
-    elements_json: unknown;
-    app_state_json: unknown;
-    files_json: unknown;
-  }>(
-    `SELECT elements_json, app_state_json, files_json
-     FROM canvas_scenes
-     WHERE canvas_id = $1 AND user_id = $2
-     LIMIT 1`,
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ scenes: canvasScenesCollection })
+        .where(({ scenes }) =>
+          and(eq(scenes.canvasId, canvasId), eq(scenes.userId, userId)),
+        ),
     [canvasId, userId],
   );
 
-  const row = result?.rows[0];
+  const row = data[0];
   if (!row) return null;
 
   return {
-    elements: parseJson<ExcalidrawElement[]>(row.elements_json, []),
+    elements: parseJson<ExcalidrawElement[]>(row.elementsJson, []),
     appState: normalizeCanvasAppState(
-      parseJson<AppState>(row.app_state_json, {} as AppState),
+      parseJson<AppState>(row.appStateJson, {} as AppState),
     ),
-    files: parseJson<BinaryFiles>(row.files_json, {} as BinaryFiles),
+    files: parseJson<BinaryFiles>(row.filesJson, {} as BinaryFiles),
   };
 }
 
 export function useCanvasLinks(canvasId: string): CanvasLink[] {
   const userId = useCurrentUserId();
-  const result = useLiveQuery<{
-    id: string;
-    canvas_id: string;
-    element_id: string;
-    node_id: string;
-  }>(
-    `SELECT id, canvas_id, element_id, node_id
-     FROM canvas_links
-     WHERE canvas_id = $1 AND user_id = $2`,
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ links: canvasLinksCollection })
+        .where(({ links }) =>
+          and(eq(links.canvasId, canvasId), eq(links.userId, userId)),
+        ),
     [canvasId, userId],
   );
 
-  return (
-    result?.rows.map((row) => ({
-      id: row.id,
-      canvasId: row.canvas_id,
-      elementId: row.element_id,
-      nodeId: row.node_id,
-    })) ?? []
-  );
+  return data.map((row) => ({
+    id: row.id,
+    canvasId: row.canvasId,
+    elementId: row.elementId,
+    nodeId: row.nodeId,
+  }));
 }
 
 export function useCanvasMutations() {
-  const db = usePGlite();
   const userId = useCurrentUserId();
 
-  const upsertCanvasScene = useCallback(
-    async (canvasId: string, scene: CanvasScene) => {
-      const appStateForStorage = stripCanvasAppStateForStorage(scene.appState);
-      await db.query(
-        `INSERT INTO canvas_scenes (canvas_id, user_id, elements_json, app_state_json, files_json, created_at, updated_at)
-         VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (canvas_id) DO UPDATE
-         SET elements_json = EXCLUDED.elements_json,
-             app_state_json = EXCLUDED.app_state_json,
-             files_json = EXCLUDED.files_json,
-             updated_at = CURRENT_TIMESTAMP`,
-        [
-          canvasId,
-          userId,
-          JSON.stringify(scene.elements ?? []),
-          JSON.stringify(appStateForStorage),
-          JSON.stringify(scene.files ?? {}),
-        ],
-      );
-    },
-    [db, userId],
-  );
+  const upsertCanvasScene = async (canvasId: string, scene: CanvasScene) => {
+    const now = new Date();
+    const state = await canvasScenesCollection.stateWhenReady();
+    const existing = state.get(canvasId);
 
-  const setCanvasLink = useCallback(
-    async (canvasId: string, elementId: string, nodeId: string) => {
-      await db.query(
-        "DELETE FROM canvas_links WHERE user_id = $1 AND canvas_id = $2 AND element_id = $3",
-        [userId, canvasId, elementId],
-      );
-      await db.query(
-        `INSERT INTO canvas_links (id, user_id, canvas_id, element_id, node_id, created_at)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-        [ulid(), userId, canvasId, elementId, nodeId],
-      );
-    },
-    [db, userId],
-  );
+    const payload = {
+      canvasId,
+      userId,
+      elementsJson: scene.elements ?? [],
+      appStateJson: stripCanvasAppStateForStorage(scene.appState),
+      filesJson: scene.files ?? {},
+      updatedAt: now,
+    };
 
-  const removeCanvasLink = useCallback(
-    async (canvasId: string, elementId: string) => {
-      await db.query(
-        "DELETE FROM canvas_links WHERE user_id = $1 AND canvas_id = $2 AND element_id = $3",
-        [userId, canvasId, elementId],
-      );
-    },
-    [db, userId],
-  );
+    const tx = existing
+      ? canvasScenesCollection.update(canvasId, (draft) => {
+          draft.elementsJson = payload.elementsJson;
+          draft.appStateJson = payload.appStateJson;
+          draft.filesJson = payload.filesJson;
+          draft.updatedAt = now;
+        })
+      : canvasScenesCollection.insert({
+          ...payload,
+          createdAt: now,
+        });
 
-  const pruneCanvasLinks = useCallback(
-    async (canvasId: string, elementIds: string[]) => {
-      if (elementIds.length === 0) {
-        await db.query("DELETE FROM canvas_links WHERE user_id = $1 AND canvas_id = $2", [
-          userId,
-          canvasId,
-        ]);
-        return;
-      }
+    await tx.isPersisted.promise;
+  };
 
-      const placeholders = elementIds.map((_, index) => `$${index + 3}`).join(", ");
-      await db.query(
-        `DELETE FROM canvas_links
-         WHERE user_id = $1
-           AND canvas_id = $2
-           AND element_id NOT IN (${placeholders})`,
-        [userId, canvasId, ...elementIds],
-      );
-    },
-    [db, userId],
-  );
+  const setCanvasLink = async (canvasId: string, elementId: string, nodeId: string) => {
+    const state = await canvasLinksCollection.stateWhenReady();
+    const existingLinks = Array.from(state.values()).filter(
+      (link) =>
+        link.userId === userId &&
+        link.canvasId === canvasId &&
+        link.elementId === elementId,
+    );
+    if (existingLinks.length > 0) {
+      const tx = canvasLinksCollection.delete(existingLinks.map((link) => link.id));
+      await tx.isPersisted.promise;
+    }
 
-  return { upsertCanvasScene, setCanvasLink, removeCanvasLink, pruneCanvasLinks };
+    const now = new Date();
+    const insertTx = canvasLinksCollection.insert({
+      id: ulid(),
+      userId,
+      canvasId,
+      elementId,
+      nodeId,
+      createdAt: now,
+    });
+    await insertTx.isPersisted.promise;
+  };
+
+  const removeCanvasLink = async (canvasId: string, elementId: string) => {
+    const state = await canvasLinksCollection.stateWhenReady();
+    const toDelete = Array.from(state.values())
+      .filter(
+        (link) =>
+          link.userId === userId &&
+          link.canvasId === canvasId &&
+          link.elementId === elementId,
+      )
+      .map((link) => link.id);
+    if (toDelete.length === 0) return;
+
+    const tx = canvasLinksCollection.delete(toDelete);
+    await tx.isPersisted.promise;
+  };
+
+  const pruneCanvasLinks = async (canvasId: string, elementIds: string[]) => {
+    const state = await canvasLinksCollection.stateWhenReady();
+    const toDelete = Array.from(state.values())
+      .filter((link) => link.userId === userId && link.canvasId === canvasId)
+      .filter((link) => !elementIds.includes(link.elementId))
+      .map((link) => link.id);
+
+    if (toDelete.length === 0) return;
+    const tx = canvasLinksCollection.delete(toDelete);
+    await tx.isPersisted.promise;
+  };
+
+  return {
+    upsertCanvasScene,
+    setCanvasLink,
+    removeCanvasLink,
+    pruneCanvasLinks,
+  };
 }

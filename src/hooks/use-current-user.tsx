@@ -1,6 +1,19 @@
-import { usePGlite } from "@electric-sql/pglite-react";
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useUser } from "@/auth/use-user";
+import {
+  canvasLinksCollection,
+  canvasScenesCollection,
+  edgeMetadataCollection,
+  edgesCollection,
+  nodeVersionsCollection,
+  nodesCollection,
+  tasksCollection,
+  templatesMetaCollection,
+  todosCollection,
+  userNodePrefsCollection,
+  userSettingsCollection,
+  usersCollection,
+} from "@/lib/collections";
 
 export const DEFAULT_USER_ID = "local";
 export const ROOT_TAG_ID = "root";
@@ -27,77 +40,126 @@ function resolveUsername(user?: {
   return user?.id ?? DEFAULT_USER_ID;
 }
 
-async function migrateLocalUser(db: ReturnType<typeof usePGlite>, userId: string) {
-  const tables = [
-    "nodes",
-    "edges",
-    "edge_metadata",
-    "user_settings",
-    "user_node_prefs",
-    "templates_meta",
-    "node_versions",
-    "tasks",
-    "todos",
-    "canvas_scenes",
-    "canvas_links",
-  ];
+async function migrateLocalUser(userId: string) {
+  const now = new Date();
 
-  for (const table of tables) {
-    await db.query(`UPDATE ${table} SET user_id = $1 WHERE user_id = $2`, [
-      userId,
-      DEFAULT_USER_ID,
-    ]);
+  const updateUserId = async (collection: any, mutateDraft?: (draft: any) => void) => {
+    const state = await collection.stateWhenReady();
+    const entries = Array.from(state.entries()) as Array<[string, any]>;
+    const keys = entries
+      .filter(([, value]) => value.userId === DEFAULT_USER_ID)
+      .map(([key]) => String(key));
+
+    if (keys.length === 0) return;
+
+    const tx = collection.update(keys, (drafts: any[]) => {
+      drafts.forEach((draft) => {
+        draft.userId = userId;
+        mutateDraft?.(draft);
+      });
+    });
+
+    await tx.isPersisted.promise;
+  };
+
+  await updateUserId(nodesCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(edgesCollection);
+  await updateUserId(edgeMetadataCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(userSettingsCollection, (draft) => {
+    (draft as { id?: string; key?: string; updatedAt?: Date }).id = `${userId}:${
+      (draft as { key?: string }).key ?? ""
+    }`;
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(userNodePrefsCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(templatesMetaCollection);
+  await updateUserId(nodeVersionsCollection);
+  await updateUserId(tasksCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(todosCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(canvasScenesCollection, (draft) => {
+    (draft as { updatedAt?: Date }).updatedAt = now;
+  });
+  await updateUserId(canvasLinksCollection);
+
+  const usersState = await usersCollection.stateWhenReady();
+  if (usersState.get(DEFAULT_USER_ID)) {
+    const tx = usersCollection.delete(DEFAULT_USER_ID);
+    await tx.isPersisted.promise;
   }
-
-  await db.query("DELETE FROM users WHERE id = $1", [DEFAULT_USER_ID]);
 }
 
 export function CurrentUserProvider({ children }: { children: React.ReactNode }) {
-  const db = usePGlite();
   const { data: user } = useUser();
   const userId = user?.id ?? DEFAULT_USER_ID;
   const username = resolveUsername(user);
 
-  const value = useMemo(
-    () => ({
-      id: userId,
-      username,
-    }),
-    [userId, username],
-  );
+  const value = {
+    id: userId,
+    username,
+  };
 
   useEffect(() => {
-    if (!db) return;
-
     const ensureUser = async () => {
-      await db.query(
-        `INSERT INTO users (id, username, created_at, updated_at)
-         VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (id) DO UPDATE
-         SET username = EXCLUDED.username,
-             updated_at = CURRENT_TIMESTAMP`,
-        [userId, username],
-      );
+      const now = new Date();
+      const usersState = await usersCollection.stateWhenReady();
+      const existingUser = usersState.get(userId);
+
+      const userTx = existingUser
+        ? usersCollection.update(userId, (draft) => {
+            draft.username = username;
+            draft.updatedAt = now;
+          })
+        : usersCollection.insert({
+            id: userId,
+            username,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+      await userTx.isPersisted.promise;
 
       if (userId !== DEFAULT_USER_ID) {
-        await migrateLocalUser(db, userId);
+        await migrateLocalUser(userId);
       }
 
-      await db.query(
-        `INSERT INTO nodes (id, user_id, type, title, created_at, updated_at)
-         VALUES ($1, $2, 'tag', $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-         ON CONFLICT (id) DO UPDATE
-         SET user_id = EXCLUDED.user_id,
-             title = EXCLUDED.title,
-             updated_at = CURRENT_TIMESTAMP`,
-        [ROOT_TAG_ID, userId, "#root"],
-      );
+      const nodesState = await nodesCollection.stateWhenReady();
+      const existingRoot = nodesState.get(ROOT_TAG_ID);
+      const rootTx = existingRoot
+        ? nodesCollection.update(ROOT_TAG_ID, (draft) => {
+            draft.userId = userId;
+            draft.title = "#root";
+            draft.type = "tag";
+            draft.updatedAt = now;
+          })
+        : nodesCollection.insert({
+            id: ROOT_TAG_ID,
+            userId,
+            type: "tag",
+            title: "#root",
+            content: null,
+            excerpt: null,
+            color: null,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+      await rootTx.isPersisted.promise;
     };
 
     void ensureUser();
 
     return undefined;
-  }, [db, userId, username]);
+  }, [userId, username]);
 
   return <CurrentUserContext.Provider value={value}>{children}</CurrentUserContext.Provider>;
 }

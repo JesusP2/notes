@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,13 +23,9 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
+function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <SidebarProvider>
-        <PGliteProvider db={db}>{children}</PGliteProvider>
-      </SidebarProvider>
-    );
+    return <SidebarProvider>{children}</SidebarProvider>;
   };
 }
 
@@ -41,7 +36,7 @@ describe("AppSidebar", () => {
 
   it("creates a new note and navigates to it", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     render(<AppSidebar />, { wrapper: Wrapper });
 
@@ -65,7 +60,7 @@ describe("AppSidebar", () => {
 
   it("creates a new tag under the root", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     render(<AppSidebar />, { wrapper: Wrapper });
 

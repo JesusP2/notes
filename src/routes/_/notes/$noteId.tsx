@@ -1,7 +1,8 @@
-import { usePGlite } from "@electric-sql/pglite-react";
+import { and, eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Edit3Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
@@ -9,8 +10,8 @@ import { NoteEditor } from "@/components/notes/note-editor";
 import { syncEmbeds, syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { useAppSettings } from "@/components/providers/app-settings";
-import type { Node } from "@/db/schema/graph";
 import { useCurrentUserId } from "@/hooks/use-current-user";
+import { nodesCollection } from "@/lib/collections";
 import { useNodeMutations, useVersionMutations } from "@/lib/graph-hooks";
 import { buildNoteExcerpt } from "@/lib/note-excerpt";
 import { SHORTCUTS } from "@/lib/shortcuts";
@@ -25,93 +26,49 @@ function NoteEditorPage() {
   const { noteId } = Route.useParams();
   const { updateNode, deleteNode } = useNodeMutations();
   const { createNoteVersion } = useVersionMutations();
-  const db = usePGlite();
   const [, startTransition] = useTransition();
   const navigate = useNavigate();
   const { openConfirmDialog } = useConfirmDialog();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const saveNowRef = useRef<(() => void) | null>(null);
-  const [note, setNote] = useState<Node | null>(null);
-  const [noteLoading, setNoteLoading] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const { vimEnabled } = useAppSettings();
   const userId = useCurrentUserId();
 
-  useEffect(() => {
-    let cancelled = false;
-    setNoteLoading(true);
-    setNote(null);
-
-    const loadNote = async () => {
-      if (!noteId) {
-        if (!cancelled) {
-          setNoteLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const result = await db.query<Node>(
-          `SELECT
-             nodes.id AS id,
-             nodes.user_id AS "userId",
-             nodes.type AS type,
-             nodes.title AS title,
-             nodes.content AS content,
-             nodes.excerpt AS excerpt,
-             nodes.color AS color,
-             nodes.created_at AS "createdAt",
-             nodes.updated_at AS "updatedAt"
-           FROM nodes
-           WHERE id = $1 AND user_id = $2
-           LIMIT 1`,
-          [noteId, userId],
-        );
-
-        if (!cancelled) {
-          setNote(result.rows[0] ?? null);
-        }
-      } finally {
-        if (!cancelled) {
-          setNoteLoading(false);
-        }
-      }
-    };
-
-    void loadNote();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [db, noteId, userId]);
-
-  const handleContentSave = useCallback(
-    (content: string) => {
-      const excerpt = buildNoteExcerpt(content);
-      startTransition(async () => {
-        await updateNode(noteId, { content, excerpt, updatedAt: new Date() });
-        await syncWikiLinks({ db, noteId, userId, content });
-        await syncEmbeds({ db, noteId, userId, content });
-        await syncTasks({ db, userId, noteId, content });
-        if (note?.title) {
-          await createNoteVersion(noteId, note.title, content, "autosave");
-        }
-      });
-    },
-    [createNoteVersion, db, note, noteId, updateNode, userId],
+  const noteQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) => and(eq(nodes.id, noteId), eq(nodes.userId, userId))),
+    [noteId, userId],
   );
+  const note = noteQuery.data?.[0] ?? null;
+  const noteLoading = Boolean(noteId) && noteQuery.isLoading;
 
-  const handleOpenDetails = useCallback(() => {
+  const handleContentSave = (content: string) => {
+    const excerpt = buildNoteExcerpt(content);
+    startTransition(async () => {
+      await updateNode(noteId, { content, excerpt, updatedAt: new Date() });
+      await syncWikiLinks({ noteId, userId, content });
+      await syncEmbeds({ noteId, userId, content });
+      await syncTasks({ userId, noteId, content });
+      if (note?.title) {
+        await createNoteVersion(noteId, note.title, content, "autosave");
+      }
+    });
+  };
+
+  const handleOpenDetails = () => {
     setDetailsOpen(true);
-  }, []);
+  };
 
-  const handleOpenLinkDialog = useCallback(() => {
+  const handleOpenLinkDialog = () => {
     setLinkDialogOpen(true);
-  }, []);
+  };
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     if (!note) return;
     openConfirmDialog({
       title: "Delete note?",
@@ -124,32 +81,20 @@ function NoteEditorPage() {
       },
       variant: "destructive",
     });
-  }, [note, openConfirmDialog, deleteNode, navigate, startTransition]);
+  };
 
-  const handleSaveNow = useCallback(() => {
+  const handleSaveNow = () => {
     saveNowRef.current?.();
-  }, []);
+  };
 
-  const handleVersionRestored = useCallback(
-    (content: string, title: string) => {
-      setNote((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          content,
-          title,
-          updatedAt: new Date(),
-        };
-      });
-      setEditorKey((prev) => prev + 1);
-      startTransition(async () => {
-        await syncWikiLinks({ db, noteId, userId, content });
-        await syncEmbeds({ db, noteId, userId, content });
-        await syncTasks({ db, userId, noteId, content });
-      });
-    },
-    [db, noteId, startTransition, userId],
-  );
+  const handleVersionRestored = (content: string, _title: string) => {
+    setEditorKey((prev) => prev + 1);
+    startTransition(async () => {
+      await syncWikiLinks({ noteId, userId, content });
+      await syncEmbeds({ noteId, userId, content });
+      await syncTasks({ userId, noteId, content });
+    });
+  };
 
   useEditorShortcut(SHORTCUTS.NOTE_DETAILS, handleOpenDetails, editorContainerRef, {
     enabled: !!note && !noteLoading,

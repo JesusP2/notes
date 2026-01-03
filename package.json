@@ -37,7 +37,6 @@
 		"@daveyplate/better-auth-tanstack": "^1.3.6",
 		"@daveyplate/better-auth-ui": "^3.2.10",
 		"@electric-sql/pglite": "^0.3.14",
-		"@electric-sql/pglite-react": "^0.2.32",
 		"@excalidraw/excalidraw": "^0.18.0",
 		"@fontsource-variable/inter": "^5.2.8",
 		"@lezer/highlight": "^1.2.3",

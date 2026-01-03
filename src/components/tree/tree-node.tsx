@@ -1,5 +1,5 @@
 import { ChevronRight, FileText, Link2, PenTool, Tag } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { NotePreviewCard } from "@/components/notes/note-preview-card";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
@@ -62,17 +62,14 @@ export function TreeNode({
     }
   }, [isEditing]);
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setEditValue(node.title);
-      setIsEditing(true);
-    },
-    [node.title],
-  );
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditValue(node.title);
+    setIsEditing(true);
+  };
 
-  const handleRenameSubmit = useCallback(() => {
+  const handleRenameSubmit = () => {
     const trimmed = editValue.trim();
     if (trimmed && trimmed !== node.title) {
       startTransition(async () => {
@@ -80,19 +77,16 @@ export function TreeNode({
       });
     }
     setIsEditing(false);
-  }, [editValue, node.id, node.title, updateNode, startTransition]);
+  };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        handleRenameSubmit();
-      } else if (e.key === "Escape") {
-        setIsEditing(false);
-        setEditValue(node.title);
-      }
-    },
-    [handleRenameSubmit, node.title],
-  );
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRenameSubmit();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditValue(node.title);
+    }
+  };
 
   return (
     <div

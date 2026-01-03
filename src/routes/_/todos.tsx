@@ -13,11 +13,12 @@ function TodosPage() {
   const { todos, addTodo, toggleTodo, deleteTodo } = useTodos();
   const openTodos = todos.filter((todo) => !todo.isDone);
   const doneTodos = todos.filter((todo) => todo.isDone);
-  const handleAddTodo = (e: React.FormEvent) => {
+  const handleAddTodo = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newTodoTitle = new FormData(e.target as any).get("newTodoTitle") as string;
-    if (!newTodoTitle.trim()) return;
-    e.target.newTodoTitle.value = "";
+    const formData = new FormData(e.currentTarget);
+    const newTodoTitle = String(formData.get("newTodoTitle") ?? "").trim();
+    if (!newTodoTitle) return;
+    e.currentTarget.reset();
     addTodo(newTodoTitle);
   };
 

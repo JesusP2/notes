@@ -1,22 +1,21 @@
 // @vitest-environment jsdom
 
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createTestDb } from "@/test/helpers";
 import { TagTree } from "./tag-tree";
 
-function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
+function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <PGliteProvider db={db}>{children}</PGliteProvider>;
+    return <>{children}</>;
   };
 }
 
 describe("TagTree", () => {
   it("renders root children without showing root itself", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -44,7 +43,7 @@ describe("TagTree", () => {
 
   it("expands and collapses tags", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -77,7 +76,7 @@ describe("TagTree", () => {
 
   it("shows notes in multiple tags with an indicator", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -119,7 +118,7 @@ describe("TagTree", () => {
 
   it("calls onSelectNode when a note is clicked", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
     const handleSelect = vi.fn();
 
     await db.query(
@@ -141,7 +140,7 @@ describe("TagTree", () => {
 
   it("supports nested tags", async () => {
     const db = await createTestDb();
-    const Wrapper = createWrapper(db);
+    const Wrapper = createWrapper();
 
     await db.query(
       "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",

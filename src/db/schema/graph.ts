@@ -83,6 +83,7 @@ export const edgeMetadata = pgTable("edge_metadata", {
 export const userSettings = pgTable(
   "user_settings",
   {
+    id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

@@ -12,7 +12,7 @@ import {
   Star,
   Tag,
 } from "lucide-react";
-import { useCallback, useTransition, type FocusEvent } from "react";
+import { useTransition, type FocusEvent } from "react";
 import { TagTree } from "@/components/tree/tag-tree";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import {
@@ -53,24 +53,21 @@ export function AppSidebar() {
   const [isPending, startTransition] = useTransition();
   const platform = usePlatform();
 
-  const handleSelectNode = useCallback(
-    (node: Node) => {
-      if (node.type === "note" || node.type === "template") {
-        navigate({
-          to: "/notes/$noteId",
-          params: { noteId: node.id },
-        });
-      } else if (node.type === "canvas") {
-        navigate({
-          to: "/canvas/$canvasId",
-          params: { canvasId: node.id },
-        });
-      }
-    },
-    [navigate],
-  );
+  const handleSelectNode = (node: Node) => {
+    if (node.type === "note" || node.type === "template") {
+      navigate({
+        to: "/notes/$noteId",
+        params: { noteId: node.id },
+      });
+    } else if (node.type === "canvas") {
+      navigate({
+        to: "/canvas/$canvasId",
+        params: { canvasId: node.id },
+      });
+    }
+  };
 
-  const handleCreateNote = useCallback(() => {
+  const handleCreateNote = () => {
     startTransition(async () => {
       const note = await createNote("Untitled Note", ROOT_TAG_ID);
       navigate({
@@ -78,15 +75,15 @@ export function AppSidebar() {
         params: { noteId: note.id },
       });
     });
-  }, [createNote, navigate]);
+  };
 
-  const handleCreateTag = useCallback(() => {
+  const handleCreateTag = () => {
     startTransition(async () => {
       await createTag("New Tag", ROOT_TAG_ID);
     });
-  }, [createTag]);
+  };
 
-  const handleCreateCanvas = useCallback(() => {
+  const handleCreateCanvas = () => {
     startTransition(async () => {
       const canvas = await createCanvas("New Canvas", ROOT_TAG_ID);
       navigate({
@@ -94,9 +91,9 @@ export function AppSidebar() {
         params: { canvasId: canvas.id },
       });
     });
-  }, [createCanvas, navigate]);
+  };
 
-  const handleCreateTemplate = useCallback(() => {
+  const handleCreateTemplate = () => {
     startTransition(async () => {
       const template = await createTemplate("New Template");
       navigate({
@@ -104,23 +101,20 @@ export function AppSidebar() {
         params: { noteId: template.id },
       });
     });
-  }, [createTemplate, navigate]);
+  };
 
-  const handleUseTemplate = useCallback(
-    (templateId: string) => {
-      startTransition(async () => {
-        const note = await createNoteFromTemplate(templateId, undefined, ROOT_TAG_ID);
-        if (!note) return;
-        navigate({
-          to: "/notes/$noteId",
-          params: { noteId: note.id },
-        });
+  const handleUseTemplate = (templateId: string) => {
+    startTransition(async () => {
+      const note = await createNoteFromTemplate(templateId, undefined, ROOT_TAG_ID);
+      if (!note) return;
+      navigate({
+        to: "/notes/$noteId",
+        params: { noteId: note.id },
       });
-    },
-    [createNoteFromTemplate, navigate],
-  );
+    });
+  };
 
-  const handleOpenCommandPalette = useCallback(() => {
+  const handleOpenCommandPalette = () => {
     const shortcut: ShortcutDefinition = SHORTCUTS.COMMAND_PALETTE;
     document.dispatchEvent(
       new KeyboardEvent("keydown", {
@@ -132,15 +126,12 @@ export function AppSidebar() {
         bubbles: true,
       }),
     );
-  }, [platform]);
+  };
 
-  const handleSearchFocus = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      handleOpenCommandPalette();
-      event.currentTarget.blur();
-    },
-    [handleOpenCommandPalette],
-  );
+  const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
+    handleOpenCommandPalette();
+    event.currentTarget.blur();
+  };
 
   return (
     <Sidebar variant="inset">
@@ -296,27 +287,21 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/graph">
-                <Network />
-                <span>Graph View</span>
-              </Link>
+            <SidebarMenuButton render={<Link to="/graph" />}>
+              <Network />
+              <span>Graph View</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/tasks">
-                <ClipboardList />
-                <span>Tasks</span>
-              </Link>
+            <SidebarMenuButton render={<Link to="/tasks" />}>
+              <ClipboardList />
+              <span>Tasks</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
+            <SidebarMenuButton render={<Link to="/settings" />}>
+              <Settings />
+              <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { PGliteProvider } from "@electric-sql/pglite-react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
@@ -16,17 +15,17 @@ import {
   useTags,
 } from "./graph-hooks";
 
-function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
+function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <PGliteProvider db={db}>{children}</PGliteProvider>;
+    return <>{children}</>;
   };
 }
 
 describe("useTagChildren", () => {
   it("returns empty array for empty tag", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useTagChildren("root"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -39,7 +38,7 @@ describe("useTagChildren", () => {
   it("returns direct children only and sorts tags before notes", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useTagChildren("root"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -78,7 +77,7 @@ describe("useTagChildren", () => {
   it("updates when a child is added and removed", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useTagChildren("root"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -105,7 +104,7 @@ describe("useNodeById", () => {
   it("returns null until the node exists", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeById("note-1"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -125,7 +124,7 @@ describe("useNodeById", () => {
   it("returns null after the node is deleted", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeById("note-1"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -149,7 +148,7 @@ describe("useNodeEdges", () => {
   it("returns incoming and outgoing edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeEdges("note-1"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -187,7 +186,7 @@ describe("useNodeEdges", () => {
   it("returns empty arrays for a node with no edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeEdges("note-1"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -208,8 +207,9 @@ describe("useTags", () => {
   it("returns tags sorted by title", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useTags(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
+
 
     try {
       await db.query(
@@ -240,7 +240,7 @@ describe("useSearchNodes", () => {
       ({ query }: { query: string }) => useSearchNodes(query),
       {
         initialProps: { query: "" },
-        wrapper: createWrapper(db),
+        wrapper: createWrapper(),
       },
     );
 
@@ -266,9 +266,9 @@ describe("useSearchNodes", () => {
   });
 
   it("returns empty results for an empty query", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useSearchNodes("   "), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -281,7 +281,7 @@ describe("useSearchNodes", () => {
   it("orders results by updated_at descending", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useSearchNodes("note"), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -307,7 +307,7 @@ describe("useGraphData", () => {
   it("returns nodes and edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useGraphData(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -330,9 +330,9 @@ describe("useGraphData", () => {
   });
 
   it("includes the seeded root node", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useGraphData(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -347,7 +347,7 @@ describe("useEdgeMutations", () => {
   it("createEdge inserts an edge row", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -382,7 +382,7 @@ describe("useEdgeMutations", () => {
   it("changeEdgeType updates the edge type", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -415,7 +415,7 @@ describe("useEdgeMutations", () => {
   it("deleteEdge removes the edge row", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -446,7 +446,7 @@ describe("useEdgeMutations", () => {
   it("createEdge rejects duplicate edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -476,7 +476,7 @@ describe("useNodeMutations", () => {
   it("createNote creates a node and tagged_with edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -510,7 +510,7 @@ describe("useNodeMutations", () => {
   it("deleteNode removes a note and all its edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -552,7 +552,7 @@ describe("useNodeMutations", () => {
   it("createTag creates a tag node with a parent edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -584,7 +584,7 @@ describe("useNodeMutations", () => {
   it("updateNode updates provided fields", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -618,7 +618,7 @@ describe("useNodeMutations", () => {
   it("moveTag replaces part_of edge", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -658,7 +658,7 @@ describe("useNodeMutations", () => {
   it("moveTag replaces the part_of edge without affecting other edges", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {
@@ -713,7 +713,7 @@ describe("useNodeMutations", () => {
   it("updateNode applies a provided updatedAt", async () => {
     const db = await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
-      wrapper: createWrapper(db),
+      wrapper: createWrapper(),
     });
 
     try {

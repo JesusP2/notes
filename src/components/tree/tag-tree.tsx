@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FilePlus, Info, Pencil, PenTool, Pin, Star, Tag, Trash2 } from "lucide-react";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import {
@@ -66,108 +66,87 @@ function TreeBranch({
   const { openConfirmDialog } = useConfirmDialog();
   const [, startTransition] = useTransition();
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, node: Node) => {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", node.id);
-      setDraggedNode({ id: node.id, type: node.type });
-    },
-    [setDraggedNode],
-  );
+  const handleDragStart = (e: React.DragEvent, node: Node) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", node.id);
+    setDraggedNode({ id: node.id, type: node.type });
+  };
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, node: Node) => {
-      e.preventDefault();
-      if (node.type === "tag" && draggedNode && draggedNode.id !== node.id) {
-        e.dataTransfer.dropEffect = "move";
-        setDragOverNode(node.id);
+  const handleDragOver = (e: React.DragEvent, node: Node) => {
+    e.preventDefault();
+    if (node.type === "tag" && draggedNode && draggedNode.id !== node.id) {
+      e.dataTransfer.dropEffect = "move";
+      setDragOverNode(node.id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetNode: Node) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId && targetNode.type === "tag" && draggedNode && sourceId !== targetNode.id) {
+      if (draggedNode.type === "tag") {
+        startTransition(async () => {
+          await moveTag(sourceId, targetNode.id);
+        });
+      } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
+        startTransition(async () => {
+          await addTag(sourceId, targetNode.id);
+        });
       }
-    },
-    [draggedNode, setDragOverNode],
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, targetNode: Node) => {
-      e.preventDefault();
-      const sourceId = e.dataTransfer.getData("text/plain");
-      if (sourceId && targetNode.type === "tag" && draggedNode && sourceId !== targetNode.id) {
-        if (draggedNode.type === "tag") {
-          startTransition(async () => {
-            await moveTag(sourceId, targetNode.id);
-          });
-        } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
-          startTransition(async () => {
-            await addTag(sourceId, targetNode.id);
-          });
-        }
-      }
-      setDraggedNode(null);
-      setDragOverNode(null);
-    },
-    [addTag, draggedNode, moveTag, setDraggedNode, setDragOverNode, startTransition],
-  );
-
-  const handleDragEnd = useCallback(() => {
+    }
     setDraggedNode(null);
     setDragOverNode(null);
-  }, [setDraggedNode, setDragOverNode]);
+  };
 
-  const handleCreateNote = useCallback(
-    (tagId: string) => {
-      onExpandTag(tagId);
-      startTransition(async () => {
-        const note = await createNote("Untitled", tagId);
-        navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
-        setTimeout(() => {
-          const el = document.querySelector(`[data-node-id="${note.id}"]`);
-          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }, 100);
-      });
-    },
-    [createNote, navigate, onExpandTag, startTransition],
-  );
+  const handleDragEnd = () => {
+    setDraggedNode(null);
+    setDragOverNode(null);
+  };
 
-  const handleCreateTag = useCallback(
-    (parentTagId: string) => {
-      onExpandTag(parentTagId);
-      startTransition(async () => {
-        await createTag("New Tag", parentTagId);
-      });
-    },
-    [createTag, onExpandTag, startTransition],
-  );
+  const handleCreateNote = (tagId: string) => {
+    onExpandTag(tagId);
+    startTransition(async () => {
+      const note = await createNote("Untitled", tagId);
+      navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
+      setTimeout(() => {
+        const el = document.querySelector(`[data-node-id="${note.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    });
+  };
 
-  const handleCreateCanvas = useCallback(
-    (tagId: string) => {
-      onExpandTag(tagId);
-      startTransition(async () => {
-        const canvas = await createCanvas("New Canvas", tagId);
-        navigate({ to: "/canvas/$canvasId", params: { canvasId: canvas.id } });
-        setTimeout(() => {
-          const el = document.querySelector(`[data-node-id="${canvas.id}"]`);
-          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }, 100);
-      });
-    },
-    [createCanvas, navigate, onExpandTag, startTransition],
-  );
+  const handleCreateTag = (parentTagId: string) => {
+    onExpandTag(parentTagId);
+    startTransition(async () => {
+      await createTag("New Tag", parentTagId);
+    });
+  };
 
-  const handleDelete = useCallback(
-    (node: Node) => {
-      if (node.id === ROOT_TAG_ID) return;
-      openConfirmDialog({
-        title: `Delete ${node.type}?`,
-        description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
-        handleConfirm: () => {
-          startTransition(async () => {
-            await deleteNode(node.id);
-          });
-        },
-        variant: "destructive",
-      });
-    },
-    [openConfirmDialog, deleteNode, startTransition],
-  );
+  const handleCreateCanvas = (tagId: string) => {
+    onExpandTag(tagId);
+    startTransition(async () => {
+      const canvas = await createCanvas("New Canvas", tagId);
+      navigate({ to: "/canvas/$canvasId", params: { canvasId: canvas.id } });
+      setTimeout(() => {
+        const el = document.querySelector(`[data-node-id="${canvas.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    });
+  };
+
+  const handleDelete = (node: Node) => {
+    if (node.id === ROOT_TAG_ID) return;
+    openConfirmDialog({
+      title: `Delete ${node.type}?`,
+      description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
+      handleConfirm: () => {
+        startTransition(async () => {
+          await deleteNode(node.id);
+        });
+      },
+      variant: "destructive",
+    });
+  };
 
   return (
     <ul className="space-y-0.5" onDragEnd={handleDragEnd}>
@@ -283,10 +262,10 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const pinnedNotes = usePinnedNotes();
   const favoriteNotes = useFavoriteNotes();
 
-  const pinnedIds = useMemo(() => new Set(pinnedNotes.map((note) => note.id)), [pinnedNotes]);
-  const favoriteIds = useMemo(() => new Set(favoriteNotes.map((note) => note.id)), [favoriteNotes]);
+  const pinnedIds = new Set(pinnedNotes.map((note) => note.id));
+  const favoriteIds = new Set(favoriteNotes.map((note) => note.id));
 
-  const toggle = useCallback((id: string) => {
+  const toggle = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -296,18 +275,18 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
       }
       return next;
     });
-  }, []);
+  };
 
-  const expandTag = useCallback((id: string) => {
+  const expandTag = (id: string) => {
     setExpandedIds((prev) => {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
       next.add(id);
       return next;
     });
-  }, []);
+  };
 
-  const triggerRename = useCallback((nodeId: string) => {
+  const triggerRename = (nodeId: string) => {
     setTimeout(() => {
       const el = document.querySelector(`[data-node-id="${nodeId}"] button`);
       if (el instanceof HTMLElement) {
@@ -315,11 +294,11 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
         el.dispatchEvent(event);
       }
     }, 50);
-  }, []);
+  };
 
-  const openDetails = useCallback((nodeId: string) => {
+  const openDetails = (nodeId: string) => {
     setDetailsNodeId(nodeId);
-  }, []);
+  };
 
   return (
     <>

@@ -1,9 +1,6 @@
 import { ulid } from "ulidx";
 import { hashContent } from "@/lib/content-hash";
-
-type QueryableDb = {
-  query: <T = any>(sql: string, params?: unknown[]) => Promise<{ rows: T[] }>;
-};
+import { tasksCollection } from "@/lib/collections";
 
 export type ParsedTask = {
   blockId: string;
@@ -33,49 +30,59 @@ export function parseTasks(content: string, noteId: string): ParsedTask[] {
 }
 
 export async function syncTasks({
-  db,
   userId,
   noteId,
   content,
 }: {
-  db: QueryableDb;
   userId: string;
   noteId: string;
   content: string;
 }): Promise<void> {
   const tasks = parseTasks(content, noteId);
-  const existing = await db.query<{ id: string; block_id: string }>(
-    "SELECT id, block_id FROM tasks WHERE user_id = $1 AND note_id = $2",
-    [userId, noteId],
+  const state = await tasksCollection.stateWhenReady();
+  const existing = Array.from(state.values()).filter(
+    (row) => row.userId === userId && row.noteId === noteId,
   );
-  const existingByBlock = new Map(existing.rows.map((row) => [row.block_id, row.id]));
+  const existingByBlock = new Map(existing.map((row) => [row.blockId, row]));
   const seen = new Set<string>();
+  const now = new Date();
 
   for (const task of tasks) {
-    const existingId = existingByBlock.get(task.blockId);
+    const existingRow = existingByBlock.get(task.blockId);
     seen.add(task.blockId);
-    if (existingId) {
-      await db.query(
-        `UPDATE tasks
-         SET content = $1,
-             is_done = $2,
-             position = $3,
-             checked_at = CASE WHEN $2 THEN CURRENT_TIMESTAMP ELSE NULL END,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $4 AND user_id = $5`,
-        [task.content, task.isDone, task.position, existingId, userId],
-      );
+    if (existingRow) {
+      const tx = tasksCollection.update(existingRow.id, (draft) => {
+        draft.content = task.content;
+        draft.isDone = task.isDone;
+        draft.position = task.position;
+        draft.checkedAt = task.isDone ? now : null;
+        draft.updatedAt = now;
+      });
+      await tx.isPersisted.promise;
     } else {
-      await db.query(
-        `INSERT INTO tasks (id, user_id, note_id, block_id, content, is_done, checked_at, position, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $6 THEN CURRENT_TIMESTAMP ELSE NULL END, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [ulid(), userId, noteId, task.blockId, task.content, task.isDone, task.position],
-      );
+      const tx = tasksCollection.insert({
+        id: ulid(),
+        userId,
+        noteId,
+        blockId: task.blockId,
+        content: task.content,
+        isDone: task.isDone,
+        checkedAt: task.isDone ? now : null,
+        dueAt: null,
+        priority: null,
+        position: task.position,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await tx.isPersisted.promise;
     }
   }
 
-  for (const row of existing.rows) {
-    if (seen.has(row.block_id)) continue;
-    await db.query("DELETE FROM tasks WHERE id = $1 AND user_id = $2", [row.id, userId]);
+  const toDelete = existing
+    .filter((row) => !seen.has(row.blockId))
+    .map((row) => row.id);
+  if (toDelete.length > 0) {
+    const tx = tasksCollection.delete(toDelete);
+    await tx.isPersisted.promise;
   }
 }
