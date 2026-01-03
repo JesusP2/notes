@@ -4,6 +4,7 @@ import { PGliteProvider } from "@electric-sql/pglite-react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { createTestDb } from "@/test/helpers";
 import { AppSidebar } from "./app-sidebar";
 
@@ -25,7 +26,11 @@ vi.mock("@tanstack/react-router", async () => {
 
 function createWrapper(db: Awaited<ReturnType<typeof createTestDb>>) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <PGliteProvider db={db}>{children}</PGliteProvider>;
+    return (
+      <SidebarProvider>
+        <PGliteProvider db={db}>{children}</PGliteProvider>
+      </SidebarProvider>
+    );
   };
 }
 
