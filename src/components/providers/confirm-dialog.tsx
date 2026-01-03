@@ -16,6 +16,11 @@ type ConfirmFnProps = {
   handleConfirm: () => void;
   handleCancel?: () => void;
   variant?: VariantProps<typeof buttonVariants>["variant"];
+  altAction?: {
+    label: string;
+    onClick: () => void;
+    variant?: VariantProps<typeof buttonVariants>["variant"];
+  };
 };
 
 type ConfirmDialogProviderState = {
@@ -43,6 +48,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
     handleConfirm,
     handleCancel,
     variant,
+    altAction,
   }: ConfirmFnProps) {
     setConfig({
       isOpen: true,
@@ -51,6 +57,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
       handleConfirm,
       handleCancel,
       variant: variant || "destructive",
+      altAction,
     });
   }
 
@@ -77,6 +84,17 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
               >
                 Cancel
               </Button>
+              {config.altAction && (
+                <Button
+                  onClick={() => {
+                    config.altAction?.onClick();
+                    setConfig({ ...config, isOpen: false });
+                  }}
+                  variant={config.altAction.variant || "secondary"}
+                >
+                  {config.altAction.label}
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   config.handleConfirm();

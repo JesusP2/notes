@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/context-menu";
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID } from "@/hooks/use-current-user";
+import { edgesCollection } from "@/lib/collections";
 import {
   useNodeMutations,
   usePinnedNotes,
@@ -82,6 +83,7 @@ function TreeBranch({
     moveTag,
     moveTaggedNode,
     addTag,
+    removeTag,
   } = useNodeMutations();
   const { pinNode, unpinNode } = usePreferenceMutations();
   const { openConfirmDialog } = useConfirmDialog();
@@ -170,18 +172,49 @@ function TreeBranch({
     });
   };
 
-  const handleDelete = (node: Node) => {
+  const handleDelete = async (node: Node) => {
     if (node.id === ROOT_TAG_ID) return;
-    openConfirmDialog({
-      title: `Delete ${node.type}?`,
-      description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
-      handleConfirm: () => {
-        startTransition(async () => {
-          await deleteNode(node.id);
-        });
-      },
-      variant: "destructive",
-    });
+
+    let tagCount = 0;
+    if (node.type === "note" || node.type === "canvas") {
+      const state = await edgesCollection.stateWhenReady();
+      const edges = Array.from(state.values());
+      tagCount = edges.filter(
+        (edge) => edge.sourceId === node.id && edge.type === "tagged_with",
+      ).length;
+    }
+
+    if (tagCount > 1) {
+      openConfirmDialog({
+        title: "Delete this copy or all copies?",
+        description: `"${node.title}" is tagged with ${tagCount} tags. Delete this copy to remove it from this tag only, or confirm to delete it everywhere.`,
+        handleConfirm: () => {
+          startTransition(async () => {
+            await deleteNode(node.id);
+          });
+        },
+        altAction: {
+          label: "Delete this copy",
+          onClick: () => {
+            startTransition(async () => {
+              await removeTag(node.id, parentId);
+            });
+          },
+        },
+        variant: "destructive",
+      });
+    } else {
+      openConfirmDialog({
+        title: `Delete ${node.type}?`,
+        description: `Are you sure you want to delete "${node.title}"?${node.type === "tag" ? " All nested items will be deleted." : ""} This cannot be undone.`,
+        handleConfirm: () => {
+          startTransition(async () => {
+            await deleteNode(node.id);
+          });
+        },
+        variant: "destructive",
+      });
+    }
   };
 
   return (
