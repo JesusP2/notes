@@ -6,18 +6,9 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppSettingsProvider } from "@/components/providers/app-settings";
 import { ThemeProvider, useTheme } from "@/components/providers/theme-provider";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CurrentUserProvider, ROOT_TAG_ID } from "@/hooks/use-current-user";
 import { useUserSetting } from "@/hooks/use-user-settings";
 import { useNodeMutations } from "@/lib/graph-hooks";
@@ -70,10 +61,7 @@ function MainLayoutContent() {
   };
 
   return (
-    <SidebarProvider
-      open={!layout.collapsed}
-      onOpenChange={handleSidebarOpenChange}
-    >
+    <SidebarProvider open={!layout.collapsed} onOpenChange={handleSidebarOpenChange}>
       <MainLayoutShell />
     </SidebarProvider>
   );
@@ -85,10 +73,7 @@ function MainLayoutShell() {
   const { setTheme, resolvedTheme } = useTheme();
   const { createNote, createTag } = useNodeMutations();
   const [, startTransition] = useTransition();
-  const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>(
-    "vim_enabled",
-    false,
-  );
+  const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>("vim_enabled", false);
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
 

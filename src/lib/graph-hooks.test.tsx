@@ -210,7 +210,6 @@ describe("useTags", () => {
       wrapper: createWrapper(),
     });
 
-
     try {
       await db.query(
         "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",

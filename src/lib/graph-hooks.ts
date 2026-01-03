@@ -32,9 +32,7 @@ function parseJson<T>(value: unknown, fallback: T): T {
   return value as T;
 }
 
-function normalizeCanvasAppState(
-  appState: AppState | null | undefined,
-): AppState {
+function normalizeCanvasAppState(appState: AppState | null | undefined): AppState {
   const next = { ...(appState ?? {}) } as AppState & {
     collaborators?: unknown;
   };
@@ -44,9 +42,7 @@ function normalizeCanvasAppState(
   return next;
 }
 
-function stripCanvasAppStateForStorage(
-  appState: AppState | null | undefined,
-): Partial<AppState> {
+function stripCanvasAppStateForStorage(appState: AppState | null | undefined): Partial<AppState> {
   if (!appState) return {};
   const { collaborators, ...rest } = appState as AppState & {
     collaborators?: unknown;
@@ -75,9 +71,7 @@ export function useTagChildren(tagId: string): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
-          eq(nodes.id, edges.sourceId),
-        )
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) => eq(nodes.id, edges.sourceId))
         .where(({ nodes, edges }) =>
           and(
             eq(nodes.userId, userId),
@@ -111,9 +105,7 @@ export function useNodeById(nodeId: string): Node | null {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.id, nodeId), eq(nodes.userId, userId)),
-        ),
+        .where(({ nodes }) => and(eq(nodes.id, nodeId), eq(nodes.userId, userId))),
     [nodeId, userId],
   );
 
@@ -129,18 +121,14 @@ export function useNodeEdges(nodeId: string): {
     (q) =>
       q
         .from({ edges: edgesCollection })
-        .where(({ edges }) =>
-          and(eq(edges.sourceId, nodeId), eq(edges.userId, userId)),
-        ),
+        .where(({ edges }) => and(eq(edges.sourceId, nodeId), eq(edges.userId, userId))),
     [nodeId, userId],
   );
   const incoming = useLiveQuery(
     (q) =>
       q
         .from({ edges: edgesCollection })
-        .where(({ edges }) =>
-          and(eq(edges.targetId, nodeId), eq(edges.userId, userId)),
-        ),
+        .where(({ edges }) => and(eq(edges.targetId, nodeId), eq(edges.userId, userId))),
     [nodeId, userId],
   );
 
@@ -153,17 +141,11 @@ export function useNodeEdges(nodeId: string): {
 export function useGraphData(): { nodes: Node[]; edges: Edge[] } {
   const userId = useCurrentUserId();
   const nodesResult = useLiveQuery(
-    (q) =>
-      q
-        .from({ nodes: nodesCollection })
-        .where(({ nodes }) => eq(nodes.userId, userId)),
+    (q) => q.from({ nodes: nodesCollection }).where(({ nodes }) => eq(nodes.userId, userId)),
     [userId],
   );
   const edgesResult = useLiveQuery(
-    (q) =>
-      q
-        .from({ edges: edgesCollection })
-        .where(({ edges }) => eq(edges.userId, userId)),
+    (q) => q.from({ edges: edgesCollection }).where(({ edges }) => eq(edges.userId, userId)),
     [userId],
   );
 
@@ -176,10 +158,7 @@ export function useGraphData(): { nodes: Node[]; edges: Edge[] } {
 export function useSearchNodes(queryText: string): Node[] {
   const userId = useCurrentUserId();
   const { data = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ nodes: nodesCollection })
-        .where(({ nodes }) => eq(nodes.userId, userId)),
+    (q) => q.from({ nodes: nodesCollection }).where(({ nodes }) => eq(nodes.userId, userId)),
     [userId],
   );
 
@@ -203,9 +182,7 @@ export function useRecentNotes(limit = 10): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
-        ),
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "note"))),
     [userId],
   );
 
@@ -218,9 +195,7 @@ export function useBacklinks(noteId: string): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
-          eq(nodes.id, edges.sourceId),
-        )
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) => eq(nodes.id, edges.sourceId))
         .where(({ nodes, edges }) =>
           and(
             eq(edges.type, "references"),
@@ -242,9 +217,7 @@ export function useTags(): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.userId, userId), eq(nodes.type, "tag")),
-        ),
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "tag"))),
     [userId],
   );
 
@@ -257,9 +230,7 @@ export function useTemplates(): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.userId, userId), eq(nodes.type, "template")),
-        ),
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "template"))),
     [userId],
   );
 
@@ -272,9 +243,7 @@ export function useNoteTags(nodeId: string): Node[] {
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) =>
-          eq(nodes.id, edges.targetId),
-        )
+        .innerJoin({ edges: edgesCollection }, ({ nodes, edges }) => eq(nodes.id, edges.targetId))
         .where(({ nodes, edges }) =>
           and(
             eq(edges.sourceId, nodeId),
@@ -295,18 +264,14 @@ export function usePinnedNotes(): Node[] {
   const userId = useCurrentUserId();
   const prefsResult = useLiveQuery(
     (q) =>
-      q
-        .from({ prefs: userNodePrefsCollection })
-        .where(({ prefs }) => eq(prefs.userId, userId)),
+      q.from({ prefs: userNodePrefsCollection }).where(({ prefs }) => eq(prefs.userId, userId)),
     [userId],
   );
   const nodesResult = useLiveQuery(
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
-        ),
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "note"))),
     [userId],
   );
 
@@ -322,18 +287,14 @@ export function useFavoriteNotes(): Node[] {
   const userId = useCurrentUserId();
   const prefsResult = useLiveQuery(
     (q) =>
-      q
-        .from({ prefs: userNodePrefsCollection })
-        .where(({ prefs }) => eq(prefs.userId, userId)),
+      q.from({ prefs: userNodePrefsCollection }).where(({ prefs }) => eq(prefs.userId, userId)),
     [userId],
   );
   const nodesResult = useLiveQuery(
     (q) =>
       q
         .from({ nodes: nodesCollection })
-        .where(({ nodes }) =>
-          and(eq(nodes.userId, userId), eq(nodes.type, "note")),
-        ),
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "note"))),
     [userId],
   );
 
@@ -354,9 +315,7 @@ export function useNodePreferences(nodeId: string): {
     (q) =>
       q
         .from({ prefs: userNodePrefsCollection })
-        .where(({ prefs }) =>
-          and(eq(prefs.userId, userId), eq(prefs.nodeId, nodeId)),
-        ),
+        .where(({ prefs }) => and(eq(prefs.userId, userId), eq(prefs.nodeId, nodeId))),
     [nodeId, userId],
   );
 
@@ -380,9 +339,7 @@ export function useNoteVersions(noteId: string): Array<{
     (q) =>
       q
         .from({ versions: nodeVersionsCollection })
-        .where(({ versions }) =>
-          and(eq(versions.userId, userId), eq(versions.nodeId, noteId)),
-        ),
+        .where(({ versions }) => and(eq(versions.userId, userId), eq(versions.nodeId, noteId))),
     [noteId, userId],
   );
 
@@ -411,9 +368,7 @@ export function useVersionMutations() {
     const state = await nodeVersionsCollection.stateWhenReady();
     const existing = Array.from(state.values()).some(
       (version) =>
-        version.userId === userId &&
-        version.nodeId === noteId &&
-        version.contentHash === hash,
+        version.userId === userId && version.nodeId === noteId && version.contentHash === hash,
     );
     if (existing) return false;
 
@@ -449,17 +404,11 @@ export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
   const userId = useCurrentUserId();
   const { showDone = true } = options;
   const tasksResult = useLiveQuery(
-    (q) =>
-      q
-        .from({ tasks: tasksCollection })
-        .where(({ tasks }) => eq(tasks.userId, userId)),
+    (q) => q.from({ tasks: tasksCollection }).where(({ tasks }) => eq(tasks.userId, userId)),
     [userId],
   );
   const nodesResult = useLiveQuery(
-    (q) =>
-      q
-        .from({ nodes: nodesCollection })
-        .where(({ nodes }) => eq(nodes.userId, userId)),
+    (q) => q.from({ nodes: nodesCollection }).where(({ nodes }) => eq(nodes.userId, userId)),
     [userId],
   );
 
@@ -482,7 +431,9 @@ export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
         return left.isDone ? 1 : -1;
       }
       const leftDue = left.isDone ? null : (tasksData.find((t) => t.id === left.id)?.dueAt ?? null);
-      const rightDue = right.isDone ? null : (tasksData.find((t) => t.id === right.id)?.dueAt ?? null);
+      const rightDue = right.isDone
+        ? null
+        : (tasksData.find((t) => t.id === right.id)?.dueAt ?? null);
       const leftDueValue = leftDue ? leftDue.getTime() : Number.POSITIVE_INFINITY;
       const rightDueValue = rightDue ? rightDue.getTime() : Number.POSITIVE_INFINITY;
       if (leftDueValue !== rightDueValue) {
@@ -740,11 +691,7 @@ export function useNodeMutations() {
     return node;
   };
 
-  const createNoteFromTemplate = async (
-    templateId: string,
-    noteTitle?: string,
-    tagId?: string,
-  ) => {
+  const createNoteFromTemplate = async (templateId: string, noteTitle?: string, tagId?: string) => {
     const nodesState = await nodesCollection.stateWhenReady();
     const template = nodesState.get(templateId);
     if (!template || template.userId !== userId || template.type !== "template") {
@@ -900,9 +847,7 @@ export function useNodeMutations() {
     const edgesToDelete = Array.from(state.values())
       .filter(
         (edge) =>
-          edge.sourceId === noteId &&
-          edge.targetId === tagId &&
-          edge.type === "tagged_with",
+          edge.sourceId === noteId && edge.targetId === tagId && edge.type === "tagged_with",
       )
       .map((edge) => edge.id);
     if (edgesToDelete.length === 0) return;
@@ -1013,9 +958,7 @@ export function useCanvasScene(canvasId: string): CanvasScene | null {
     (q) =>
       q
         .from({ scenes: canvasScenesCollection })
-        .where(({ scenes }) =>
-          and(eq(scenes.canvasId, canvasId), eq(scenes.userId, userId)),
-        ),
+        .where(({ scenes }) => and(eq(scenes.canvasId, canvasId), eq(scenes.userId, userId))),
     [canvasId, userId],
   );
 
@@ -1024,9 +967,7 @@ export function useCanvasScene(canvasId: string): CanvasScene | null {
 
   return {
     elements: parseJson<ExcalidrawElement[]>(row.elementsJson, []),
-    appState: normalizeCanvasAppState(
-      parseJson<AppState>(row.appStateJson, {} as AppState),
-    ),
+    appState: normalizeCanvasAppState(parseJson<AppState>(row.appStateJson, {} as AppState)),
     files: parseJson<BinaryFiles>(row.filesJson, {} as BinaryFiles),
   };
 }
@@ -1037,9 +978,7 @@ export function useCanvasLinks(canvasId: string): CanvasLink[] {
     (q) =>
       q
         .from({ links: canvasLinksCollection })
-        .where(({ links }) =>
-          and(eq(links.canvasId, canvasId), eq(links.userId, userId)),
-        ),
+        .where(({ links }) => and(eq(links.canvasId, canvasId), eq(links.userId, userId))),
     [canvasId, userId],
   );
 
@@ -1087,9 +1026,7 @@ export function useCanvasMutations() {
     const state = await canvasLinksCollection.stateWhenReady();
     const existingLinks = Array.from(state.values()).filter(
       (link) =>
-        link.userId === userId &&
-        link.canvasId === canvasId &&
-        link.elementId === elementId,
+        link.userId === userId && link.canvasId === canvasId && link.elementId === elementId,
     );
     if (existingLinks.length > 0) {
       const tx = canvasLinksCollection.delete(existingLinks.map((link) => link.id));
@@ -1113,9 +1050,7 @@ export function useCanvasMutations() {
     const toDelete = Array.from(state.values())
       .filter(
         (link) =>
-          link.userId === userId &&
-          link.canvasId === canvasId &&
-          link.elementId === elementId,
+          link.userId === userId && link.canvasId === canvasId && link.elementId === elementId,
       )
       .map((link) => link.id);
     if (toDelete.length === 0) return;

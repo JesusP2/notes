@@ -78,9 +78,7 @@ export async function syncTasks({
     }
   }
 
-  const toDelete = existing
-    .filter((row) => !seen.has(row.blockId))
-    .map((row) => row.id);
+  const toDelete = existing.filter((row) => !seen.has(row.blockId)).map((row) => row.id);
   if (toDelete.length > 0) {
     const tx = tasksCollection.delete(toDelete);
     await tx.isPersisted.promise;

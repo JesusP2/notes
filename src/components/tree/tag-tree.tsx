@@ -244,7 +244,10 @@ function TreeBranch({
 
 export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
-  const [draggedNode, setDraggedNode] = useState<{ id: string; type: Node["type"] } | null>(null);
+  const [draggedNode, setDraggedNode] = useState<{
+    id: string;
+    type: Node["type"];
+  } | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
   const [detailsNodeId, setDetailsNodeId] = useState<string | null>(null);
   const pinnedNotes = usePinnedNotes();

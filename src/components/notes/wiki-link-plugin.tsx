@@ -169,9 +169,7 @@ export async function syncWikiLinks({
     await tx.isPersisted.promise;
   }
 
-  const toDelete = existing
-    .filter((row) => !desiredTargets.has(row.targetId))
-    .map((row) => row.id);
+  const toDelete = existing.filter((row) => !desiredTargets.has(row.targetId)).map((row) => row.id);
   if (toDelete.length > 0) {
     const tx = edgesCollection.delete(toDelete);
     await tx.isPersisted.promise;
@@ -249,9 +247,7 @@ export async function syncEmbeds({
     await tx.isPersisted.promise;
   }
 
-  const toDelete = existing
-    .filter((row) => !desiredTargets.has(row.targetId))
-    .map((row) => row.id);
+  const toDelete = existing.filter((row) => !desiredTargets.has(row.targetId)).map((row) => row.id);
   if (toDelete.length > 0) {
     const tx = edgesCollection.delete(toDelete);
     await tx.isPersisted.promise;

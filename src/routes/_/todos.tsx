@@ -31,9 +31,7 @@ function TodosPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Todos</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your personal tasks
-            </p>
+            <p className="text-sm text-muted-foreground">Manage your personal tasks</p>
           </div>
         </div>
 
@@ -76,9 +74,7 @@ function TodosPage() {
                       className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <div className="flex-1 space-y-1 pt-0.5">
-                      <p className="text-sm font-medium leading-none">
-                        {todo.title}
-                      </p>
+                      <p className="text-sm font-medium leading-none">{todo.title}</p>
                       <p className="text-xs text-muted-foreground">
                         Added {new Date(todo.createdAt).toLocaleDateString()}
                       </p>
@@ -139,9 +135,7 @@ function TodosPage() {
             )}
 
             {doneTodos.length === 0 && openTodos.length > 0 && (
-              <p className="text-sm text-muted-foreground italic pl-2">
-                Get to work!
-              </p>
+              <p className="text-sm text-muted-foreground italic pl-2">Get to work!</p>
             )}
           </section>
         </div>

@@ -32,11 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID } from "@/hooks/use-current-user";
-import {
-  useNodeMutations,
-  usePinnedNotes,
-  useTemplates,
-} from "@/lib/graph-hooks";
+import { useNodeMutations, usePinnedNotes, useTemplates } from "@/lib/graph-hooks";
 import type { ShortcutDefinition } from "@/lib/shortcuts";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { usePlatform } from "@/lib/use-shortcut";
@@ -181,9 +177,7 @@ export function AppSidebar() {
       <SidebarContent>
         {pinnedNotes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>
-              Pinned
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Pinned</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {pinnedNotes.map((note) => (
@@ -200,18 +194,14 @@ export function AppSidebar() {
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel>
-            Notes
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Notes</SidebarGroupLabel>
           <SidebarGroupContent>
             <TagTree onSelectNode={handleSelectNode} />
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>
-            Templates
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Templates</SidebarGroupLabel>
           <SidebarGroupAction
             onClick={handleCreateTemplate}
             title="New Template"
