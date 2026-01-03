@@ -283,29 +283,6 @@ export function usePinnedNotes(): Node[] {
     .filter((node): node is Node => Boolean(node));
 }
 
-export function useFavoriteNotes(): Node[] {
-  const userId = useCurrentUserId();
-  const prefsResult = useLiveQuery(
-    (q) =>
-      q.from({ prefs: userNodePrefsCollection }).where(({ prefs }) => eq(prefs.userId, userId)),
-    [userId],
-  );
-  const nodesResult = useLiveQuery(
-    (q) =>
-      q
-        .from({ nodes: nodesCollection })
-        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "note"))),
-    [userId],
-  );
-
-  const prefs = (prefsResult.data ?? []).filter((pref) => pref.isFavorite);
-  const nodesById = new Map((nodesResult.data ?? []).map((node) => [node.id, node]));
-  return prefs
-    .map((pref) => nodesById.get(pref.nodeId))
-    .filter((node): node is Node => Boolean(node))
-    .sort(compareUpdatedDesc);
-}
-
 export function useNodePreferences(nodeId: string): {
   isFavorite: boolean;
   pinnedRank: number | null;
