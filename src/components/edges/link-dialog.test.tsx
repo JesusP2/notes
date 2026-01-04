@@ -3,7 +3,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
-import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
+import { edgesCollection } from "@/lib/collections";
+import { createTestDb, insertTestNode } from "@/test/helpers";
 import { LinkDialog } from "./link-dialog";
 
 function createWrapper() {
@@ -14,18 +15,11 @@ function createWrapper() {
 
 describe("LinkDialog", () => {
   it("creates an edge between notes", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-source", "note", "Source Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-target", "note", "Target Note"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-source", type: "note", title: "Source Note" });
+    insertTestNode({ id: "note-target", type: "note", title: "Target Note" });
 
     render(<LinkDialog open onOpenChange={() => undefined} sourceId="note-source" />, {
       wrapper: Wrapper,
@@ -40,12 +34,12 @@ describe("LinkDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Create Link" }));
 
-    await waitFor(async () => {
-      const edges = await db.query<{ type: string }>(
-        "SELECT type FROM edges WHERE source_id = $1 AND target_id = $2",
-        ["note-source", "note-target"],
+    await waitFor(() => {
+      const edges = Array.from(edgesCollection.state.values());
+      const edge = edges.find(
+        (e) => e.sourceId === "note-source" && e.targetId === "note-target",
       );
-      expect(edges.rows[0]?.type).toBe("references");
+      expect(edge?.type).toBe("references");
     });
   });
 });

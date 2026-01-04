@@ -15,16 +15,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
   });
 }
 
-vi.mock("@/hooks/use-current-user", async () => {
-  const actual = await vi.importActual<typeof import("@/hooks/use-current-user")>(
-    "@/hooks/use-current-user",
-  );
-  return {
-    ...actual,
-    useCurrentUserId: () => TEST_USER_ID,
-    useCurrentUser: () => ({ id: TEST_USER_ID, username: "testuser" }),
-  };
-});
+vi.mock("@/hooks/use-current-user", () => ({
+  DEFAULT_USER_ID: "local",
+  ROOT_TAG_ID: "root",
+  CurrentUserProvider: ({ children }: { children: React.ReactNode }) => children,
+  useCurrentUserId: () => TEST_USER_ID,
+  useCurrentUser: () => ({ id: TEST_USER_ID, username: "testuser" }),
+}));
 
 afterEach(() => {
   if (typeof document !== "undefined") {

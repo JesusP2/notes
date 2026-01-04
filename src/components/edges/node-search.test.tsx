@@ -3,7 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
+import { createTestDb, insertTestNode } from "@/test/helpers";
 import { NodeSearch } from "./node-search";
 
 function createWrapper() {
@@ -14,19 +14,12 @@ function createWrapper() {
 
 describe("NodeSearch", () => {
   it("filters and selects a note", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
     const handleSelect = vi.fn();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Alpha Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-2", "note", "Beta Note"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-1", type: "note", title: "Alpha Note" });
+    insertTestNode({ id: "note-2", type: "note", title: "Beta Note" });
 
     render(<NodeSearch onSelect={handleSelect} />, { wrapper: Wrapper });
 

@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { nodesCollection } from "@/lib/collections";
 import { createTestDb } from "@/test/helpers";
 import { AppSidebar } from "./app-sidebar";
 
@@ -35,7 +36,7 @@ describe("AppSidebar", () => {
   });
 
   it("creates a new note and navigates to it", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
     render(<AppSidebar />, { wrapper: Wrapper });
@@ -52,25 +53,22 @@ describe("AppSidebar", () => {
     expect(call?.to).toBe("/notes/$noteId");
     expect(noteId).toEqual(expect.any(String));
 
-    const result = await db.query<{ type: string }>("SELECT id, type FROM nodes WHERE id = $1", [
-      noteId,
-    ]);
-    expect(result.rows[0]?.type).toBe("note");
+    const node = nodesCollection.state.get(noteId!);
+    expect(node?.type).toBe("note");
   });
 
   it("creates a new tag under the root", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
     render(<AppSidebar />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByRole("button", { name: "New Tag" }));
 
-    await waitFor(async () => {
-      const result = await db.query(
-        "SELECT id FROM nodes WHERE type = 'tag' AND title = 'New Tag'",
-      );
-      expect(result.rows).toHaveLength(1);
+    await waitFor(() => {
+      const nodes = Array.from(nodesCollection.state.values());
+      const newTag = nodes.find((n) => n.type === "tag" && n.title === "New Tag");
+      expect(newTag).toBeTruthy();
     });
   });
 });

@@ -382,8 +382,8 @@ describe("useEdgeMutations", () => {
         type: "references",
       });
 
-      act(() => {
-        result.current.deleteEdge("edge-1");
+      await act(async () => {
+        await result.current.deleteEdge("edge-1");
       });
 
       expect(edgesCollection.state.get("edge-1")).toBeUndefined();
@@ -466,8 +466,8 @@ describe("useNodeMutations", () => {
         type: "tagged_with",
       });
 
-      act(() => {
-        result.current.deleteNode("note-1");
+      await act(async () => {
+        await result.current.deleteNode("note-1");
       });
 
       expect(nodesCollection.state.get("note-1")).toBeUndefined();

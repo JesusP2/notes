@@ -5,6 +5,7 @@ import {
   nodesCollection,
   preloadCoreCollections,
   resetCollectionsForDb,
+  resetMigrationsPromise,
   usersCollection,
 } from "@/lib/collections";
 import { setPgliteInstance } from "@/lib/pglite";
@@ -15,8 +16,9 @@ export const TEST_USER_ID = "test-user";
 export async function createTestDb() {
   const db = await PGlite.create();
   setPgliteInstance(db);
-  resetCollectionsForDb();
+  resetMigrationsPromise();
   await runMigrations(db);
+  resetCollectionsForDb();
   await preloadCoreCollections();
   await seedTestUser();
   return db;
@@ -30,6 +32,13 @@ async function seedTestUser() {
       username: "testuser",
       createdAt: new Date(),
       updatedAt: new Date(),
+    });
+  }
+
+  const rootNode = nodesCollection.state.get("root");
+  if (rootNode && rootNode.userId !== TEST_USER_ID) {
+    nodesCollection.update("root", (draft) => {
+      draft.userId = TEST_USER_ID;
     });
   }
 }

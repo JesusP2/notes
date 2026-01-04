@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createTestDb, reloadCollectionsFromDb } from "@/test/helpers";
+import { edgesCollection } from "@/lib/collections";
+import { createTestDb, insertTestEdge, insertTestNode, TEST_USER_ID } from "@/test/helpers";
 import {
   extractEmbeds,
   extractWikiLinks,
@@ -50,114 +51,84 @@ describe("renderWikiLinks", () => {
 
 describe("syncWikiLinks", () => {
   it("creates references edges for resolved wiki-links", async () => {
-    const db = await createTestDb();
+    await createTestDb();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Source Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-2", "note", "Target Note"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
+    insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
 
     await syncWikiLinks({
       noteId: "note-1",
-      userId: "local",
+      userId: TEST_USER_ID,
       content: "Links to [[Target Note]].",
     });
 
-    const edges = await db.query<{ target_id: string }>(
-      "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'references'",
-      ["note-1"],
+    const edges = Array.from(edgesCollection.state.values()).filter(
+      (e) => e.sourceId === "note-1" && e.type === "references",
     );
 
-    expect(edges.rows).toHaveLength(1);
-    expect(edges.rows[0]?.target_id).toBe("note-2");
+    expect(edges).toHaveLength(1);
+    expect(edges[0]?.targetId).toBe("note-2");
   });
 
   it("removes references edges for deleted wiki-links", async () => {
-    const db = await createTestDb();
+    await createTestDb();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Source Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-2", "note", "Target Note"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-1", "note-1", "note-2", "references"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
+    insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
+    insertTestEdge({
+      id: "edge-1",
+      sourceId: "note-1",
+      targetId: "note-2",
+      type: "references",
+    });
 
-    await syncWikiLinks({ noteId: "note-1", userId: "local", content: "No links here." });
+    await syncWikiLinks({ noteId: "note-1", userId: TEST_USER_ID, content: "No links here." });
 
-    const edges = await db.query(
-      "SELECT id FROM edges WHERE source_id = $1 AND type = 'references'",
-      ["note-1"],
+    const edges = Array.from(edgesCollection.state.values()).filter(
+      (e) => e.sourceId === "note-1" && e.type === "references",
     );
 
-    expect(edges.rows).toHaveLength(0);
+    expect(edges).toHaveLength(0);
   });
 
   it("does not create reference edges for embeds", async () => {
-    const db = await createTestDb();
+    await createTestDb();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Source Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-2", "note", "Target Note"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
+    insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
 
     await syncWikiLinks({
       noteId: "note-1",
-      userId: "local",
+      userId: TEST_USER_ID,
       content: "Embed ![[Target Note]].",
     });
 
-    const edges = await db.query<{ target_id: string }>(
-      "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'references'",
-      ["note-1"],
+    const edges = Array.from(edgesCollection.state.values()).filter(
+      (e) => e.sourceId === "note-1" && e.type === "references",
     );
 
-    expect(edges.rows).toHaveLength(0);
+    expect(edges).toHaveLength(0);
   });
 });
 
 describe("syncEmbeds", () => {
   it("creates embeds edges for embedded notes", async () => {
-    const db = await createTestDb();
+    await createTestDb();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Source Note"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-2", "note", "Target Note"],
-    );
-    await reloadCollectionsFromDb();
+    insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
+    insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
 
     await syncEmbeds({
       noteId: "note-1",
-      userId: "local",
+      userId: TEST_USER_ID,
       content: "Embed ![[Target Note]].",
     });
 
-    const edges = await db.query<{ target_id: string }>(
-      "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'embeds'",
-      ["note-1"],
+    const edges = Array.from(edgesCollection.state.values()).filter(
+      (e) => e.sourceId === "note-1" && e.type === "embeds",
     );
 
-    expect(edges.rows).toHaveLength(1);
-    expect(edges.rows[0]?.target_id).toBe("note-2");
+    expect(edges).toHaveLength(1);
+    expect(edges[0]?.targetId).toBe("note-2");
   });
 });

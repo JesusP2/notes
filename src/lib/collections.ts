@@ -140,94 +140,46 @@ function createCollections(db: DrizzleDb, pglite: PGlite) {
 
 type Collections = ReturnType<typeof createCollections>;
 
-let collections: Collections | null = null;
+let collections = createCollections(drizzleInstance, pgliteInstance);
 
-function getOrCreateCollections(): Collections {
-  if (!collections) {
-    collections = createCollections(drizzleInstance, pgliteInstance);
-  }
-  return collections;
+export let usersCollection = collections.usersCollection;
+export let nodesCollection = collections.nodesCollection;
+export let edgesCollection = collections.edgesCollection;
+export let edgeMetadataCollection = collections.edgeMetadataCollection;
+export let userSettingsCollection = collections.userSettingsCollection;
+export let userNodePrefsCollection = collections.userNodePrefsCollection;
+export let templatesMetaCollection = collections.templatesMetaCollection;
+export let nodeVersionsCollection = collections.nodeVersionsCollection;
+export let tasksCollection = collections.tasksCollection;
+export let todosCollection = collections.todosCollection;
+export let canvasScenesCollection = collections.canvasScenesCollection;
+export let canvasLinksCollection = collections.canvasLinksCollection;
+
+function applyCollections(next: Collections) {
+  usersCollection = next.usersCollection;
+  nodesCollection = next.nodesCollection;
+  edgesCollection = next.edgesCollection;
+  edgeMetadataCollection = next.edgeMetadataCollection;
+  userSettingsCollection = next.userSettingsCollection;
+  userNodePrefsCollection = next.userNodePrefsCollection;
+  templatesMetaCollection = next.templatesMetaCollection;
+  nodeVersionsCollection = next.nodeVersionsCollection;
+  tasksCollection = next.tasksCollection;
+  todosCollection = next.todosCollection;
+  canvasScenesCollection = next.canvasScenesCollection;
+  canvasLinksCollection = next.canvasLinksCollection;
 }
-
-// Lazy getters - collections are only created when first accessed
-export const usersCollection = new Proxy({} as Collections["usersCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().usersCollection, prop);
-  },
-});
-
-export const nodesCollection = new Proxy({} as Collections["nodesCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().nodesCollection, prop);
-  },
-});
-
-export const edgesCollection = new Proxy({} as Collections["edgesCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().edgesCollection, prop);
-  },
-});
-
-export const edgeMetadataCollection = new Proxy({} as Collections["edgeMetadataCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().edgeMetadataCollection, prop);
-  },
-});
-
-export const userSettingsCollection = new Proxy({} as Collections["userSettingsCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().userSettingsCollection, prop);
-  },
-});
-
-export const userNodePrefsCollection = new Proxy({} as Collections["userNodePrefsCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().userNodePrefsCollection, prop);
-  },
-});
-
-export const templatesMetaCollection = new Proxy({} as Collections["templatesMetaCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().templatesMetaCollection, prop);
-  },
-});
-
-export const nodeVersionsCollection = new Proxy({} as Collections["nodeVersionsCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().nodeVersionsCollection, prop);
-  },
-});
-
-export const tasksCollection = new Proxy({} as Collections["tasksCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().tasksCollection, prop);
-  },
-});
-
-export const todosCollection = new Proxy({} as Collections["todosCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().todosCollection, prop);
-  },
-});
-
-export const canvasScenesCollection = new Proxy({} as Collections["canvasScenesCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().canvasScenesCollection, prop);
-  },
-});
-
-export const canvasLinksCollection = new Proxy({} as Collections["canvasLinksCollection"], {
-  get(_target, prop) {
-    return Reflect.get(getOrCreateCollections().canvasLinksCollection, prop);
-  },
-});
 
 export function resetCollectionsForDb(
   db: DrizzleDb = drizzleInstance,
   pglite: PGlite = pgliteInstance,
 ) {
-  migrationsPromise = null;
   collections = createCollections(db, pglite);
+  applyCollections(collections);
+}
+
+export function resetMigrationsPromise() {
+  migrationsPromise = null;
 }
 
 export async function preloadCoreCollections() {

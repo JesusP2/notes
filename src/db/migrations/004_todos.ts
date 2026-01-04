@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 
 export const migration = {
   version: 4,
-  name: "todos_table",
+  name: "todos",
   up: async (db: PGlite) => {
     await db.exec(`
       CREATE TABLE IF NOT EXISTS todos (
