@@ -51,8 +51,8 @@ export const COMMANDS: CommandDefinition[] = [
   },
   {
     id: "new-tag",
-    title: "New Tag",
-    description: "Create a new tag",
+    title: "New Folder",
+    description: "Create a new folder",
     icon: Tag,
     shortcut: SHORTCUTS.NEW_TAG,
     keywords: ["create", "add", "tag", "category", "folder"],

@@ -9,7 +9,7 @@ import {
   Pin,
   SearchIcon,
   Settings,
-  Tag,
+  Folder,
 } from "lucide-react";
 import type { FocusEvent } from "react";
 import { TagTree } from "@/components/tree/tag-tree";
@@ -68,7 +68,7 @@ export function AppSidebar() {
   };
 
   const handleCreateTag = () => {
-    createTag("New Tag", ROOT_TAG_ID);
+    createTag("New Folder", ROOT_TAG_ID);
   };
 
   const handleCreateCanvas = () => {
@@ -148,8 +148,8 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleCreateTag} type="button">
-              <Tag />
-              <span>New Tag</span>
+              <Folder />
+              <span>New Folder</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

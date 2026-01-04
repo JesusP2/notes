@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Download, History, Info, Plus, Printer, Tag, X } from "lucide-react";
+import { Download, History, Info, Plus, Printer, Folder, X } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -144,7 +144,7 @@ export function NoteDetailsDialog({
                   {noteTags.map((tag) => (
                     <div key={tag.id} className="flex items-center justify-between text-xs group">
                       <span className="flex items-center gap-1.5">
-                        <Tag className="size-3 text-muted-foreground" />
+                        <Folder className="size-3 text-muted-foreground" />
                         {tag.title}
                       </span>
                       {noteTags.length > 0 && (
@@ -193,7 +193,7 @@ export function NoteDetailsDialog({
                             "hover:bg-muted focus:bg-muted outline-none",
                           )}
                         >
-                          <Tag className="size-3 text-muted-foreground" />
+                          <Folder className="size-3 text-muted-foreground" />
                           {tag.title}
                         </button>
                       ))}

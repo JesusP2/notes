@@ -5,7 +5,7 @@ import {
   Pencil,
   PenTool,
   Pin,
-  Tag,
+  Folder,
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -146,7 +146,7 @@ function TreeBranch({
 
   const handleCreateTag = (parentTagId: string) => {
     onExpandTag(parentTagId);
-    createTag("New Tag", parentTagId);
+    createTag("New Folder", parentTagId);
   };
 
   const handleCreateCanvas = (tagId: string) => {
@@ -235,8 +235,8 @@ function TreeBranch({
                       New Canvas
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleCreateTag(child.id)}>
-                      <Tag className="mr-2 size-4" />
-                      New Tag
+                      <Folder className="mr-2 size-4" />
+                      New Folder
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                   </>

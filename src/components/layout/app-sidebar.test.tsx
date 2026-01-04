@@ -63,11 +63,11 @@ describe("AppSidebar", () => {
 
     render(<AppSidebar />, { wrapper: Wrapper });
 
-    fireEvent.click(screen.getByRole("button", { name: "New Tag" }));
+    fireEvent.click(screen.getByRole("button", { name: "New Folder" }));
 
     await waitFor(() => {
       const nodes = Array.from(nodesCollection.state.values());
-      const newTag = nodes.find((n) => n.type === "tag" && n.title === "New Tag");
+      const newTag = nodes.find((n) => n.type === "tag" && n.title === "New Folder");
       expect(newTag).toBeTruthy();
     });
   });

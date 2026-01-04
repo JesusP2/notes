@@ -1,4 +1,4 @@
-import { Plus, Tag, X } from "lucide-react";
+import { Folder, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export function NoteTags({ noteId }: NoteTagsProps) {
     <div className="flex flex-wrap items-center gap-1.5">
       {noteTags.map((tag) => (
         <Badge key={tag.id} variant="secondary" className="gap-1 pr-1">
-          <Tag className="size-3" />
+          <Folder className="size-3" />
           {tag.title}
           {noteTags.length > 0 && (
             <button
@@ -82,7 +82,7 @@ export function NoteTags({ noteId }: NoteTagsProps) {
                     "hover:bg-muted focus:bg-muted outline-none",
                   )}
                 >
-                  <Tag className="size-3 text-muted-foreground" />
+                  <Folder className="size-3 text-muted-foreground" />
                   {tag.title}
                 </button>
               ))}

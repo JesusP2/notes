@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, Link2, PenTool, Tag } from "lucide-react";
+import { ChevronRight, FileText, Folder, Link2, PenTool } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { NotePreviewCard } from "@/components/notes/note-preview-card";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -24,7 +24,7 @@ interface TreeNodeProps {
 function nodeIcon(type: Node["type"]) {
   switch (type) {
     case "tag":
-      return <Tag className="size-3.5" />;
+      return <Folder className="size-3.5" />;
     case "canvas":
       return <PenTool className="size-3.5" />;
     default:

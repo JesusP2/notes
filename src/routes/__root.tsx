@@ -49,7 +49,7 @@ function RootDocument() {
             <Outlet />
           </ConfirmDialogProvider>
         </AuthProvider>
-        <TanStackRouterDevtools position="bottom-left" />
+        <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
       </body>
     </html>

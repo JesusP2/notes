@@ -86,7 +86,7 @@ function MainLayoutShell() {
   };
 
   const handleCreateTag = () => {
-    createTag("New Tag", ROOT_TAG_ID);
+    createTag("New Folder", ROOT_TAG_ID);
   };
 
   const handleShowShortcuts = () => {
