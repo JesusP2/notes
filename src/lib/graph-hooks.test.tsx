@@ -3,7 +3,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
-import { createTestDb } from "@/test/helpers";
+import { edgesCollection, nodesCollection } from "@/lib/collections";
+import { createTestDb, insertTestEdge, insertTestNode } from "@/test/helpers";
 import {
   useEdgeMutations,
   useTagChildren,
@@ -36,36 +37,28 @@ describe("useTagChildren", () => {
   });
 
   it("returns direct children only and sorts tags before notes", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useTagChildren("root"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-z", "tag", "Zoo"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-a", "note", "Alpha"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-nested", "note", "Nested"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-root-tag", "tag-z", "root", "part_of"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-root-note", "note-a", "root", "tagged_with"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-tag-note", "note-nested", "tag-z", "tagged_with"],
-      );
+      insertTestNode({ id: "tag-z", type: "tag", title: "Zoo" });
+      insertTestNode({ id: "note-a", type: "note", title: "Alpha" });
+      insertTestNode({ id: "note-nested", type: "note", title: "Nested" });
+      insertTestEdge({ id: "edge-root-tag", sourceId: "tag-z", targetId: "root", type: "part_of" });
+      insertTestEdge({
+        id: "edge-root-note",
+        sourceId: "note-a",
+        targetId: "root",
+        type: "tagged_with",
+      });
+      insertTestEdge({
+        id: "edge-tag-note",
+        sourceId: "note-nested",
+        targetId: "tag-z",
+        type: "tagged_with",
+      });
 
       await waitFor(() => expect(result.current).toHaveLength(2));
       expect(result.current.map((node) => node.id)).toEqual(["tag-z", "note-a"]);
@@ -75,24 +68,23 @@ describe("useTagChildren", () => {
   });
 
   it("updates when a child is added and removed", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useTagChildren("root"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "First"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "root", "tagged_with"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "First" });
+      insertTestEdge({
+        id: "edge-1",
+        sourceId: "note-1",
+        targetId: "root",
+        type: "tagged_with",
+      });
 
       await waitFor(() => expect(result.current).toHaveLength(1));
 
-      await db.query("DELETE FROM nodes WHERE id = $1", ["note-1"]);
+      nodesCollection.delete("note-1");
       await waitFor(() => expect(result.current).toHaveLength(0));
     } finally {
       unmount();
@@ -102,7 +94,7 @@ describe("useTagChildren", () => {
 
 describe("useNodeById", () => {
   it("returns null until the node exists", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeById("note-1"), {
       wrapper: createWrapper(),
     });
@@ -110,10 +102,7 @@ describe("useNodeById", () => {
     try {
       expect(result.current).toBeNull();
 
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "First Note"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "First Note" });
 
       await waitFor(() => expect(result.current?.id).toBe("note-1"));
     } finally {
@@ -122,20 +111,17 @@ describe("useNodeById", () => {
   });
 
   it("returns null after the node is deleted", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeById("note-1"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Temp Note"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Temp Note" });
 
       await waitFor(() => expect(result.current?.id).toBe("note-1"));
 
-      await db.query("DELETE FROM nodes WHERE id = $1", ["note-1"]);
+      nodesCollection.delete("note-1");
 
       await waitFor(() => expect(result.current).toBeNull());
     } finally {
@@ -146,32 +132,27 @@ describe("useNodeById", () => {
 
 describe("useNodeEdges", () => {
   it("returns incoming and outgoing edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeEdges("note-1"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Note 2"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-3", "note", "Note 3"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-out", "note-1", "note-2", "references"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-in", "note-3", "note-1", "supports"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestNode({ id: "note-2", type: "note", title: "Note 2" });
+      insertTestNode({ id: "note-3", type: "note", title: "Note 3" });
+      insertTestEdge({
+        id: "edge-out",
+        sourceId: "note-1",
+        targetId: "note-2",
+        type: "references",
+      });
+      insertTestEdge({
+        id: "edge-in",
+        sourceId: "note-3",
+        targetId: "note-1",
+        type: "supports",
+      });
 
       await waitFor(() => expect(result.current.outgoing).toHaveLength(1));
       await waitFor(() => expect(result.current.incoming).toHaveLength(1));
@@ -184,16 +165,13 @@ describe("useNodeEdges", () => {
   });
 
   it("returns empty arrays for a node with no edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeEdges("note-1"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Solo Note"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Solo Note" });
 
       await waitFor(() => expect(result.current.outgoing).toHaveLength(0));
       await waitFor(() => expect(result.current.incoming).toHaveLength(0));
@@ -205,24 +183,15 @@ describe("useNodeEdges", () => {
 
 describe("useTags", () => {
   it("returns tags sorted by title", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useTags(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-b", "tag", "beta"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-a", "tag", "Alpha"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
+      insertTestNode({ id: "tag-b", type: "tag", title: "beta" });
+      insertTestNode({ id: "tag-a", type: "tag", title: "Alpha" });
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
 
       await waitFor(() => expect(result.current).toHaveLength(3));
       expect(result.current.map((tag) => tag.title)).toEqual(["#root", "Alpha", "beta"]);
@@ -234,7 +203,7 @@ describe("useTags", () => {
 
 describe("useSearchNodes", () => {
   it("returns matching nodes by title and content", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, rerender, unmount } = renderHook(
       ({ query }: { query: string }) => useSearchNodes(query),
       {
@@ -246,14 +215,8 @@ describe("useSearchNodes", () => {
     try {
       expect(result.current).toEqual([]);
 
-      await db.query(
-        "INSERT INTO nodes (id, type, title, content, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Alpha Note", "Zebra content"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, content, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Beta Note", "Alpha mention"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Alpha Note", content: "Zebra content" });
+      insertTestNode({ id: "note-2", type: "note", title: "Beta Note", content: "Alpha mention" });
 
       rerender({ query: "alpha" });
 
@@ -278,20 +241,28 @@ describe("useSearchNodes", () => {
   });
 
   it("orders results by updated_at descending", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useSearchNodes("note"), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, content, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)",
-        ["note-old", "note", "Note Old", "note", "2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, content, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)",
-        ["note-new", "note", "Note New", "note", "2020-01-02T00:00:00Z", "2020-01-02T00:00:00Z"],
-      );
+      insertTestNode({
+        id: "note-old",
+        type: "note",
+        title: "Note Old",
+        content: "note",
+        createdAt: new Date("2020-01-01T00:00:00Z"),
+        updatedAt: new Date("2020-01-01T00:00:00Z"),
+      });
+      insertTestNode({
+        id: "note-new",
+        type: "note",
+        title: "Note New",
+        content: "note",
+        createdAt: new Date("2020-01-02T00:00:00Z"),
+        updatedAt: new Date("2020-01-02T00:00:00Z"),
+      });
 
       await waitFor(() => expect(result.current).toHaveLength(2));
       expect(result.current[0]?.id).toBe("note-new");
@@ -304,20 +275,19 @@ describe("useSearchNodes", () => {
 
 describe("useGraphData", () => {
   it("returns nodes and edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useGraphData(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Graph Note"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-graph", "note-1", "root", "tagged_with"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Graph Note" });
+      insertTestEdge({
+        id: "edge-graph",
+        sourceId: "note-1",
+        targetId: "root",
+        type: "tagged_with",
+      });
 
       await waitFor(() => expect(result.current.nodes.map((node) => node.id)).toContain("note-1"));
       await waitFor(() =>
@@ -344,127 +314,99 @@ describe("useGraphData", () => {
 
 describe("useEdgeMutations", () => {
   it("createEdge inserts an edge row", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Note 2"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestNode({ id: "note-2", type: "note", title: "Note 2" });
 
       let edgeId = "";
       await act(async () => {
-        const created = await result.current.createEdge("note-1", "note-2", "references");
+        const created = result.current.createEdge("note-1", "note-2", "references");
         edgeId = created.id;
       });
 
-      const edges = await db.query("SELECT source_id, target_id, type FROM edges WHERE id = $1", [
-        edgeId,
-      ]);
-      expect(edges.rows[0]).toEqual({
-        source_id: "note-1",
-        target_id: "note-2",
-        type: "references",
-      });
+      const edge = edgesCollection.state.get(edgeId);
+      expect(edge).toBeTruthy();
+      expect(edge?.sourceId).toBe("note-1");
+      expect(edge?.targetId).toBe("note-2");
+      expect(edge?.type).toBe("references");
     } finally {
       unmount();
     }
   });
 
   it("changeEdgeType updates the edge type", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Note 2"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "note-2", "references"],
-      );
-
-      await act(async () => {
-        await result.current.changeEdgeType("edge-1", "supports");
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestNode({ id: "note-2", type: "note", title: "Note 2" });
+      insertTestEdge({
+        id: "edge-1",
+        sourceId: "note-1",
+        targetId: "note-2",
+        type: "references",
       });
 
-      const edges = await db.query<{ type: string }>("SELECT type FROM edges WHERE id = $1", [
-        "edge-1",
-      ]);
-      expect(edges.rows[0]?.type).toBe("supports");
+      act(() => {
+        result.current.changeEdgeType("edge-1", "supports");
+      });
+
+      const edge = edgesCollection.state.get("edge-1");
+      expect(edge?.type).toBe("supports");
     } finally {
       unmount();
     }
   });
 
   it("deleteEdge removes the edge row", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Note 2"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "note-2", "references"],
-      );
-
-      await act(async () => {
-        await result.current.deleteEdge("edge-1");
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestNode({ id: "note-2", type: "note", title: "Note 2" });
+      insertTestEdge({
+        id: "edge-1",
+        sourceId: "note-1",
+        targetId: "note-2",
+        type: "references",
       });
 
-      const edges = await db.query("SELECT id FROM edges WHERE id = $1", ["edge-1"]);
-      expect(edges.rows).toHaveLength(0);
+      act(() => {
+        result.current.deleteEdge("edge-1");
+      });
+
+      expect(edgesCollection.state.get("edge-1")).toBeUndefined();
     } finally {
       unmount();
     }
   });
 
   it("createEdge rejects duplicate edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useEdgeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-2", "note", "Note 2"],
-      );
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestNode({ id: "note-2", type: "note", title: "Note 2" });
 
-      await act(async () => {
-        await result.current.createEdge("note-1", "note-2", "references");
+      act(() => {
+        result.current.createEdge("note-1", "note-2", "references");
       });
 
-      await expect(
-        result.current.createEdge("note-1", "note-2", "references"),
-      ).rejects.toBeTruthy();
+      expect(() => result.current.createEdge("note-1", "note-2", "references")).toThrow();
     } finally {
       unmount();
     }
@@ -473,271 +415,227 @@ describe("useEdgeMutations", () => {
 
 describe("useNodeMutations", () => {
   it("createNote creates a node and tagged_with edge", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
       let createdId = "";
-      await act(async () => {
-        const created = await result.current.createNote("New Note", "root");
+      act(() => {
+        const created = result.current.createNote("New Note", "root");
         createdId = created.id;
       });
 
-      const nodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [createdId]);
-      const edges = await db.query(
-        "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
-        [createdId],
-      );
+      const node = nodesCollection.state.get(createdId);
+      expect(node).toBeTruthy();
+      expect(node?.type).toBe("note");
+      expect(node?.title).toBe("New Note");
 
-      expect(nodes.rows[0]).toEqual({
-        id: createdId,
-        type: "note",
-        title: "New Note",
-      });
-      expect(edges.rows[0]).toEqual({
-        source_id: createdId,
-        target_id: "root",
-        type: "tagged_with",
-      });
+      const edges = Array.from(edgesCollection.state.values()).filter(
+        (e) => e.sourceId === createdId,
+      );
+      expect(edges).toHaveLength(1);
+      expect(edges[0]?.targetId).toBe("root");
+      expect(edges[0]?.type).toBe("tagged_with");
     } finally {
       unmount();
     }
   });
 
   it("deleteNode removes a note and all its edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-1", "tag", "Tag 1"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-2", "tag", "Tag 2"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Note 1"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "note-1", "tag-1", "tagged_with"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-2", "note-1", "tag-2", "tagged_with"],
-      );
-
-      await act(async () => {
-        await result.current.deleteNode("note-1");
+      insertTestNode({ id: "tag-1", type: "tag", title: "Tag 1" });
+      insertTestNode({ id: "tag-2", type: "tag", title: "Tag 2" });
+      insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+      insertTestEdge({
+        id: "edge-1",
+        sourceId: "note-1",
+        targetId: "tag-1",
+        type: "tagged_with",
+      });
+      insertTestEdge({
+        id: "edge-2",
+        sourceId: "note-1",
+        targetId: "tag-2",
+        type: "tagged_with",
       });
 
-      const nodes = await db.query("SELECT id FROM nodes WHERE id = $1", ["note-1"]);
-      const edges = await db.query("SELECT id FROM edges WHERE source_id = $1", ["note-1"]);
+      act(() => {
+        result.current.deleteNode("note-1");
+      });
 
-      expect(nodes.rows).toHaveLength(0);
-      expect(edges.rows).toHaveLength(0);
+      expect(nodesCollection.state.get("note-1")).toBeUndefined();
+      expect(edgesCollection.state.get("edge-1")).toBeUndefined();
+      expect(edgesCollection.state.get("edge-2")).toBeUndefined();
     } finally {
       unmount();
     }
   });
 
   it("createTag creates a tag node with a parent edge", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
       let childTagId = "";
-      await act(async () => {
-        const created = await result.current.createTag("Child Tag", "root");
+      act(() => {
+        const created = result.current.createTag("Child Tag", "root");
         childTagId = created.id;
       });
 
-      const childNodes = await db.query("SELECT id, type, title FROM nodes WHERE id = $1", [
-        childTagId,
-      ]);
-      const childEdges = await db.query(
-        "SELECT source_id, target_id, type FROM edges WHERE source_id = $1",
-        [childTagId],
-      );
+      const node = nodesCollection.state.get(childTagId);
+      expect(node).toBeTruthy();
+      expect(node?.type).toBe("tag");
+      expect(node?.title).toBe("Child Tag");
 
-      expect(childNodes.rows[0]).toEqual({ id: childTagId, type: "tag", title: "Child Tag" });
-      expect(childEdges.rows[0]).toEqual({
-        source_id: childTagId,
-        target_id: "root",
-        type: "part_of",
-      });
+      const edges = Array.from(edgesCollection.state.values()).filter(
+        (e) => e.sourceId === childTagId,
+      );
+      expect(edges).toHaveLength(1);
+      expect(edges[0]?.targetId).toBe("root");
+      expect(edges[0]?.type).toBe("part_of");
     } finally {
       unmount();
     }
   });
 
   it("updateNode updates provided fields", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, content, color, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["note-1", "note", "Old", "Old content", "red"],
-      );
+      insertTestNode({
+        id: "note-1",
+        type: "note",
+        title: "Old",
+        content: "Old content",
+        color: "red",
+      });
 
-      await act(async () => {
-        await result.current.updateNode("note-1", {
+      act(() => {
+        result.current.updateNode("note-1", {
           title: "New",
           content: "New content",
           color: "blue",
         });
       });
 
-      const nodes = await db.query("SELECT title, content, color FROM nodes WHERE id = $1", [
-        "note-1",
-      ]);
-
-      expect(nodes.rows[0]).toEqual({
-        title: "New",
-        content: "New content",
-        color: "blue",
-      });
+      const node = nodesCollection.state.get("note-1");
+      expect(node?.title).toBe("New");
+      expect(node?.content).toBe("New content");
+      expect(node?.color).toBe("blue");
     } finally {
       unmount();
     }
   });
 
   it("moveTag replaces part_of edge", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-a", "tag", "Tag A"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-b", "tag", "Tag B"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-move", "tag", "Tag Move"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-1", "tag-move", "tag-a", "part_of"],
-      );
-
-      await act(async () => {
-        await result.current.moveTag("tag-move", "tag-b");
+      insertTestNode({ id: "tag-a", type: "tag", title: "Tag A" });
+      insertTestNode({ id: "tag-b", type: "tag", title: "Tag B" });
+      insertTestNode({ id: "tag-move", type: "tag", title: "Tag Move" });
+      insertTestEdge({
+        id: "edge-1",
+        sourceId: "tag-move",
+        targetId: "tag-a",
+        type: "part_of",
       });
 
-      const edges = await db.query<{ target_id: string }>(
-        "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
-        ["tag-move"],
-      );
+      act(() => {
+        result.current.moveTag("tag-move", "tag-b");
+      });
 
-      expect(edges.rows).toHaveLength(1);
-      expect(edges.rows[0]?.target_id).toBe("tag-b");
+      const edges = Array.from(edgesCollection.state.values()).filter(
+        (e) => e.sourceId === "tag-move" && e.type === "part_of",
+      );
+      expect(edges).toHaveLength(1);
+      expect(edges[0]?.targetId).toBe("tag-b");
     } finally {
       unmount();
     }
   });
 
   it("moveTag replaces the part_of edge without affecting other edges", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-a", "tag", "Tag A"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-b", "tag", "Tag B"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-c", "tag", "Tag C"],
-      );
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        ["tag-move", "tag", "Tag Move"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-a", "tag-move", "tag-a", "part_of"],
-      );
-      await db.query(
-        "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-        ["edge-b", "tag-move", "tag-b", "related_to"],
-      );
-
-      await act(async () => {
-        await result.current.moveTag("tag-move", "tag-c");
+      insertTestNode({ id: "tag-a", type: "tag", title: "Tag A" });
+      insertTestNode({ id: "tag-b", type: "tag", title: "Tag B" });
+      insertTestNode({ id: "tag-c", type: "tag", title: "Tag C" });
+      insertTestNode({ id: "tag-move", type: "tag", title: "Tag Move" });
+      insertTestEdge({
+        id: "edge-a",
+        sourceId: "tag-move",
+        targetId: "tag-a",
+        type: "part_of",
+      });
+      insertTestEdge({
+        id: "edge-b",
+        sourceId: "tag-move",
+        targetId: "tag-b",
+        type: "related_to",
       });
 
-      const edges = await db.query<{ target_id: string }>(
-        "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'part_of'",
-        ["tag-move"],
-      );
+      act(() => {
+        result.current.moveTag("tag-move", "tag-c");
+      });
 
-      expect(edges.rows).toHaveLength(1);
-      expect(edges.rows[0]?.target_id).toBe("tag-c");
-
-      const relatedEdges = await db.query<{ target_id: string }>(
-        "SELECT target_id FROM edges WHERE source_id = $1 AND type = 'related_to'",
-        ["tag-move"],
+      const partOfEdges = Array.from(edgesCollection.state.values()).filter(
+        (e) => e.sourceId === "tag-move" && e.type === "part_of",
       );
-      expect(relatedEdges.rows).toHaveLength(1);
-      expect(relatedEdges.rows[0]?.target_id).toBe("tag-b");
+      expect(partOfEdges).toHaveLength(1);
+      expect(partOfEdges[0]?.targetId).toBe("tag-c");
+
+      const relatedEdges = Array.from(edgesCollection.state.values()).filter(
+        (e) => e.sourceId === "tag-move" && e.type === "related_to",
+      );
+      expect(relatedEdges).toHaveLength(1);
+      expect(relatedEdges[0]?.targetId).toBe("tag-b");
     } finally {
       unmount();
     }
   });
 
   it("updateNode applies a provided updatedAt", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const { result, unmount } = renderHook(() => useNodeMutations(), {
       wrapper: createWrapper(),
     });
 
     try {
-      await db.query(
-        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)",
-        ["note-1", "note", "Note 1", "2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z"],
-      );
-
-      const updatedAt = new Date("2020-01-05T12:00:00Z");
-      await act(async () => {
-        await result.current.updateNode("note-1", { updatedAt });
+      insertTestNode({
+        id: "note-1",
+        type: "note",
+        title: "Note 1",
+        createdAt: new Date("2020-01-01T00:00:00Z"),
+        updatedAt: new Date("2020-01-01T00:00:00Z"),
       });
 
-      const nodes = await db.query<{ updated_at: string | Date }>(
-        "SELECT updated_at FROM nodes WHERE id = $1",
-        ["note-1"],
-      );
+      const updatedAt = new Date("2020-01-05T12:00:00Z");
+      act(() => {
+        result.current.updateNode("note-1", { updatedAt });
+      });
 
-      const rawUpdatedAt = nodes.rows[0]?.updated_at;
-      const datePrefix =
-        rawUpdatedAt instanceof Date
-          ? rawUpdatedAt.toISOString().slice(0, 10)
-          : String(rawUpdatedAt ?? "").slice(0, 10);
-
-      expect(datePrefix).toBe(updatedAt.toISOString().slice(0, 10));
+      const node = nodesCollection.state.get("note-1");
+      expect(node?.updatedAt.toISOString().slice(0, 10)).toBe(updatedAt.toISOString().slice(0, 10));
     } finally {
       unmount();
     }

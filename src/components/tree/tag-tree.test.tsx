@@ -3,7 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { createTestDb } from "@/test/helpers";
+import { createTestDb, insertTestEdge, insertTestNode } from "@/test/helpers";
 import { TagTree } from "./tag-tree";
 
 function createWrapper() {
@@ -14,25 +14,13 @@ function createWrapper() {
 
 describe("TagTree", () => {
   it("renders root children without showing root itself", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-1", "tag", "Tag 1"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Note 1"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-tag", "tag-1", "root", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "root", "tagged_with"],
-    );
+    insertTestNode({ id: "tag-1", type: "tag", title: "Tag 1" });
+    insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+    insertTestEdge({ id: "edge-tag", sourceId: "tag-1", targetId: "root", type: "part_of" });
+    insertTestEdge({ id: "edge-note", sourceId: "note-1", targetId: "root", type: "tagged_with" });
 
     render(<TagTree />, { wrapper: Wrapper });
 
@@ -42,25 +30,13 @@ describe("TagTree", () => {
   });
 
   it("expands and collapses tags", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-1", "tag", "Tag 1"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Nested Note"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-tag", "tag-1", "root", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "tag-1", "tagged_with"],
-    );
+    insertTestNode({ id: "tag-1", type: "tag", title: "Tag 1" });
+    insertTestNode({ id: "note-1", type: "note", title: "Nested Note" });
+    insertTestEdge({ id: "edge-tag", sourceId: "tag-1", targetId: "root", type: "part_of" });
+    insertTestEdge({ id: "edge-note", sourceId: "note-1", targetId: "tag-1", type: "tagged_with" });
 
     render(<TagTree />, { wrapper: Wrapper });
 
@@ -75,37 +51,16 @@ describe("TagTree", () => {
   });
 
   it("shows notes in multiple tags with an indicator", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-a", "tag", "Tag A"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["tag-b", "tag", "Tag B"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-shared", "note", "Shared Note"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-root-a", "tag-a", "root", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-root-b", "tag-b", "root", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-a", "note-shared", "tag-a", "tagged_with"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-b", "note-shared", "tag-b", "tagged_with"],
-    );
+    insertTestNode({ id: "tag-a", type: "tag", title: "Tag A" });
+    insertTestNode({ id: "tag-b", type: "tag", title: "Tag B" });
+    insertTestNode({ id: "note-shared", type: "note", title: "Shared Note" });
+    insertTestEdge({ id: "edge-root-a", sourceId: "tag-a", targetId: "root", type: "part_of" });
+    insertTestEdge({ id: "edge-root-b", sourceId: "tag-b", targetId: "root", type: "part_of" });
+    insertTestEdge({ id: "edge-a", sourceId: "note-shared", targetId: "tag-a", type: "tagged_with" });
+    insertTestEdge({ id: "edge-b", sourceId: "note-shared", targetId: "tag-b", type: "tagged_with" });
 
     render(<TagTree />, { wrapper: Wrapper });
 
@@ -117,18 +72,12 @@ describe("TagTree", () => {
   });
 
   it("calls onSelectNode when a note is clicked", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
     const handleSelect = vi.fn();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Note 1"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "root", "tagged_with"],
-    );
+    insertTestNode({ id: "note-1", type: "note", title: "Note 1" });
+    insertTestEdge({ id: "edge-note", sourceId: "note-1", targetId: "root", type: "tagged_with" });
 
     render(<TagTree onSelectNode={handleSelect} />, { wrapper: Wrapper });
 
@@ -139,41 +88,21 @@ describe("TagTree", () => {
   });
 
   it("supports nested tags", async () => {
-    const db = await createTestDb();
+    await createTestDb();
     const Wrapper = createWrapper();
 
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["parent-tag", "tag", "Parent Tag"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["child-tag", "tag", "Child Tag"],
-    );
-    await db.query(
-      "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-      ["note-1", "note", "Nested Note"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-parent", "parent-tag", "root", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-child", "child-tag", "parent-tag", "part_of"],
-    );
-    await db.query(
-      "INSERT INTO edges (id, source_id, target_id, type, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
-      ["edge-note", "note-1", "child-tag", "tagged_with"],
-    );
+    insertTestNode({ id: "parent-tag", type: "tag", title: "Parent Tag" });
+    insertTestNode({ id: "child-tag", type: "tag", title: "Child Tag" });
+    insertTestNode({ id: "note-1", type: "note", title: "Nested Note" });
+    insertTestEdge({ id: "edge-parent", sourceId: "parent-tag", targetId: "root", type: "part_of" });
+    insertTestEdge({ id: "edge-child", sourceId: "child-tag", targetId: "parent-tag", type: "part_of" });
+    insertTestEdge({ id: "edge-note", sourceId: "note-1", targetId: "child-tag", type: "tagged_with" });
 
     render(<TagTree />, { wrapper: Wrapper });
 
-    // Expand parent tag
     fireEvent.click(await screen.findByLabelText("Toggle tag Parent Tag"));
     await waitFor(() => expect(screen.queryByText("Child Tag")).not.toBeNull());
 
-    // Expand child tag
     fireEvent.click(await screen.findByLabelText("Toggle tag Child Tag"));
     await waitFor(() => expect(screen.queryByText("Nested Note")).not.toBeNull());
   });
