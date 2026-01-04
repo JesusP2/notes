@@ -9,7 +9,7 @@ import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { syncEmbeds, syncWikiLinks } from "@/components/notes/wiki-link-plugin";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
-import { useAppSettings } from "@/components/providers/app-settings";
+
 import { useCurrentUserId } from "@/hooks/use-current-user";
 import { nodesCollection } from "@/lib/collections";
 import { useNodeMutations, useVersionMutations } from "@/lib/graph-hooks";
@@ -33,7 +33,6 @@ function NoteEditorPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-  const { vimEnabled } = useAppSettings();
   const userId = useCurrentUserId();
 
   const noteQuery = useLiveQuery(
@@ -121,7 +120,6 @@ function NoteEditorPage() {
               note={note}
               onChange={handleContentSave}
               saveNowRef={saveNowRef}
-              vimEnabled={vimEnabled}
               editorKey={editorKey}
             />
           )}
