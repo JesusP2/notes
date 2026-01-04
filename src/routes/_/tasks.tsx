@@ -15,7 +15,7 @@ function TasksPage() {
   const doneTasks = tasks.filter((task) => task.isDone);
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
+    <div className="relative flex h-full flex-col overflow-auto bg-background text-foreground">
       <div className="max-w-3xl mx-auto w-full px-8 py-6 space-y-6">
         <div className="flex items-center gap-2">
           <ClipboardList className="size-4 text-muted-foreground" />

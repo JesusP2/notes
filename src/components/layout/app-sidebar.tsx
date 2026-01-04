@@ -7,6 +7,7 @@ import {
   NotebookPen,
   PenTool,
   Pin,
+  PlusIcon,
   SearchIcon,
   Settings,
   Folder,
@@ -14,6 +15,12 @@ import {
 import type { FocusEvent } from "react";
 import { TagTree } from "@/components/tree/tag-tree";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -184,6 +191,25 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel>Notes</SidebarGroupLabel>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 right-3 w-5 rounded-none p-0 focus-visible:ring-2 [&>svg]:size-4 flex aspect-square items-center justify-center outline-hidden transition-transform [&>svg]:shrink-0 after:absolute after:-inset-2 md:after:hidden group-data-[collapsible=icon]:hidden"
+              title="Create new..."
+              aria-label="Create new..."
+            >
+              <PlusIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleCreateNote}>
+                <FilePlusIcon />
+                <span>New Note</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCreateTag}>
+                <Folder />
+                <span>New Folder</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <SidebarGroupContent>
             <TagTree onSelectNode={handleSelectNode} />
           </SidebarGroupContent>
@@ -197,7 +223,7 @@ export function AppSidebar() {
             type="button"
             aria-label="New Template"
           >
-            <FilePlusIcon />
+            <PlusIcon />
           </SidebarGroupAction>
           <SidebarGroupContent>
             {templates.length > 0 ? (
