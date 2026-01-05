@@ -20,6 +20,7 @@ const CustomTable = Table.extend({
               .chain()
               .focus()
               .insertContentAt(endPos + 1, { type: "paragraph" })
+              .scrollIntoView()
               .run();
           }
           depth--;
