@@ -12,6 +12,7 @@ interface TreeNodeProps {
   level: number;
   isExpanded?: boolean;
   isExpandable?: boolean;
+  isActive?: boolean;
   onToggle?: () => void;
   onSelect?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -37,6 +38,7 @@ export function TreeNode({
   level,
   isExpanded = false,
   isExpandable = false,
+  isActive = false,
   onToggle,
   onSelect,
   onContextMenu,
@@ -123,12 +125,15 @@ export function TreeNode({
         (() => {
           const button = (
             <button
-              className="hover:bg-muted flex flex-1 min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left"
+              className={cn(
+                "flex flex-1 min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left",
+                isActive ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              )}
               onClick={onSelect}
               onDoubleClick={handleDoubleClick}
               type="button"
             >
-              <span className="text-muted-foreground shrink-0">{nodeIcon(node.type)}</span>
+              <span className={cn("shrink-0", isActive ? "text-primary" : "text-muted-foreground")}>{nodeIcon(node.type)}</span>
               <span data-testid="tree-node-label" className="min-w-0 flex-1 truncate">
                 {node.title}
               </span>

@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   FilePlus,
   Info,
@@ -48,6 +48,7 @@ interface TreeBranchProps {
   onExpandTag: (id: string) => void;
   onSelectNode?: (node: Node) => void;
   pinnedIds: Set<string>;
+  activeNodeId: string | null;
   draggedNode: DraggedNode | null;
   setDraggedNode: (node: DraggedNode | null) => void;
   dragOverNode: string | null;
@@ -65,6 +66,7 @@ function TreeBranch({
   onExpandTag,
   onSelectNode,
   pinnedIds,
+  activeNodeId,
   draggedNode,
   setDraggedNode,
   dragOverNode,
@@ -211,6 +213,7 @@ function TreeBranch({
                 <TreeNode
                   isExpandable={isTag}
                   isExpanded={isExpanded}
+                  isActive={child.id === activeNodeId}
                   level={level}
                   node={child}
                   onSelect={() => onSelectNode?.(child)}
@@ -282,6 +285,7 @@ function TreeBranch({
                 onToggle={onToggle}
                 onExpandTag={onExpandTag}
                 pinnedIds={pinnedIds}
+                activeNodeId={activeNodeId}
                 parentId={child.id}
                 draggedNode={draggedNode}
                 setDraggedNode={setDraggedNode}
@@ -300,6 +304,8 @@ function TreeBranch({
 }
 
 export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
+  const params = useParams({ strict: false });
+  const activeNodeId = (params as { noteId?: string; canvasId?: string }).noteId ?? (params as { noteId?: string; canvasId?: string }).canvasId ?? null;
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
   const [draggedNode, setDraggedNode] = useState<DraggedNode | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
@@ -376,6 +382,7 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
           onToggle={toggle}
           onExpandTag={expandTag}
           pinnedIds={pinnedIds}
+          activeNodeId={activeNodeId}
           parentId={rootId}
           draggedNode={draggedNode}
           setDraggedNode={setDraggedNode}
