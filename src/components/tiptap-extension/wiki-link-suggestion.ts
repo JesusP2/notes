@@ -18,17 +18,22 @@ export function createWikiLinkSuggestion(
   options: WikiLinkSuggestionOptions
 ): Omit<SuggestionOptions<WikiLinkSuggestionItem>, "editor"> {
   return {
-    items: ({ query }): WikiLinkSuggestionItem[] => {
-      const notes = options.getNotes();
+    items: ({ query }: any) => {
+      const notes = (options as any).getNotes();
+
+      if (query.startsWith("/") && (options as any).allowSlash) {
+        return [];
+      }
+
       const queryLower = query.toLowerCase();
 
       return notes
         .filter(
-          (node) =>
+          (node: any) =>
             node.type === "note" && node.title.toLowerCase().includes(queryLower)
         )
         .slice(0, 10)
-        .map((note) => ({
+        .map((note: any) => ({
           noteId: note.id,
           title: note.title,
         }));

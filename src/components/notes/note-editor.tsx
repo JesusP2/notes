@@ -31,6 +31,15 @@ import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/imag
 import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
 import { WikiLinkNode } from "@/components/tiptap-extension/wiki-link-node";
 import { createWikiLinkSuggestion } from "@/components/tiptap-extension/wiki-link-suggestion";
+import { CalloutNode } from "@/components/tiptap-node/callout-node/callout-node-extension";
+import "@/components/tiptap-node/callout-node/callout-node.scss";
+import { tableExtensions } from "@/components/tiptap-node/table-node";
+import { MathNode } from "@/components/tiptap-node/math-node/math-node-extension";
+import "@/components/tiptap-node/math-node/math-node.scss";
+import { MermaidNode } from "@/components/tiptap-node/mermaid-node/mermaid-node-extension";
+import "@/components/tiptap-node/mermaid-node/mermaid-node.scss";
+import { SlashCommandNode } from "@/components/tiptap-node/slash-command-node/slash-command-node-extension";
+
 
 import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
 import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button";
@@ -239,6 +248,11 @@ export function NoteEditor({
             onCreateNote: handleCreateNote,
           }),
         }),
+        CalloutNode,
+        ...tableExtensions,
+        MathNode,
+        MermaidNode,
+        SlashCommandNode,
       ],
       content: note ? getInitialContent(note) : "",
       onUpdate: ({ editor }) => {
