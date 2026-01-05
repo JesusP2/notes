@@ -1,0 +1,43 @@
+.selection-menu {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: selection-menu-fade-in 0.2s ease-out;
+  pointer-events: auto;
+
+  /* Center horizontally over selection */
+  transform: translateX(-50%);
+
+  /* Ensure buttons inside don't break layout */
+  white-space: nowrap;
+}
+
+@keyframes selection-menu-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Override or adjust primitive styles if needed for this context */
+.selection-menu .tiptap-button-group {
+  gap: 0.125rem;
+}
+
+/* Separator styling specifically for this menu */
+.selection-menu .tiptap-separator[data-orientation="vertical"] {
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--border);
+}

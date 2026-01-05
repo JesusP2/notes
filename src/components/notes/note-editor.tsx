@@ -1,5 +1,5 @@
 import { Edit3Icon } from "lucide-react";
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { LocalImage } from "@/components/tiptap-node/image-node/local-image-extension";
@@ -19,7 +19,6 @@ import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
-import { Button } from "@/components/tiptap-ui-primitive/button";
 import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/tiptap-ui-primitive/toolbar";
 
@@ -43,18 +42,8 @@ import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button";
 import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu";
 import { BlockquoteButton } from "@/components/tiptap-ui/blockquote-button";
 import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button";
-import {
-  ColorHighlightPopover,
-  ColorHighlightPopoverContent,
-  ColorHighlightPopoverButton,
-} from "@/components/tiptap-ui/color-highlight-popover";
-import { LinkPopover, LinkContent, LinkButton } from "@/components/tiptap-ui/link-popover";
-import { MarkButton } from "@/components/tiptap-ui/mark-button";
 import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
-
-import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
-import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon";
-import { LinkIcon } from "@/components/tiptap-icons/link-icon";
+import { SelectionMenu } from "@/components/tiptap-ui/selection-menu";
 
 import "@/styles/_variables.scss";
 import "@/components/tiptap-node/blockquote-node/blockquote-node.scss";
@@ -82,15 +71,7 @@ function getInitialContent(note: Node): string {
   return `<h1>${note.title || "Untitled"}</h1><p></p>`;
 }
 
-function MainToolbarContent({
-  onHighlighterClick,
-  onLinkClick,
-  isMobile,
-}: {
-  onHighlighterClick: () => void;
-  onLinkClick: () => void;
-  isMobile: boolean;
-}) {
+function MainToolbarContent({ isMobile }: { isMobile: boolean }) {
   return (
     <>
       <Spacer />
@@ -112,52 +93,10 @@ function MainToolbarContent({
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="bold" />
-        <MarkButton type="italic" />
-        <MarkButton type="strike" />
-        <MarkButton type="code" />
-        {!isMobile ? (
-          <ColorHighlightPopover />
-        ) : (
-          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
-        )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
         <ImageUploadButton text="Add" />
       </ToolbarGroup>
 
       <Spacer />
-    </>
-  );
-}
-
-function MobileToolbarContent({
-  type,
-  onBack,
-}: {
-  type: "highlighter" | "link";
-  onBack: () => void;
-}) {
-  return (
-    <>
-      <ToolbarGroup>
-        <Button data-style="ghost" onClick={onBack}>
-          <ArrowLeftIcon className="tiptap-button-icon" />
-          {type === "highlighter" ? (
-            <HighlighterIcon className="tiptap-button-icon" />
-          ) : (
-            <LinkIcon className="tiptap-button-icon" />
-          )}
-        </Button>
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      {type === "highlighter" ? <ColorHighlightPopoverContent /> : <LinkContent />}
     </>
   );
 }
@@ -176,7 +115,6 @@ export function NoteEditor({
   const onChangeRef = useRef(onChange);
   const isMobile = useIsBreakpoint();
   const { height } = useWindowSize();
-  const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = createImageUploadHandler(userId);
@@ -261,12 +199,6 @@ export function NoteEditor({
   });
 
   useEffect(() => {
-    if (!isMobile && mobileView !== "main") {
-      setMobileView("main");
-    }
-  }, [isMobile, mobileView]);
-
-  useEffect(() => {
     if (!saveNowRef) return;
     saveNowRef.current = flushSave;
     return () => {
@@ -307,23 +239,13 @@ export function NoteEditor({
               : {}),
           }}
         >
-          {mobileView === "main" ? (
-            <MainToolbarContent
-              onHighlighterClick={() => setMobileView("highlighter")}
-              onLinkClick={() => setMobileView("link")}
-              isMobile={isMobile}
-            />
-          ) : (
-            <MobileToolbarContent
-              type={mobileView === "highlighter" ? "highlighter" : "link"}
-              onBack={() => setMobileView("main")}
-            />
-          )}
+          <MainToolbarContent isMobile={isMobile} />
         </Toolbar>
 
         <div className="simple-editor-content-wrapper">
           <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
           {editor && <TableMenu editor={editor} />}
+          {editor && <SelectionMenu editor={editor} />}
         </div>
       </EditorContext.Provider>
     </div>
