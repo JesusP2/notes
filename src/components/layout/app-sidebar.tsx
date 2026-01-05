@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  ClipboardList,
   FilePlusIcon,
   LayoutTemplate,
   Network,
@@ -266,12 +265,6 @@ export function AppSidebar() {
             <SidebarMenuButton render={<Link to="/graph" />}>
               <Network />
               <span>Graph View</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton render={<Link to="/tasks" />}>
-              <ClipboardList />
-              <span>Tasks</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
