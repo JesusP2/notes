@@ -12,7 +12,9 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [isResizing, setIsResizing] = useState(false);
   const code = node.attrs.code;
+  const height = node.attrs.height || 300;
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
@@ -57,8 +59,30 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
     setZoom(1);
   };
 
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startY = e.clientY;
+    const startHeight = height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientY - startY;
+      const newHeight = Math.max(100, startHeight + delta);
+      updateAttributes({ height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
   return (
-    <NodeViewWrapper className="mermaid-node">
+    <NodeViewWrapper className={`mermaid-node ${isResizing ? "mermaid-node-resizing" : ""}`}>
       <div className="mermaid-node-toolbar" contentEditable={false}>
         <div className="mermaid-node-zoom-controls">
           <button
@@ -105,7 +129,11 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
           )}
         </button>
       </div>
-      <div className="mermaid-node-preview" ref={containerRef}>
+      <div
+        className="mermaid-node-preview"
+        ref={containerRef}
+        style={{ height: `${height}px` }}
+      >
         {error ? (
           <div className="mermaid-node-error">{error}</div>
         ) : svg ? (
@@ -118,6 +146,11 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
           <div className="mermaid-node-loading">Loading diagram...</div>
         )}
       </div>
+      <div
+        className="mermaid-node-resizer"
+        contentEditable={false}
+        onMouseDown={handleResizeStart}
+      />
       {showEditor && (
         <textarea
           className="mermaid-node-editor"

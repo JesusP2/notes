@@ -18,6 +18,7 @@ export const MermaidNode = Node.create<MermaidNodeOptions>({
   name: "mermaid",
   group: "block",
   atom: true,
+  draggable: true,
 
   addOptions() {
     return {
@@ -30,6 +31,9 @@ export const MermaidNode = Node.create<MermaidNodeOptions>({
       code: {
         default: "graph TD\nA[Start] --> B[End]",
       },
+      height: {
+        default: 300,
+      },
     };
   },
 
@@ -41,7 +45,6 @@ export const MermaidNode = Node.create<MermaidNodeOptions>({
     return [
       "mermaid-node",
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      0,
     ];
   },
 

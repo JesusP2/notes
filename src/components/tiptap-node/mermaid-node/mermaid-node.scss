@@ -6,6 +6,10 @@
   border-radius: 0.5rem;
   overflow: hidden;
 
+  &.mermaid-node-resizing {
+    user-select: none;
+  }
+
   .mermaid-node-toolbar {
     display: flex;
     justify-content: space-between;
@@ -83,6 +87,17 @@
         max-width: 100%;
         height: auto;
       }
+    }
+  }
+
+  .mermaid-node-resizer {
+    height: 8px;
+    background: var(--muted);
+    cursor: ns-resize;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: var(--accent);
     }
   }
 
