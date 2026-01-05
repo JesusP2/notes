@@ -553,7 +553,7 @@ export function useNodeMutations() {
 
   const createNote = (title: string, tagId?: string) => {
     const id = ulid();
-    const content = `# ${title}\n\n`;
+    const content = `<h1>${title}</h1><p></p>`;
     const now = new Date();
     const node: Node = {
       id,
@@ -599,7 +599,7 @@ export function useNodeMutations() {
 
   const createTemplate = (title: string) => {
     const id = ulid();
-    const content = `# ${title}\n\n`;
+    const content = `<h1>${title}</h1><p></p>`;
     const now = new Date();
     const node: Node = {
       id,
@@ -659,7 +659,7 @@ export function useNodeMutations() {
     }
 
     const title = noteTitle?.trim() || template.title;
-    const baseContent = template.content ?? `# ${title}\n\n`;
+    const baseContent = template.content ?? `<h1>${title}</h1><p></p>`;
     const content = applyTemplatePlaceholders(baseContent, title);
     const excerpt = buildNoteExcerpt(content);
     const now = new Date();
