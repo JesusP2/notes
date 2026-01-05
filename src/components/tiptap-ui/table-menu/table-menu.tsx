@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Editor } from "@tiptap/react";
-import { Trash2Icon, PlusIcon } from "lucide-react";
+import { MoreVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import "./table-menu.scss";
 
 interface TableMenuProps {
@@ -8,8 +8,8 @@ interface TableMenuProps {
 }
 
 export function TableMenu({ editor }: TableMenuProps) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,82 +37,129 @@ export function TableMenu({ editor }: TableMenuProps) {
           const rect = dom.getBoundingClientRect();
           const editorRect = editor.view.dom.getBoundingClientRect();
           setPosition({
-            top: rect.top - editorRect.top,
-            left: rect.right - editorRect.left + 8,
+            top: rect.top - editorRect.top + 0.5,
+            right: 8,
           });
-          setIsVisible(true);
           return;
         }
       }
 
-      setIsVisible(false);
+      setPosition(null);
+      setShowDropdown(false);
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
     };
 
     editor.on("selectionUpdate", updatePosition);
     editor.on("transaction", updatePosition);
 
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
     return () => {
       editor.off("selectionUpdate", updatePosition);
       editor.off("transaction", updatePosition);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [editor]);
+  }, [editor, showDropdown]);
 
-  if (!isVisible || !position) return null;
+  const handleAddRow = () => {
+    editor.chain().focus().addRowAfter().run();
+    setShowDropdown(false);
+  };
+
+  const handleAddColumn = () => {
+    editor.chain().focus().addColumnAfter().run();
+    setShowDropdown(false);
+  };
+
+  const handleDeleteRow = () => {
+    editor.chain().focus().deleteRow().run();
+    setShowDropdown(false);
+  };
+
+  const handleDeleteColumn = () => {
+    editor.chain().focus().deleteColumn().run();
+    setShowDropdown(false);
+  };
+
+  const handleDeleteTable = () => {
+    editor.chain().focus().deleteTable().run();
+    setShowDropdown(false);
+  };
+
+  if (!position) return null;
 
   return (
     <div
       ref={menuRef}
       className="table-floating-menu"
-      style={{ top: position.top, right: 0 }}
-      contentEditable={false}
+      style={{ top: position.top, right: position.right }}
     >
       <button
         type="button"
-        className="table-menu-btn"
-        onClick={() => editor.chain().focus().addRowAfter().run()}
-        title="Add row"
+        className="table-menu-trigger"
+        onClick={() => setShowDropdown(!showDropdown)}
+        title="Table options"
       >
-        <PlusIcon className="table-menu-icon" />
-        <span>Row</span>
+        <MoreVerticalIcon className="table-menu-icon" />
       </button>
-      <button
-        type="button"
-        className="table-menu-btn"
-        onClick={() => editor.chain().focus().addColumnAfter().run()}
-        title="Add column"
-      >
-        <PlusIcon className="table-menu-icon" />
-        <span>Col</span>
-      </button>
-      <div className="table-menu-separator" />
-      <button
-        type="button"
-        className="table-menu-btn"
-        onClick={() => editor.chain().focus().deleteRow().run()}
-        title="Delete row"
-      >
-        <Trash2Icon className="table-menu-icon" />
-        <span>Row</span>
-      </button>
-      <button
-        type="button"
-        className="table-menu-btn"
-        onClick={() => editor.chain().focus().deleteColumn().run()}
-        title="Delete column"
-      >
-        <Trash2Icon className="table-menu-icon" />
-        <span>Col</span>
-      </button>
-      <div className="table-menu-separator" />
-      <button
-        type="button"
-        className="table-menu-btn table-menu-btn-danger"
-        onClick={() => editor.chain().focus().deleteTable().run()}
-        title="Delete table"
-      >
-        <Trash2Icon className="table-menu-icon" />
-        <span>Table</span>
-      </button>
+      {showDropdown && (
+        <div className="table-menu-dropdown">
+          <button
+            type="button"
+            className="table-menu-dropdown-item"
+            onClick={handleAddRow}
+            title="Add row"
+          >
+            <PlusIcon className="table-menu-icon" />
+            <span>Add row</span>
+          </button>
+          <button
+            type="button"
+            className="table-menu-dropdown-item"
+            onClick={handleAddColumn}
+            title="Add column"
+          >
+            <PlusIcon className="table-menu-icon" />
+            <span>Add column</span>
+          </button>
+          <div className="table-menu-separator" />
+          <button
+            type="button"
+            className="table-menu-dropdown-item"
+            onClick={handleDeleteRow}
+            title="Delete row"
+          >
+            <Trash2Icon className="table-menu-icon" />
+            <span>Delete row</span>
+          </button>
+          <button
+            type="button"
+            className="table-menu-dropdown-item"
+            onClick={handleDeleteColumn}
+            title="Delete column"
+          >
+            <Trash2Icon className="table-menu-icon" />
+            <span>Delete column</span>
+          </button>
+          <div className="table-menu-separator" />
+          <button
+            type="button"
+            className="table-menu-dropdown-item table-menu-dropdown-item-danger"
+            onClick={handleDeleteTable}
+            title="Delete table"
+          >
+            <Trash2Icon className="table-menu-icon" />
+            <span>Delete table</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
