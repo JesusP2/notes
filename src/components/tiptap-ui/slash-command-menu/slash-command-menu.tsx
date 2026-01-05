@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import type { SlashCommand, SlashCommandCategory } from "@/lib/slash-commands";
 import { CATEGORY_LABELS } from "@/lib/slash-commands";
@@ -15,10 +15,16 @@ export const SlashCommandMenu = forwardRef<
 >((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { items, command } = props;
+  const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     setSelectedIndex(0);
   }, [items]);
+
+  useEffect(() => {
+    const element = itemRefs.current.get(selectedIndex);
+    element?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   const selectItem = (index: number) => {
     const item = items[index];
@@ -77,6 +83,13 @@ export const SlashCommandMenu = forwardRef<
             return (
               <button
                 key={item.id}
+                ref={(el) => {
+                  if (el) {
+                    itemRefs.current.set(currentIndex, el);
+                  } else {
+                    itemRefs.current.delete(currentIndex);
+                  }
+                }}
                 type="button"
                 className={cn(
                   "slash-command-item",

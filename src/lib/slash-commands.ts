@@ -145,7 +145,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["info", "note", "callout", "admonition"],
     action: (editor) => {
-      editor.chain().focus().insertContent({ type: "callout", attrs: { type: "info" } }).run();
+      editor.chain().focus().insertContent({
+        type: "callout",
+        attrs: { type: "info" },
+        content: [{ type: "paragraph" }],
+      }).run();
     },
   },
   {
@@ -156,7 +160,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["warning", "caution", "alert"],
     action: (editor) => {
-      editor.chain().focus().insertContent({ type: "callout", attrs: { type: "warning" } }).run();
+      editor.chain().focus().insertContent({
+        type: "callout",
+        attrs: { type: "warning" },
+        content: [{ type: "paragraph" }],
+      }).run();
     },
   },
   {
@@ -167,7 +175,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["tip", "hint", "suggestion"],
     action: (editor) => {
-      editor.chain().focus().insertContent({ type: "callout", attrs: { type: "tip" } }).run();
+      editor.chain().focus().insertContent({
+        type: "callout",
+        attrs: { type: "tip" },
+        content: [{ type: "paragraph" }],
+      }).run();
     },
   },
   {
@@ -178,7 +190,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["danger", "error", "critical"],
     action: (editor) => {
-      editor.chain().focus().insertContent({ type: "callout", attrs: { type: "danger" } }).run();
+      editor.chain().focus().insertContent({
+        type: "callout",
+        attrs: { type: "danger" },
+        content: [{ type: "paragraph" }],
+      }).run();
     },
   },
   {

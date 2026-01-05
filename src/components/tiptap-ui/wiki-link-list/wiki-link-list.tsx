@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import { FileTextIcon, PlusIcon } from "lucide-react";
 import type { Node } from "@/db/schema/graph";
@@ -22,6 +22,7 @@ export const WikiLinkList = forwardRef<WikiLinkListRef, WikiLinkListProps>(
   (props, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const { items, command, query, onCreateNote } = props;
+    const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
     const hasCreateOption = query.trim().length > 0 && !items.some(
       (item) => item.title.toLowerCase() === query.trim().toLowerCase()
@@ -31,6 +32,11 @@ export const WikiLinkList = forwardRef<WikiLinkListRef, WikiLinkListProps>(
     useEffect(() => {
       setSelectedIndex(0);
     }, [items]);
+
+    useEffect(() => {
+      const element = itemRefs.current.get(selectedIndex);
+      element?.scrollIntoView({ block: "nearest" });
+    }, [selectedIndex]);
 
     const selectItem = (index: number) => {
       if (index < items.length) {
@@ -94,6 +100,13 @@ export const WikiLinkList = forwardRef<WikiLinkListRef, WikiLinkListProps>(
         {items.map((item, index) => (
           <button
             key={item.noteId}
+            ref={(el) => {
+              if (el) {
+                itemRefs.current.set(index, el);
+              } else {
+                itemRefs.current.delete(index);
+              }
+            }}
             type="button"
             className={cn(
               "wiki-link-list-item",
@@ -107,6 +120,13 @@ export const WikiLinkList = forwardRef<WikiLinkListRef, WikiLinkListProps>(
         ))}
         {hasCreateOption && (
           <button
+            ref={(el) => {
+              if (el) {
+                itemRefs.current.set(items.length, el);
+              } else {
+                itemRefs.current.delete(items.length);
+              }
+            }}
             type="button"
             className={cn(
               "wiki-link-list-item wiki-link-list-item-create",
