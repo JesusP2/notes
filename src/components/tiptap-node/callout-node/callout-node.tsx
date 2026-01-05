@@ -29,14 +29,13 @@ export const CalloutNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
   return (
     <NodeViewWrapper className={`callout-node callout-node-${type}`} data-callout-type={type}>
       <div className="callout-node-header" contentEditable={false}>
-        <Icon className="callout-node-icon" />
         <div className="callout-node-type-selector">
           <button
             type="button"
             className="callout-node-type-button"
             onClick={() => setShowDropdown(!showDropdown)}
           >
-            {config.label}
+            <Icon className="callout-node-icon" />
             <ChevronDownIcon className="callout-node-chevron" />
           </button>
           {showDropdown && (
