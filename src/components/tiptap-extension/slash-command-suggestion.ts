@@ -13,7 +13,7 @@ export function createSlashCommandSuggestion(): Omit<
 > {
   return {
     items: ({ query }): SlashCommand[] => {
-      return filterCommands(query).slice(0, 12);
+      return filterCommands(query);
     },
 
     render: () => {
