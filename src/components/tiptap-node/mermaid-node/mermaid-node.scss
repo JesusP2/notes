@@ -35,15 +35,16 @@
   .mermaid-node-btn {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    justify-content: center;
+    padding: 0.375rem;
     color: var(--muted-foreground);
     background: transparent;
     border: none;
     border-radius: 0.25rem;
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
 
     &:hover {
       background: var(--accent);
@@ -56,8 +57,56 @@
     height: 1rem;
   }
 
-  .mermaid-node-toggle {
-    font-weight: 500;
+  .mermaid-node-menu-container {
+    position: relative;
+  }
+
+  .mermaid-node-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 50;
+    min-width: 140px;
+    margin-top: 0.25rem;
+    padding: 0.25rem;
+    background: var(--popover);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .mermaid-node-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    background: transparent;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: var(--accent);
+    }
+
+    &.mermaid-node-dropdown-item-danger:hover {
+      background: var(--destructive);
+      color: white;
+    }
+  }
+
+  .mermaid-node-dropdown-icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--muted-foreground);
+  }
+
+  .mermaid-node-dropdown-item-danger .mermaid-node-dropdown-icon {
+    color: inherit;
   }
 
   .mermaid-node-preview {

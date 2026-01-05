@@ -2,7 +2,10 @@ import type { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
 import { ReactRenderer } from "@tiptap/react";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import type { Node } from "@/db/schema/graph";
-import { WikiLinkList, type WikiLinkListRef } from "@/components/tiptap-ui/wiki-link-list/wiki-link-list";
+import {
+  WikiLinkList,
+  type WikiLinkListRef,
+} from "@/components/tiptap-ui/wiki-link-list/wiki-link-list";
 
 export interface WikiLinkSuggestionItem {
   noteId: string;
@@ -15,7 +18,7 @@ export interface WikiLinkSuggestionOptions {
 }
 
 export function createWikiLinkSuggestion(
-  options: WikiLinkSuggestionOptions
+  options: WikiLinkSuggestionOptions,
 ): Omit<SuggestionOptions<WikiLinkSuggestionItem>, "editor"> {
   return {
     items: ({ query }: any) => {
@@ -29,8 +32,7 @@ export function createWikiLinkSuggestion(
 
       return notes
         .filter(
-          (node: any) =>
-            node.type === "note" && node.title.toLowerCase().includes(queryLower)
+          (node: any) => node.type === "note" && node.title.toLowerCase().includes(queryLower),
         )
         .slice(0, 10)
         .map((note: any) => ({

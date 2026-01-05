@@ -44,11 +44,7 @@ export const MathNode = Node.create<MathNodeOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return [
-      "math-node",
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      0,
-    ];
+    return ["math-node", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
   },
 
   addNodeView() {

@@ -115,12 +115,9 @@ export const WikiLinkNode = Node.create<WikiLinkOptions>({
 
     return [
       "a",
-      mergeAttributes(
-        { "data-wiki-link": "" },
-        this.options.HTMLAttributes,
-        HTMLAttributes,
-        { href }
-      ),
+      mergeAttributes({ "data-wiki-link": "" }, this.options.HTMLAttributes, HTMLAttributes, {
+        href,
+      }),
       displayText,
     ];
   },

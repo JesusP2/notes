@@ -37,17 +37,13 @@ export const CalloutNode = Node.create<CalloutNodeOptions>({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-callout]' }];
+    return [{ tag: "div[data-callout]" }];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      mergeAttributes(
-        { "data-callout": "" },
-        this.options.HTMLAttributes,
-        HTMLAttributes,
-      ),
+      mergeAttributes({ "data-callout": "" }, this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];
   },

@@ -38,9 +38,7 @@ const mockCommands: SlashCommand[] = [
   },
 ];
 
-function createMockProps(
-  items: SlashCommand[] = mockCommands
-): SuggestionProps<SlashCommand> {
+function createMockProps(items: SlashCommand[] = mockCommands): SuggestionProps<SlashCommand> {
   return {
     items,
     command: vi.fn(),

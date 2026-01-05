@@ -40,4 +40,3 @@ export const SlashCommandExtension = Extension.create<SlashCommandOptions>({
 });
 
 export default SlashCommandExtension;
-

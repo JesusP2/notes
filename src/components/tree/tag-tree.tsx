@@ -1,13 +1,5 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
-import {
-  FilePlus,
-  Info,
-  Pencil,
-  PenTool,
-  Pin,
-  Folder,
-  Trash2,
-} from "lucide-react";
+import { FilePlus, Info, Pencil, PenTool, Pin, Folder, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
 import { useConfirmDialog } from "@/components/providers/confirm-dialog";
@@ -104,8 +96,7 @@ function TreeBranch({
   const handleDragOver = (e: React.DragEvent, node: Node) => {
     e.preventDefault();
     if (node.type === "tag" && draggedNode && draggedNode.id !== node.id) {
-      const isCopy =
-        draggedNode.type !== "tag" && (e.altKey || altKeyPressedRef.current);
+      const isCopy = draggedNode.type !== "tag" && (e.altKey || altKeyPressedRef.current);
       e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
       setDragOverNode(node.id);
     }
@@ -114,12 +105,7 @@ function TreeBranch({
   const handleDrop = (e: React.DragEvent, targetNode: Node) => {
     e.preventDefault();
     const sourceId = e.dataTransfer.getData("text/plain");
-    if (
-      sourceId &&
-      targetNode.type === "tag" &&
-      draggedNode &&
-      sourceId !== targetNode.id
-    ) {
+    if (sourceId && targetNode.type === "tag" && draggedNode && sourceId !== targetNode.id) {
       if (draggedNode.type === "tag") {
         moveTag(sourceId, targetNode.id);
       } else if (draggedNode.type === "note" || draggedNode.type === "canvas") {
@@ -235,18 +221,20 @@ function TreeBranch({
                     <ContextMenuItem onClick={() => handleCreateNote(child.id)}>
                       <FilePlus className="mr-2 size-4" />
                       New Note
-                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NEW_NOTE, platform)}</ContextMenuShortcut>
+                      <ContextMenuShortcut>
+                        {formatShortcut(SHORTCUTS.NEW_NOTE, platform)}
+                      </ContextMenuShortcut>
                     </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => handleCreateCanvas(child.id)}
-                    >
+                    <ContextMenuItem onClick={() => handleCreateCanvas(child.id)}>
                       <PenTool className="mr-2 size-4" />
                       New Canvas
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleCreateTag(child.id)}>
                       <Folder className="mr-2 size-4" />
                       New Folder
-                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NEW_TAG, platform)}</ContextMenuShortcut>
+                      <ContextMenuShortcut>
+                        {formatShortcut(SHORTCUTS.NEW_TAG, platform)}
+                      </ContextMenuShortcut>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                   </>
@@ -254,9 +242,7 @@ function TreeBranch({
                 {(child.type === "note" || child.type === "canvas") && (
                   <>
                     <ContextMenuItem
-                      onClick={() =>
-                        isPinned ? unpinNode(child.id) : pinNode(child.id)
-                      }
+                      onClick={() => (isPinned ? unpinNode(child.id) : pinNode(child.id))}
                     >
                       <Pin className="mr-2 size-4" />
                       {isPinned ? "Unpin" : "Pin"}
@@ -265,7 +251,9 @@ function TreeBranch({
                     <ContextMenuItem onClick={() => onOpenDetails(child.id)}>
                       <Info className="mr-2 size-4" />
                       Details
-                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NOTE_DETAILS, platform)}</ContextMenuShortcut>
+                      <ContextMenuShortcut>
+                        {formatShortcut(SHORTCUTS.NOTE_DETAILS, platform)}
+                      </ContextMenuShortcut>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                   </>
@@ -282,7 +270,9 @@ function TreeBranch({
                     <Trash2 className="mr-2 size-4" />
                     Delete
                     {(child.type === "note" || child.type === "canvas") && (
-                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.DELETE_NOTE, platform)}</ContextMenuShortcut>
+                      <ContextMenuShortcut>
+                        {formatShortcut(SHORTCUTS.DELETE_NOTE, platform)}
+                      </ContextMenuShortcut>
                     )}
                   </ContextMenuItem>
                 )}
@@ -317,7 +307,10 @@ function TreeBranch({
 
 export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const params = useParams({ strict: false });
-  const activeNodeId = (params as { noteId?: string; canvasId?: string }).noteId ?? (params as { noteId?: string; canvasId?: string }).canvasId ?? null;
+  const activeNodeId =
+    (params as { noteId?: string; canvasId?: string }).noteId ??
+    (params as { noteId?: string; canvasId?: string }).canvasId ??
+    null;
   const platform = usePlatform();
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
   const [draggedNode, setDraggedNode] = useState<DraggedNode | null>(null);

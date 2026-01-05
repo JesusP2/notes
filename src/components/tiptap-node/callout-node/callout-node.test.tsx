@@ -5,17 +5,18 @@ import { render } from "@testing-library/react";
 import { CalloutNodeComponent } from "./callout-node";
 import type { NodeViewProps } from "@tiptap/react";
 
-const createMockProps = (attrs: any = {}): NodeViewProps => ({
-  node: { attrs },
-  updateAttributes: () => {},
-  decorations: [],
-  selected: false,
-  deleteNode: () => {},
-  view: {} as never,
-  getPos: () => 0,
-  extension: {} as never,
-  editor: {} as never,
-}) as unknown as NodeViewProps;
+const createMockProps = (attrs: any = {}): NodeViewProps =>
+  ({
+    node: { attrs },
+    updateAttributes: () => {},
+    decorations: [],
+    selected: false,
+    deleteNode: () => {},
+    view: {} as never,
+    getPos: () => 0,
+    extension: {} as never,
+    editor: {} as never,
+  }) as unknown as NodeViewProps;
 
 describe("CalloutNodeComponent - minimal", () => {
   it("renders basic component", () => {

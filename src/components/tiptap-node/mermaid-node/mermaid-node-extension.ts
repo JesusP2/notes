@@ -42,10 +42,7 @@ export const MermaidNode = Node.create<MermaidNodeOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return [
-      "mermaid-node",
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-    ];
+    return ["mermaid-node", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
   },
 
   addNodeView() {

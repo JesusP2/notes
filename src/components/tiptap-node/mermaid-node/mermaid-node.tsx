@@ -2,17 +2,26 @@ import { useEffect, useRef, useState } from "react";
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper } from "@tiptap/react";
 import mermaid from "mermaid";
-import { ChevronDownIcon, ChevronUpIcon, ZoomInIcon, ZoomOutIcon, RotateCcwIcon } from "lucide-react";
+import {
+  ZoomInIcon,
+  ZoomOutIcon,
+  RotateCcwIcon,
+  MoreVerticalIcon,
+  CodeIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
 import "./mermaid-node.scss";
 
-export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) => {
+export const MermaidNodeComponent = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [isResizing, setIsResizing] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const code = node.attrs.code;
   const height = node.attrs.height || 300;
   const { resolvedTheme } = useTheme();
@@ -42,6 +51,22 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
 
     renderDiagram();
   }, [code, resolvedTheme]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
 
   const handleCodeChange = (newCode: string) => {
     updateAttributes({ code: newCode });
@@ -81,6 +106,15 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleEditCode = () => {
+    setShowEditor(!showEditor);
+    setShowMenu(false);
+  };
+
+  const handleDelete = () => {
+    deleteNode();
+  };
+
   return (
     <NodeViewWrapper className={`mermaid-node ${isResizing ? "mermaid-node-resizing" : ""}`}>
       <div className="mermaid-node-toolbar" contentEditable={false}>
@@ -94,12 +128,7 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
             <ZoomOutIcon className="mermaid-node-btn-icon" />
           </button>
           <span className="mermaid-node-zoom-level">{Math.round(zoom * 100)}%</span>
-          <button
-            type="button"
-            className="mermaid-node-btn"
-            onClick={handleZoomIn}
-            title="Zoom in"
-          >
+          <button type="button" className="mermaid-node-btn" onClick={handleZoomIn} title="Zoom in">
             <ZoomInIcon className="mermaid-node-btn-icon" />
           </button>
           <button
@@ -111,29 +140,34 @@ export const MermaidNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
             <RotateCcwIcon className="mermaid-node-btn-icon" />
           </button>
         </div>
-        <button
-          type="button"
-          className="mermaid-node-btn mermaid-node-toggle"
-          onClick={() => setShowEditor(!showEditor)}
-        >
-          {showEditor ? (
-            <>
-              <ChevronUpIcon className="mermaid-node-btn-icon" />
-              <span>Hide code</span>
-            </>
-          ) : (
-            <>
-              <ChevronDownIcon className="mermaid-node-btn-icon" />
-              <span>Edit code</span>
-            </>
+        <div className="mermaid-node-menu-container" ref={menuRef}>
+          <button
+            type="button"
+            className="mermaid-node-btn"
+            onClick={() => setShowMenu(!showMenu)}
+            title="More options"
+          >
+            <MoreVerticalIcon className="mermaid-node-btn-icon" />
+          </button>
+          {showMenu && (
+            <div className="mermaid-node-dropdown">
+              <button type="button" className="mermaid-node-dropdown-item" onClick={handleEditCode}>
+                <CodeIcon className="mermaid-node-dropdown-icon" />
+                <span>{showEditor ? "Hide code" : "Edit code"}</span>
+              </button>
+              <button
+                type="button"
+                className="mermaid-node-dropdown-item mermaid-node-dropdown-item-danger"
+                onClick={handleDelete}
+              >
+                <Trash2Icon className="mermaid-node-dropdown-icon" />
+                <span>Delete</span>
+              </button>
+            </div>
           )}
-        </button>
+        </div>
       </div>
-      <div
-        className="mermaid-node-preview"
-        ref={containerRef}
-        style={{ height: `${height}px` }}
-      >
+      <div className="mermaid-node-preview" ref={containerRef} style={{ height: `${height}px` }}>
         {error ? (
           <div className="mermaid-node-error">{error}</div>
         ) : svg ? (

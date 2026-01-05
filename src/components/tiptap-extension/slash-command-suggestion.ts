@@ -7,10 +7,7 @@ import {
 } from "@/components/tiptap-ui/slash-command-menu/slash-command-menu";
 import { filterCommands, type SlashCommand } from "@/lib/slash-commands";
 
-export function createSlashCommandSuggestion(): Omit<
-  SuggestionOptions<SlashCommand>,
-  "editor"
-> {
+export function createSlashCommandSuggestion(): Omit<SuggestionOptions<SlashCommand>, "editor"> {
   return {
     items: ({ query }): SlashCommand[] => {
       return filterCommands(query);

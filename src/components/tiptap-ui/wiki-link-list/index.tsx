@@ -1,1 +1,6 @@
-export { WikiLinkList, type WikiLinkListProps, type WikiLinkListRef, type WikiLinkSuggestionItem } from "./wiki-link-list";
+export {
+  WikiLinkList,
+  type WikiLinkListProps,
+  type WikiLinkListRef,
+  type WikiLinkSuggestionItem,
+} from "./wiki-link-list";

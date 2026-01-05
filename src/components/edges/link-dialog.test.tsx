@@ -36,9 +36,7 @@ describe("LinkDialog", () => {
 
     await waitFor(() => {
       const edges = Array.from(edgesCollection.state.values());
-      const edge = edges.find(
-        (e) => e.sourceId === "note-source" && e.targetId === "note-target",
-      );
+      const edge = edges.find((e) => e.sourceId === "note-source" && e.targetId === "note-target");
       expect(edge?.type).toBe("references");
     });
   });

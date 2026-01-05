@@ -127,13 +127,15 @@ export function TreeNode({
             <button
               className={cn(
                 "flex flex-1 min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left",
-                isActive ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                isActive ? "bg-primary/10 text-primary" : "hover:bg-muted",
               )}
               onClick={onSelect}
               onDoubleClick={handleDoubleClick}
               type="button"
             >
-              <span className={cn("shrink-0", isActive ? "text-primary" : "text-muted-foreground")}>{nodeIcon(node.type)}</span>
+              <span className={cn("shrink-0", isActive ? "text-primary" : "text-muted-foreground")}>
+                {nodeIcon(node.type)}
+              </span>
               <span data-testid="tree-node-label" className="min-w-0 flex-1 truncate">
                 {node.title}
               </span>

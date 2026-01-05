@@ -1,41 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import type { CalloutType } from "./callout-node-extension";
-import { InfoIcon, AlertTriangleIcon, LightbulbIcon, AlertCircleIcon, ChevronDownIcon } from "lucide-react";
+import {
+  InfoIcon,
+  AlertTriangleIcon,
+  LightbulbIcon,
+  AlertCircleIcon,
+  ChevronDownIcon,
+  Trash2Icon,
+} from "lucide-react";
 import "./callout-node.scss";
 
-export const CALLOUT_CONFIG: Record<
-  CalloutType,
-  { icon: typeof InfoIcon; label: string }
-> = {
+export const CALLOUT_CONFIG: Record<CalloutType, { icon: typeof InfoIcon; label: string }> = {
   info: { icon: InfoIcon, label: "Info" },
   warning: { icon: AlertTriangleIcon, label: "Warning" },
   tip: { icon: LightbulbIcon, label: "Tip" },
   danger: { icon: AlertCircleIcon, label: "Danger" },
 };
 
-export const CalloutNodeComponent = ({ node, updateAttributes }: NodeViewProps) => {
+export const CalloutNodeComponent = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const type = node.attrs.type as CalloutType;
   const config = CALLOUT_CONFIG[type];
   const Icon = config.icon;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
 
   const handleTypeChange = (newType: CalloutType) => {
     updateAttributes({ type: newType });
     setShowDropdown(false);
   };
 
+  const handleDelete = () => {
+    deleteNode();
+  };
+
   return (
     <NodeViewWrapper className={`callout-node callout-node-${type}`} data-callout-type={type}>
+      <div className="callout-node-icon-container" contentEditable={false}>
+        <Icon className="callout-node-icon" />
+      </div>
       <div className="callout-node-header" contentEditable={false}>
-        <div className="callout-node-type-selector">
+        <div className="callout-node-type-selector" ref={dropdownRef}>
           <button
             type="button"
             className="callout-node-type-button"
             onClick={() => setShowDropdown(!showDropdown)}
+            title="Change callout type"
           >
-            <Icon className="callout-node-icon" />
             <ChevronDownIcon className="callout-node-chevron" />
           </button>
           {showDropdown && (
@@ -54,6 +82,15 @@ export const CalloutNodeComponent = ({ node, updateAttributes }: NodeViewProps) 
                   </button>
                 );
               })}
+              <div className="callout-node-dropdown-separator" />
+              <button
+                type="button"
+                className="callout-node-dropdown-item callout-node-dropdown-item-danger"
+                onClick={handleDelete}
+              >
+                <Trash2Icon className="callout-node-dropdown-icon" />
+                Delete
+              </button>
             </div>
           )}
         </div>

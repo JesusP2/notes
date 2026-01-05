@@ -59,8 +59,18 @@ describe("TagTree", () => {
     insertTestNode({ id: "note-shared", type: "note", title: "Shared Note" });
     insertTestEdge({ id: "edge-root-a", sourceId: "tag-a", targetId: "root", type: "part_of" });
     insertTestEdge({ id: "edge-root-b", sourceId: "tag-b", targetId: "root", type: "part_of" });
-    insertTestEdge({ id: "edge-a", sourceId: "note-shared", targetId: "tag-a", type: "tagged_with" });
-    insertTestEdge({ id: "edge-b", sourceId: "note-shared", targetId: "tag-b", type: "tagged_with" });
+    insertTestEdge({
+      id: "edge-a",
+      sourceId: "note-shared",
+      targetId: "tag-a",
+      type: "tagged_with",
+    });
+    insertTestEdge({
+      id: "edge-b",
+      sourceId: "note-shared",
+      targetId: "tag-b",
+      type: "tagged_with",
+    });
 
     render(<TagTree />, { wrapper: Wrapper });
 
@@ -94,9 +104,24 @@ describe("TagTree", () => {
     insertTestNode({ id: "parent-tag", type: "tag", title: "Parent Tag" });
     insertTestNode({ id: "child-tag", type: "tag", title: "Child Tag" });
     insertTestNode({ id: "note-1", type: "note", title: "Nested Note" });
-    insertTestEdge({ id: "edge-parent", sourceId: "parent-tag", targetId: "root", type: "part_of" });
-    insertTestEdge({ id: "edge-child", sourceId: "child-tag", targetId: "parent-tag", type: "part_of" });
-    insertTestEdge({ id: "edge-note", sourceId: "note-1", targetId: "child-tag", type: "tagged_with" });
+    insertTestEdge({
+      id: "edge-parent",
+      sourceId: "parent-tag",
+      targetId: "root",
+      type: "part_of",
+    });
+    insertTestEdge({
+      id: "edge-child",
+      sourceId: "child-tag",
+      targetId: "parent-tag",
+      type: "part_of",
+    });
+    insertTestEdge({
+      id: "edge-note",
+      sourceId: "note-1",
+      targetId: "child-tag",
+      type: "tagged_with",
+    });
 
     render(<TagTree />, { wrapper: Wrapper });
 

@@ -145,11 +145,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["info", "note", "callout", "admonition"],
     action: (editor) => {
-      editor.chain().focus().insertContent({
-        type: "callout",
-        attrs: { type: "info" },
-        content: [{ type: "paragraph" }],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "callout",
+          attrs: { type: "info" },
+          content: [{ type: "paragraph" }],
+        })
+        .run();
     },
   },
   {
@@ -160,11 +164,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["warning", "caution", "alert"],
     action: (editor) => {
-      editor.chain().focus().insertContent({
-        type: "callout",
-        attrs: { type: "warning" },
-        content: [{ type: "paragraph" }],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "callout",
+          attrs: { type: "warning" },
+          content: [{ type: "paragraph" }],
+        })
+        .run();
     },
   },
   {
@@ -175,11 +183,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["tip", "hint", "suggestion"],
     action: (editor) => {
-      editor.chain().focus().insertContent({
-        type: "callout",
-        attrs: { type: "tip" },
-        content: [{ type: "paragraph" }],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "callout",
+          attrs: { type: "tip" },
+          content: [{ type: "paragraph" }],
+        })
+        .run();
     },
   },
   {
@@ -190,11 +202,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     category: "formatting",
     keywords: ["danger", "error", "critical"],
     action: (editor) => {
-      editor.chain().focus().insertContent({
-        type: "callout",
-        attrs: { type: "danger" },
-        content: [{ type: "paragraph" }],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "callout",
+          attrs: { type: "danger" },
+          content: [{ type: "paragraph" }],
+        })
+        .run();
     },
   },
   {
@@ -221,7 +237,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: (editor) => {
       const cmd = editor.commands as Record<string, unknown>;
       if (typeof cmd.insertTable === "function") {
-        (cmd.insertTable as (opts: { rows: number; cols: number; withHeaderRow: boolean }) => boolean)({
+        (
+          cmd.insertTable as (opts: {
+            rows: number;
+            cols: number;
+            withHeaderRow: boolean;
+          }) => boolean
+        )({
           rows: 3,
           cols: 3,
           withHeaderRow: true,
@@ -260,7 +282,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
           .focus()
           .insertContent({
             type: "math",
-            attrs: { formula: "\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}", displayMode: true },
+            attrs: {
+              formula: "\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
+              displayMode: true,
+            },
           })
           .run();
       }
@@ -295,7 +320,7 @@ export function filterCommands(query: string): SlashCommand[] {
   return SLASH_COMMANDS.filter(
     (cmd) =>
       cmd.label.toLowerCase().includes(queryLower) ||
-      cmd.keywords.some((kw) => kw.toLowerCase().includes(queryLower))
+      cmd.keywords.some((kw) => kw.toLowerCase().includes(queryLower)),
   );
 }
 
@@ -306,7 +331,7 @@ export function getCommandsByCategory(): Record<SlashCommandCategory, SlashComma
       acc[cmd.category].push(cmd);
       return acc;
     },
-    {} as Record<SlashCommandCategory, SlashCommand[]>
+    {} as Record<SlashCommandCategory, SlashCommand[]>,
   );
 }
 
@@ -321,7 +346,9 @@ export function getAvailableCommands(editor: Editor): SlashCommand[] {
       case "callout-danger":
         return !!editor.schema.nodes.callout;
       case "image":
-        return typeof (editor.commands as Record<string, unknown>).setImageUploadNode === "function";
+        return (
+          typeof (editor.commands as Record<string, unknown>).setImageUploadNode === "function"
+        );
       case "table":
         return !!editor.schema.nodes.table;
       case "math-inline":

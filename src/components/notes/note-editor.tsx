@@ -21,11 +21,7 @@ import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 import { Button } from "@/components/tiptap-ui-primitive/button";
 import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
-import {
-  Toolbar,
-  ToolbarGroup,
-  ToolbarSeparator,
-} from "@/components/tiptap-ui-primitive/toolbar";
+import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/tiptap-ui-primitive/toolbar";
 
 import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
 import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
@@ -34,13 +30,13 @@ import { createWikiLinkSuggestion } from "@/components/tiptap-extension/wiki-lin
 import { CalloutNode } from "@/components/tiptap-node/callout-node/callout-node-extension";
 import "@/components/tiptap-node/callout-node/callout-node.scss";
 import { tableExtensions } from "@/components/tiptap-node/table-node";
+import { TableMenu } from "@/components/tiptap-ui/table-menu/table-menu";
 import { MathNode } from "@/components/tiptap-node/math-node/math-node-extension";
 import "@/components/tiptap-node/math-node/math-node.scss";
 import { MermaidNode } from "@/components/tiptap-node/mermaid-node/mermaid-node-extension";
 import "@/components/tiptap-node/mermaid-node/mermaid-node.scss";
 import { SlashCommandNode } from "@/components/tiptap-node/slash-command-node/slash-command-node-extension";
 import { createSlashCommandSuggestion } from "@/components/tiptap-extension/slash-command-suggestion";
-
 
 import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
 import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button";
@@ -52,11 +48,7 @@ import {
   ColorHighlightPopoverContent,
   ColorHighlightPopoverButton,
 } from "@/components/tiptap-ui/color-highlight-popover";
-import {
-  LinkPopover,
-  LinkContent,
-  LinkButton,
-} from "@/components/tiptap-ui/link-popover";
+import { LinkPopover, LinkContent, LinkButton } from "@/components/tiptap-ui/link-popover";
 import { MarkButton } from "@/components/tiptap-ui/mark-button";
 import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
 
@@ -72,6 +64,7 @@ import "@/components/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap-node/image-node/image-node.scss";
 import "@/components/tiptap-node/heading-node/heading-node.scss";
 import "@/components/tiptap-node/paragraph-node/paragraph-node.scss";
+import "@/components/tiptap-node/table-node/table-node.scss";
 import "@/components/tiptap-templates/simple/simple-editor.scss";
 
 interface NoteEditorProps {
@@ -111,10 +104,7 @@ function MainToolbarContent({
 
       <ToolbarGroup>
         <HeadingDropdownMenu levels={[1, 2, 3, 4]} portal={isMobile} />
-        <ListDropdownMenu
-          types={["bulletList", "orderedList", "taskList"]}
-          portal={isMobile}
-        />
+        <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} portal={isMobile} />
         <BlockquoteButton />
         <CodeBlockButton />
       </ToolbarGroup>
@@ -196,12 +186,9 @@ export function NoteEditor({
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback(
-    (html: string) => {
-      onChangeRef.current(html);
-    },
-    debounceMs
-  );
+  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback((html: string) => {
+    onChangeRef.current(html);
+  }, debounceMs);
 
   const handleCreateNote = async (title: string) => {
     return createNote(title, ROOT_TAG_ID);
@@ -262,7 +249,7 @@ export function NoteEditor({
         debouncedSave(editor.getHTML());
       },
     },
-    [note?.id, editorKey]
+    [note?.id, editorKey],
   );
 
   const rect = useCursorVisibility({
@@ -331,11 +318,10 @@ export function NoteEditor({
           )}
         </Toolbar>
 
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
+        <div className="simple-editor-content-wrapper">
+          <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
+          {editor && <TableMenu editor={editor} />}
+        </div>
       </EditorContext.Provider>
     </div>
   );
