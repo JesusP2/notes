@@ -262,12 +262,35 @@ export const canvasLinks = pgTable(
   ],
 );
 
+export const images = pgTable(
+  "images",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blobKey: text("blob_key").notNull().unique(),
+    mimeType: text("mime_type").notNull(),
+    size: integer("size").notNull(),
+    filename: text("filename"),
+    syncedAt: timestamp("synced_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_images_user").on(table.userId),
+    index("idx_images_blob_key").on(table.blobKey),
+    index("idx_images_synced").on(table.userId, table.syncedAt),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Node = typeof nodes.$inferSelect;
 export type NewNode = typeof nodes.$inferInsert;
 export type Edge = typeof edges.$inferSelect;
 export type NewEdge = typeof edges.$inferInsert;
+export type Image = typeof images.$inferSelect;
+export type NewImage = typeof images.$inferInsert;
 
 export type NodeType = "note" | "tag" | "template" | "canvas";
 export type EdgeType =

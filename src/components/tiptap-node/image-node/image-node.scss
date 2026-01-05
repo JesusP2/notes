@@ -29,3 +29,38 @@
     margin: 0;
   }
 }
+
+.local-image-wrapper {
+  margin: 2rem 0;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    outline: 0.125rem solid transparent;
+    border-radius: var(--tt-radius-xs, 0.25rem);
+
+    &.ProseMirror-selectednode {
+      outline-color: var(--tt-brand-color-500);
+    }
+  }
+}
+
+.local-image-loading,
+.local-image-error,
+.local-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 1rem;
+  border-radius: var(--tt-radius-xs, 0.25rem);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.local-image-error {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}

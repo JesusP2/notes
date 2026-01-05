@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
-import crypto from "node:crypto";
 import { createUploadConfig } from "pushduck/server";
 import { storage } from "./async-storage";
+import { ulid } from "ulidx";
 
 const { s3 } = createUploadConfig()
   .provider("cloudflareR2", {
@@ -29,7 +29,7 @@ export const uploadRouter = s3.createRouter({
     .paths({
       prefix: "media",
       generateKey: ({ metadata, file }) => {
-        const id = crypto.randomUUID();
+        const id = ulid();
         return `media/${metadata.userId}/${id}/${file.name}`;
       },
     })

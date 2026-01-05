@@ -2,7 +2,7 @@ import { Edit3Icon } from "lucide-react";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
-import { Image } from "@tiptap/extension-image";
+import { LocalImage } from "@/components/tiptap-node/image-node/local-image-extension";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
@@ -12,9 +12,9 @@ import { Superscript } from "@tiptap/extension-superscript";
 import { Selection } from "@tiptap/extensions";
 import type { Node } from "@/db/schema/graph";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
-import { ROOT_TAG_ID } from "@/hooks/use-current-user";
+import { ROOT_TAG_ID, useCurrentUserId } from "@/hooks/use-current-user";
 import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
-import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
+import { createImageUploadHandler, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
@@ -169,6 +169,7 @@ export function NoteEditor({
   saveNowRef,
   editorKey = 0,
 }: NoteEditorProps) {
+  const userId = useCurrentUserId();
   const { nodes } = useGraphData();
   const { createNote } = useNodeMutations();
   const notesRef = useRef(nodes);
@@ -177,6 +178,8 @@ export function NoteEditor({
   const { height } = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  const handleImageUpload = createImageUploadHandler(userId);
 
   useEffect(() => {
     notesRef.current = nodes;
@@ -218,7 +221,7 @@ export function NoteEditor({
         TaskList,
         TaskItem.configure({ nested: true }),
         Highlight.configure({ multicolor: true }),
-        Image,
+        LocalImage,
         Typography,
         Superscript,
         Subscript,

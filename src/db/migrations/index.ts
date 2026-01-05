@@ -4,6 +4,7 @@ import { migration as m002 } from "./002_seed_root";
 import { migration as m003 } from "./003_user_scoped_graph";
 import { migration as m004 } from "./004_todos";
 import { migration as m005 } from "./005_user_settings_id";
+import { migration as m006 } from "./006_images";
 
 interface Migration {
   version: number;
@@ -11,7 +12,7 @@ interface Migration {
   up: (db: PGlite) => Promise<void>;
 }
 
-const migrations: Migration[] = [m001, m002, m003, m004, m005];
+const migrations: Migration[] = [m001, m002, m003, m004, m005, m006];
 
 export async function runMigrations(db: PGlite): Promise<void> {
   await db.exec(`
