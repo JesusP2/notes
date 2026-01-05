@@ -27,7 +27,9 @@ export function createSlashCommandSuggestion(): Omit<
             editor: props.editor,
           });
 
-          if (!props.clientRect) return;
+          if (!props.clientRect) {
+            return;
+          }
 
           popup = tippy("body", {
             getReferenceClientRect: props.clientRect as () => DOMRect,
@@ -37,14 +39,15 @@ export function createSlashCommandSuggestion(): Omit<
             interactive: true,
             trigger: "manual",
             placement: "bottom-start",
-            maxWidth: 320,
           });
         },
 
         onUpdate(props: SuggestionProps<SlashCommand>) {
           component?.updateProps(props);
 
-          if (!props.clientRect) return;
+          if (!props.clientRect) {
+            return;
+          }
 
           popup?.[0]?.setProps({
             getReferenceClientRect: props.clientRect as () => DOMRect,
@@ -56,6 +59,7 @@ export function createSlashCommandSuggestion(): Omit<
             popup?.[0]?.hide();
             return true;
           }
+
           return component?.ref?.onKeyDown(props) ?? false;
         },
 

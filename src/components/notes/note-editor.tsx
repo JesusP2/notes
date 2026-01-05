@@ -39,6 +39,7 @@ import "@/components/tiptap-node/math-node/math-node.scss";
 import { MermaidNode } from "@/components/tiptap-node/mermaid-node/mermaid-node-extension";
 import "@/components/tiptap-node/mermaid-node/mermaid-node.scss";
 import { SlashCommandNode } from "@/components/tiptap-node/slash-command-node/slash-command-node-extension";
+import { createSlashCommandSuggestion } from "@/components/tiptap-extension/slash-command-suggestion";
 
 
 import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
@@ -252,7 +253,9 @@ export function NoteEditor({
         ...tableExtensions,
         MathNode,
         MermaidNode,
-        SlashCommandNode,
+        SlashCommandNode.configure({
+          suggestion: createSlashCommandSuggestion(),
+        }),
       ],
       content: note ? getInitialContent(note) : "",
       onUpdate: ({ editor }) => {

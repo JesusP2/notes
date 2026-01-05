@@ -1,43 +1,43 @@
-import { mergeAttributes, Node } from "@tiptap/core";
-import { createSlashCommandSuggestion } from "@/components/tiptap-extension/slash-command-suggestion";
+import { Extension } from "@tiptap/core";
+import { PluginKey } from "@tiptap/pm/state";
+import type { SuggestionOptions } from "@tiptap/suggestion";
+import Suggestion from "@tiptap/suggestion";
+import type { SlashCommand } from "@/lib/slash-commands";
 
 export type SlashCommandNodeOptions = {
-  HTMLAttributes: Record<string, unknown>;
+  suggestion: Omit<SuggestionOptions<SlashCommand>, "editor">;
 };
 
-export const SlashCommandNode = Node.create<SlashCommandNodeOptions>({
+export const SlashCommandNode = Extension.create<SlashCommandNodeOptions>({
   name: "slashCommand",
 
   addOptions() {
     return {
-      HTMLAttributes: {},
-      suggestion: createSlashCommandSuggestion(),
+      suggestion: {
+        char: "/",
+        allowSpaces: true,
+        command: ({ editor, range, props }) => {
+          editor.chain().focus().deleteRange(range).run();
+          props.action(editor);
+        },
+        allow: ({ state, range }) => {
+          const $from = state.doc.resolve(range.from);
+          const isParagraph = $from.parent.type.name === "paragraph";
+          const isStartOfNode = $from.parent.textContent.charAt(0) === "/";
+          return isParagraph && isStartOfNode;
+        },
+      },
     };
   },
 
-  group: "inline",
-  inline: true,
-  atom: true,
-
-  addAttributes() {
-    return {};
-  },
-
-  parseHTML() {
-    return [{ tag: "span[data-slash-command]" }];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ["span", mergeAttributes(HTMLAttributes, { "data-slash-command": "" }), 0];
-  },
-
-  addNodeView() {
-    return () => {
-      const span = document.createElement("span");
-      span.setAttribute("data-slash-command", "");
-      span.style.cssText = "position: absolute; width: 0; height: 0; overflow: hidden;";
-      return { dom: span, contentDOM: undefined };
-    };
+  addProseMirrorPlugins() {
+    return [
+      Suggestion({
+        editor: this.editor,
+        pluginKey: new PluginKey("slashCommandSuggestion"),
+        ...this.options.suggestion,
+      }),
+    ];
   },
 });
 
