@@ -16,6 +16,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import type { Node } from "@/db/schema/graph";
@@ -27,6 +28,8 @@ import {
   usePreferenceMutations,
   useTagChildren,
 } from "@/lib/graph-hooks";
+import { formatShortcut, SHORTCUTS } from "@/lib/shortcuts";
+import { usePlatform } from "@/lib/use-shortcut";
 import { TreeNode } from "./tree-node";
 
 interface TagTreeProps {
@@ -49,6 +52,7 @@ interface TreeBranchProps {
   onSelectNode?: (node: Node) => void;
   pinnedIds: Set<string>;
   activeNodeId: string | null;
+  platform: "mac" | "other";
   draggedNode: DraggedNode | null;
   setDraggedNode: (node: DraggedNode | null) => void;
   dragOverNode: string | null;
@@ -67,6 +71,7 @@ function TreeBranch({
   onSelectNode,
   pinnedIds,
   activeNodeId,
+  platform,
   draggedNode,
   setDraggedNode,
   dragOverNode,
@@ -224,12 +229,13 @@ function TreeBranch({
                   isDragOver={dragOverNode === child.id}
                 />
               </ContextMenuTrigger>
-              <ContextMenuContent className="w-48">
+              <ContextMenuContent className="w-56">
                 {isTag && (
                   <>
                     <ContextMenuItem onClick={() => handleCreateNote(child.id)}>
                       <FilePlus className="mr-2 size-4" />
                       New Note
+                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NEW_NOTE, platform)}</ContextMenuShortcut>
                     </ContextMenuItem>
                     <ContextMenuItem
                       onClick={() => handleCreateCanvas(child.id)}
@@ -240,6 +246,7 @@ function TreeBranch({
                     <ContextMenuItem onClick={() => handleCreateTag(child.id)}>
                       <Folder className="mr-2 size-4" />
                       New Folder
+                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NEW_TAG, platform)}</ContextMenuShortcut>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                   </>
@@ -258,6 +265,7 @@ function TreeBranch({
                     <ContextMenuItem onClick={() => onOpenDetails(child.id)}>
                       <Info className="mr-2 size-4" />
                       Details
+                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.NOTE_DETAILS, platform)}</ContextMenuShortcut>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                   </>
@@ -273,6 +281,9 @@ function TreeBranch({
                   >
                     <Trash2 className="mr-2 size-4" />
                     Delete
+                    {(child.type === "note" || child.type === "canvas") && (
+                      <ContextMenuShortcut>{formatShortcut(SHORTCUTS.DELETE_NOTE, platform)}</ContextMenuShortcut>
+                    )}
                   </ContextMenuItem>
                 )}
               </ContextMenuContent>
@@ -286,6 +297,7 @@ function TreeBranch({
                 onExpandTag={onExpandTag}
                 pinnedIds={pinnedIds}
                 activeNodeId={activeNodeId}
+                platform={platform}
                 parentId={child.id}
                 draggedNode={draggedNode}
                 setDraggedNode={setDraggedNode}
@@ -306,6 +318,7 @@ function TreeBranch({
 export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
   const params = useParams({ strict: false });
   const activeNodeId = (params as { noteId?: string; canvasId?: string }).noteId ?? (params as { noteId?: string; canvasId?: string }).canvasId ?? null;
+  const platform = usePlatform();
   const [expandedIds, setExpandedIds] = useState(() => new Set([rootId]));
   const [draggedNode, setDraggedNode] = useState<DraggedNode | null>(null);
   const [dragOverNode, setDragOverNode] = useState<string | null>(null);
@@ -383,6 +396,7 @@ export function TagTree({ rootId = ROOT_TAG_ID, onSelectNode }: TagTreeProps) {
           onExpandTag={expandTag}
           pinnedIds={pinnedIds}
           activeNodeId={activeNodeId}
+          platform={platform}
           parentId={rootId}
           draggedNode={draggedNode}
           setDraggedNode={setDraggedNode}
