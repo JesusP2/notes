@@ -110,9 +110,16 @@ function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="settings-editor-width">Editor width</Label>
-                <p className="text-muted-foreground text-xs">Maximum width of the editor content.</p>
+                <p className="text-muted-foreground text-xs">
+                  Maximum width of the editor content.
+                </p>
               </div>
-              <Select value={editorMaxWidth} onValueChange={(value) => value && setEditorMaxWidth(value as typeof editorMaxWidth)}>
+              <Select
+                value={editorMaxWidth}
+                onValueChange={(value) =>
+                  value && setEditorMaxWidth(value as typeof editorMaxWidth)
+                }
+              >
                 <SelectTrigger id="settings-editor-width" className="w-36">
                   <SelectValue />
                 </SelectTrigger>

@@ -47,7 +47,6 @@ export function SelectionMenu({ editor }: SelectionMenuProps) {
           top: rect.top - editorRect.top - menuHeight - 8,
           left: rect.left - editorRect.left + rect.width / 2,
         });
-
       } catch (e) {
         console.warn("Error calculating selection menu position", e);
         setPosition(null);
@@ -113,8 +112,8 @@ export function SelectionMenu({ editor }: SelectionMenuProps) {
     <div
       ref={menuRef}
       className="selection-menu"
-      style={{ 
-        top: position.top, 
+      style={{
+        top: position.top,
         left: position.left,
       }}
     >
@@ -124,9 +123,9 @@ export function SelectionMenu({ editor }: SelectionMenuProps) {
         <MarkButton editor={editor} type="strike" tooltip="Strikethrough" />
         <MarkButton editor={editor} type="code" tooltip="Code" />
       </ButtonGroup>
-      
+
       <Separator orientation="vertical" />
-      
+
       <ButtonGroup orientation="horizontal">
         <ColorHighlightPopover editor={editor} />
         <LinkPopover editor={editor} />

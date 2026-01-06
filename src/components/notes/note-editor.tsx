@@ -46,7 +46,18 @@ import "@/components/tiptap-node/paragraph-node/paragraph-node.scss";
 import "@/components/tiptap-node/table-node/table-node.scss";
 import "@/components/tiptap-templates/simple/simple-editor.scss";
 
-export type EditorMaxWidth = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "full";
+export type EditorMaxWidth =
+  | "sm"
+  | "md"
+  | "lg"
+  | "xl"
+  | "2xl"
+  | "3xl"
+  | "4xl"
+  | "5xl"
+  | "6xl"
+  | "7xl"
+  | "full";
 
 const MAX_WIDTH_VALUES: Record<EditorMaxWidth, string> = {
   sm: "640px",

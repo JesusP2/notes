@@ -4,7 +4,6 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 
 const CustomTable = Table.extend({
-
   onTransaction({ transaction }) {
     if (!transaction.docChanged) return;
 
