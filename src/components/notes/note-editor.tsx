@@ -71,36 +71,6 @@ function getInitialContent(note: Node): string {
   return `<h1>${note.title || "Untitled"}</h1><p></p>`;
 }
 
-function MainToolbarContent({ isMobile }: { isMobile: boolean }) {
-  return (
-    <>
-      <Spacer />
-
-      <ToolbarGroup>
-        <UndoRedoButton action="undo" />
-        <UndoRedoButton action="redo" />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <HeadingDropdownMenu levels={[1, 2, 3, 4]} portal={isMobile} />
-        <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} portal={isMobile} />
-        <BlockquoteButton />
-        <CodeBlockButton />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <ImageUploadButton text="Add" />
-      </ToolbarGroup>
-
-      <Spacer />
-    </>
-  );
-}
-
 export function NoteEditor({
   note,
   onChange,
@@ -113,8 +83,6 @@ export function NoteEditor({
   const { createNote } = useNodeMutations();
   const notesRef = useRef(nodes);
   const onChangeRef = useRef(onChange);
-  const isMobile = useIsBreakpoint();
-  const { height } = useWindowSize();
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = createImageUploadHandler(userId);
@@ -229,19 +197,6 @@ export function NoteEditor({
   return (
     <div className="simple-editor-wrapper" data-testid="note-editor">
       <EditorContext.Provider value={{ editor }}>
-        <Toolbar
-          ref={toolbarRef}
-          style={{
-            ...(isMobile
-              ? {
-                  bottom: `calc(100% - ${height - rect.y}px)`,
-                }
-              : {}),
-          }}
-        >
-          <MainToolbarContent isMobile={isMobile} />
-        </Toolbar>
-
         <div className="simple-editor-content-wrapper">
           <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
           {editor && <TableMenu editor={editor} />}
