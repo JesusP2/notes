@@ -284,6 +284,30 @@ export const images = pgTable(
   ],
 );
 
+export const noteChunks = pgTable(
+  "note_chunks",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    noteId: text("note_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    chunkIndex: integer("chunk_index").notNull(),
+    chunkText: text("chunk_text").notNull(),
+    chunkHash: text("chunk_hash").notNull(),
+    embedding: text("embedding"), // stored as serialized float array
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique("unique_note_chunk").on(table.noteId, table.chunkIndex),
+    index("idx_note_chunks_note").on(table.noteId),
+    index("idx_note_chunks_user").on(table.userId),
+    index("idx_note_chunks_hash").on(table.chunkHash),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Node = typeof nodes.$inferSelect;

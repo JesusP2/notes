@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileText, Tag } from "lucide-react";
+import { FileText, Loader2, Tag } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Command,
@@ -13,6 +13,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import type { Node } from "@/db/schema/graph";
+import { useSemanticSearch } from "@/hooks/use-semantic-search";
 import {
   COMMANDS,
   COMMAND_GROUP_LABELS,
@@ -49,7 +50,12 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const platform = usePlatform();
-  const results = useSearchNodes(query);
+  const basicResults = useSearchNodes(query);
+  const { results: semanticResults, isLoading: isSemanticLoading } = useSemanticSearch(query, {
+    debounceMs: 400,
+    minQueryLength: 3,
+    limit: 10,
+  });
   const recentNotes = useRecentNotes();
 
   useShortcut(SHORTCUTS.COMMAND_PALETTE, () => setOpen((prev) => !prev));
@@ -133,7 +139,8 @@ export function CommandPalette({
   }, [isDarkMode]);
 
   const hasQuery = query.trim().length > 0;
-  const hasResults = results.length > 0;
+  const hasBasicResults = basicResults.length > 0;
+  const hasSemanticResults = semanticResults.length > 0;
   const hasRecentNotes = recentNotes.length > 0;
 
   return (
@@ -173,10 +180,41 @@ export function CommandPalette({
             </>
           )}
 
-          {hasQuery && hasResults && (
+          {hasQuery && hasSemanticResults && (
+            <>
+              <CommandGroup heading={isSemanticLoading ? "Searching..." : "Semantic Results"}>
+                {semanticResults.map((result) => (
+                  <CommandItem
+                    key={result.noteId}
+                    value={`semantic-${result.noteId}`}
+                    onSelect={() => {
+                      setOpen(false);
+                      setQuery("");
+                      navigate({ to: "/notes/$noteId", params: { noteId: result.noteId } });
+                    }}
+                  >
+                    <FileText className="size-4 text-muted-foreground" />
+                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                      <span className="truncate">{result.title}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {result.snippet.slice(0, 80)}
+                        {result.snippet.length > 80 ? "..." : ""}
+                      </span>
+                    </div>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {(result.score * 100).toFixed(0)}%
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
+
+          {hasQuery && hasBasicResults && !hasSemanticResults && (
             <>
               <CommandGroup heading="Notes">
-                {results.map((node) => {
+                {basicResults.map((node) => {
                   const Icon = NODE_ICONS[node.type];
                   return (
                     <CommandItem
@@ -195,6 +233,15 @@ export function CommandPalette({
               </CommandGroup>
               <CommandSeparator />
             </>
+          )}
+
+          {hasQuery && isSemanticLoading && !hasSemanticResults && (
+            <CommandGroup heading="Searching...">
+              <CommandItem disabled value="loading">
+                <Loader2 className="size-4 text-muted-foreground animate-spin" />
+                <span className="text-muted-foreground">Finding relevant notes...</span>
+              </CommandItem>
+            </CommandGroup>
           )}
 
           {Array.from(commandsByGroup.entries()).map(([group, commands]) => (

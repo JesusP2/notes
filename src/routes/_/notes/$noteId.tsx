@@ -15,6 +15,7 @@ import { useCurrentUserId } from "@/hooks/use-current-user";
 import { nodesCollection } from "@/lib/collections";
 import { useNodeMutations, useVersionMutations } from "@/lib/graph-hooks";
 import { buildNoteExcerpt } from "@/lib/note-excerpt";
+import { useIndexOnSave } from "@/lib/semantic-search/use-index-on-save";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { syncTasks } from "@/lib/tasks";
 import { useEditorShortcut } from "@/lib/use-shortcut";
@@ -27,6 +28,7 @@ function NoteEditorPage() {
   const { noteId } = Route.useParams();
   const { updateNode, deleteNode } = useNodeMutations();
   const { createNoteVersion } = useVersionMutations();
+  const { scheduleIndex } = useIndexOnSave();
   const navigate = useNavigate();
   const { openConfirmDialog } = useConfirmDialog();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -54,6 +56,7 @@ function NoteEditorPage() {
     syncTasks({ userId, noteId, content });
     if (note?.title) {
       createNoteVersion(noteId, note.title, content, "autosave");
+      scheduleIndex(noteId, userId, note.title, content);
     }
   };
 

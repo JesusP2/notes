@@ -176,14 +176,23 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
     [navigate],
   );
 
-  const initialData = useMemo(
-    () => ({
-      elements: scene?.elements ?? [],
-      appState: scene?.appState ?? ({} as AppState),
-      files: scene?.files ?? ({} as BinaryFiles),
-    }),
-    [scene],
-  );
+  const initialDataRef = useRef<{
+    elements: ExcalidrawElement[];
+    appState: AppState;
+    files: BinaryFiles;
+  } | null>(null);
+  if (!initialDataRef.current && scene) {
+    initialDataRef.current = {
+      elements: scene.elements ?? [],
+      appState: scene.appState ?? ({} as AppState),
+      files: scene.files ?? ({} as BinaryFiles),
+    };
+  }
+  const initialData = initialDataRef.current ?? {
+    elements: [],
+    appState: {} as AppState,
+    files: {} as BinaryFiles,
+  };
 
   if (!canvasNode) {
     return (
