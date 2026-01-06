@@ -1,33 +1,37 @@
 .tiptap.ProseMirror {
-  --callout-info-bg: var(--tt-color-highlight-blue);
+  --callout-info-bg: rgba(59, 130, 246, 0.15);
   --callout-info-border: #3b82f6;
   --callout-info-icon: #2563eb;
 
   .dark & {
+    --callout-info-bg: rgba(59, 130, 246, 0.2);
     --callout-info-icon: #60a5fa;
   }
 
-  --callout-warning-bg: var(--tt-color-highlight-yellow);
+  --callout-warning-bg: rgba(245, 158, 11, 0.15);
   --callout-warning-border: #f59e0b;
   --callout-warning-icon: #d97706;
 
   .dark & {
+    --callout-warning-bg: rgba(245, 158, 11, 0.2);
     --callout-warning-icon: #fbbf24;
   }
 
-  --callout-tip-bg: var(--tt-color-highlight-green);
+  --callout-tip-bg: rgba(16, 185, 129, 0.15);
   --callout-tip-border: #10b981;
   --callout-tip-icon: #059669;
 
   .dark & {
+    --callout-tip-bg: rgba(16, 185, 129, 0.2);
     --callout-tip-icon: #34d399;
   }
 
-  --callout-danger-bg: var(--tt-color-highlight-red);
+  --callout-danger-bg: rgba(239, 68, 68, 0.15);
   --callout-danger-border: #ef4444;
   --callout-danger-icon: #dc2626;
 
   .dark & {
+    --callout-danger-bg: rgba(239, 68, 68, 0.2);
     --callout-danger-icon: #f87171;
   }
 }
