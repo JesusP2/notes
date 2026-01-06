@@ -15,6 +15,8 @@ interface SelectionMenuProps {
 export function SelectionMenu({ editor }: SelectionMenuProps) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isMouseDownRef = useRef(false);
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const updatePosition = () => {
@@ -58,7 +60,27 @@ export function SelectionMenu({ editor }: SelectionMenuProps) {
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseDown = (e: MouseEvent) => {
+      isMouseDownRef.current = true;
+      mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      const startPos = mouseDownPosRef.current;
+      isMouseDownRef.current = false;
+      mouseDownPosRef.current = null;
+
+      const CLICK_THRESHOLD = 5;
+      const isClick =
+        startPos &&
+        Math.abs(e.clientX - startPos.x) < CLICK_THRESHOLD &&
+        Math.abs(e.clientY - startPos.y) < CLICK_THRESHOLD;
+
+      if (isClick) {
+        setPosition(null);
+        return;
+      }
+
       requestAnimationFrame(() => {
         updatePosition();
       });
@@ -66,18 +88,20 @@ export function SelectionMenu({ editor }: SelectionMenuProps) {
 
     const handleKeyUp = () => {
       if (!editor.state.selection.empty) {
-         setPosition(null);
+        setPosition(null);
       }
     };
 
     editor.on("selectionUpdate", handleSelectionUpdate);
-    
+
     const editorDom = editor.view.dom;
+    editorDom.addEventListener("mousedown", handleMouseDown);
     editorDom.addEventListener("mouseup", handleMouseUp);
     editorDom.addEventListener("keyup", handleKeyUp);
 
     return () => {
       editor.off("selectionUpdate", handleSelectionUpdate);
+      editorDom.removeEventListener("mousedown", handleMouseDown);
       editorDom.removeEventListener("mouseup", handleMouseUp);
       editorDom.removeEventListener("keyup", handleKeyUp);
     };
