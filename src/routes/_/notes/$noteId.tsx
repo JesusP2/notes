@@ -52,7 +52,7 @@ function NoteEditorPage() {
     syncEmbeds({ noteId, userId, content });
     syncTasks({ userId, noteId, content });
     if (note?.title) {
-      await createNoteVersion(noteId, note.title, content, "autosave");
+      createNoteVersion(noteId, note.title, content, "autosave");
     }
   };
 

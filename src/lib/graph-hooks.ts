@@ -335,14 +335,14 @@ export function useNoteVersions(noteId: string): Array<{
 export function useVersionMutations() {
   const userId = useCurrentUserId();
 
-  const createNoteVersion = async (
+  const createNoteVersion = (
     noteId: string,
     title: string,
     content: string,
     reason?: string,
   ) => {
     const hash = hashContent(`${title}\n${content}`);
-    const state = await nodeVersionsCollection.stateWhenReady();
+    const state = nodeVersionsCollection.state;
     const existing = Array.from(state.values()).some(
       (version) =>
         version.userId === userId && version.nodeId === noteId && version.contentHash === hash,
