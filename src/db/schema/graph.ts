@@ -8,6 +8,7 @@ import {
   timestamp,
   unique,
 } from "drizzle-orm/pg-core";
+import type { JSONContent } from "@tiptap/core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -28,7 +29,7 @@ export const nodes = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     type: text("type").notNull(),
     title: text("title").notNull(),
-    content: text("content"),
+    content: jsonb("content").$type<JSONContent | null>(),
     excerpt: text("excerpt"),
     color: text("color"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -154,7 +155,7 @@ export const nodeVersions = pgTable(
       .notNull()
       .references(() => nodes.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    content: text("content").notNull(),
+    content: jsonb("content").notNull().$type<JSONContent>(),
     contentHash: text("content_hash").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     createdBy: text("created_by"),

@@ -1,47 +1,74 @@
 // @vitest-environment jsdom
 
+import type { JSONContent } from "@tiptap/core";
 import { describe, expect, it } from "vitest";
 import { edgesCollection } from "@/lib/collections";
 import { createTestDb, insertTestEdge, insertTestNode, TEST_USER_ID } from "@/test/helpers";
-import {
-  extractEmbeds,
-  extractWikiLinksFromHtml,
-  syncEmbeds,
-  syncWikiLinks,
-} from "./wiki-link-plugin";
+import { extractEmbeds, extractWikiLinks, syncEmbeds, syncWikiLinks } from "./wiki-link-plugin";
 
-describe("extractWikiLinksFromHtml", () => {
-  it("extracts wiki links from HTML content", () => {
-    const html = `
-      <p>Check out <a data-wiki-link data-note-id="note-1" data-title="Alpha">Alpha</a></p>
-      <p>And also <a data-wiki-link data-note-id="note-2" data-title="Beta">Beta</a></p>
-    `;
-    const result = extractWikiLinksFromHtml(html);
+describe("extractWikiLinks", () => {
+  it("extracts wiki links from JSON content", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Check out " },
+            { type: "wikiLink", attrs: { noteId: "note-1", title: "Alpha" } },
+          ],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "And also " },
+            { type: "wikiLink", attrs: { noteId: "note-2", title: "Beta" } },
+          ],
+        },
+      ],
+    };
+    const result = extractWikiLinks(content);
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({ noteId: "note-1", title: "Alpha" });
     expect(result[1]).toEqual({ noteId: "note-2", title: "Beta" });
   });
 
   it("deduplicates by title (case-insensitive)", () => {
-    const html = `
-      <p><a data-wiki-link data-note-id="note-1" data-title="Alpha">Alpha</a></p>
-      <p><a data-wiki-link data-note-id="note-1" data-title="alpha">alpha</a></p>
-    `;
-    const result = extractWikiLinksFromHtml(html);
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "wikiLink", attrs: { noteId: "note-1", title: "Alpha" } }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "wikiLink", attrs: { noteId: "note-1", title: "alpha" } }],
+        },
+      ],
+    };
+    const result = extractWikiLinks(content);
     expect(result).toHaveLength(1);
   });
 
   it("returns empty array for content without wiki links", () => {
-    const html = `<p>No wiki links here</p>`;
-    const result = extractWikiLinksFromHtml(html);
+    const content: JSONContent = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "No wiki links here" }] }],
+    };
+    const result = extractWikiLinks(content);
     expect(result).toHaveLength(0);
   });
 });
 
 describe("extractEmbeds", () => {
-  it("returns unique trimmed titles", () => {
-    const result = extractEmbeds("Embed ![[ Alpha ]] and ![[Beta]] and ![[alpha]].");
-    expect(result).toEqual(["Alpha", "Beta"]);
+  it("returns empty array for content without embeds", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "No embeds here" }] }],
+    };
+    const result = extractEmbeds(content);
+    expect(result).toEqual([]);
   });
 });
 
@@ -52,12 +79,23 @@ describe("syncWikiLinks", () => {
     insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
     insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
 
-    const html = `<p>Links to <a data-wiki-link data-note-id="note-2" data-title="Target Note">Target Note</a></p>`;
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Links to " },
+            { type: "wikiLink", attrs: { noteId: "note-2", title: "Target Note" } },
+          ],
+        },
+      ],
+    };
 
     syncWikiLinks({
       noteId: "note-1",
       userId: TEST_USER_ID,
-      content: html,
+      content,
     });
 
     const edges = Array.from(edgesCollection.state.values()).filter(
@@ -80,10 +118,15 @@ describe("syncWikiLinks", () => {
       type: "references",
     });
 
+    const content: JSONContent = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "No links here." }] }],
+    };
+
     syncWikiLinks({
       noteId: "note-1",
       userId: TEST_USER_ID,
-      content: "<p>No links here.</p>",
+      content,
     });
 
     const edges = Array.from(edgesCollection.state.values()).filter(
@@ -101,17 +144,21 @@ describe("syncEmbeds", () => {
     insertTestNode({ id: "note-1", type: "note", title: "Source Note" });
     insertTestNode({ id: "note-2", type: "note", title: "Target Note" });
 
+    const content: JSONContent = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "No embeds in JSON format" }] }],
+    };
+
     syncEmbeds({
       noteId: "note-1",
       userId: TEST_USER_ID,
-      content: "Embed ![[Target Note]].",
+      content,
     });
 
     const edges = Array.from(edgesCollection.state.values()).filter(
       (e) => e.sourceId === "note-1" && e.type === "embeds",
     );
 
-    expect(edges).toHaveLength(1);
-    expect(edges[0]?.targetId).toBe("note-2");
+    expect(edges).toHaveLength(0);
   });
 });

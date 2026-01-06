@@ -2,6 +2,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
 import { and, eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import type { JSONContent } from "@tiptap/core";
 import { ulid } from "ulidx";
 import type { Edge, EdgeType, Node } from "@/db/schema/graph";
 import { useCurrentUserId } from "@/hooks/use-current-user";
@@ -19,6 +20,22 @@ import {
   templatesMetaCollection,
   userNodePrefsCollection,
 } from "@/lib/collections";
+
+function extractTextFromContent(content: JSONContent | null): string {
+  if (!content) return "";
+  const parts: string[] = [];
+  if (content.text) parts.push(content.text);
+  if (content.type === "wikiLink") {
+    const title = (content.attrs?.title as string) || "";
+    if (title) parts.push(title);
+  }
+  if (content.content) {
+    for (const child of content.content) {
+      parts.push(extractTextFromContent(child));
+    }
+  }
+  return parts.join(" ");
+}
 
 function parseJson<T>(value: unknown, fallback: T): T {
   if (value === null || value === undefined) return fallback;
@@ -169,7 +186,7 @@ export function useSearchNodes(queryText: string): Node[] {
   return data
     .filter((node) => {
       const title = node.title.toLowerCase();
-      const content = (node.content ?? "").toLowerCase();
+      const content = extractTextFromContent(node.content).toLowerCase();
       return title.includes(query) || content.includes(query);
     })
     .sort(compareUpdatedDesc)
@@ -306,7 +323,7 @@ export function useNodePreferences(nodeId: string): {
 export function useNoteVersions(noteId: string): Array<{
   id: string;
   title: string;
-  content: string;
+  content: JSONContent;
   contentHash: string;
   createdAt: Date;
   reason: string | null;
@@ -335,8 +352,8 @@ export function useNoteVersions(noteId: string): Array<{
 export function useVersionMutations() {
   const userId = useCurrentUserId();
 
-  const createNoteVersion = (noteId: string, title: string, content: string, reason?: string) => {
-    const hash = hashContent(`${title}\n${content}`);
+  const createNoteVersion = (noteId: string, title: string, content: JSONContent, reason?: string) => {
+    const hash = hashContent(`${title}\n${JSON.stringify(content)}`);
     const state = nodeVersionsCollection.state;
     const existing = Array.from(state.values()).some(
       (version) =>
@@ -414,6 +431,36 @@ export function useTasks(options: { showDone?: boolean } = {}): TaskItem[] {
     });
 }
 
+function toggleTaskInContent(
+  node: JSONContent,
+  targetPosition: number,
+  desiredDone: boolean,
+  position: { value: number },
+): JSONContent {
+  if (node.type === "taskItem") {
+    if (position.value === targetPosition) {
+      position.value += 1;
+      return {
+        ...node,
+        attrs: { ...node.attrs, checked: desiredDone },
+      };
+    }
+    position.value += 1;
+    return node;
+  }
+
+  if (node.content) {
+    return {
+      ...node,
+      content: node.content.map((child) =>
+        toggleTaskInContent(child, targetPosition, desiredDone, position),
+      ),
+    };
+  }
+
+  return node;
+}
+
 export function useTaskMutations() {
   const userId = useCurrentUserId();
 
@@ -422,18 +469,13 @@ export function useTaskMutations() {
     if (!task || task.userId !== userId) return;
 
     const note = nodesCollection.state.get(task.noteId);
-    if (!note) return;
-
-    const content = note.content ?? "";
-    const lines = content.split(/\r?\n/);
-    const index = task.position ?? -1;
-    if (index < 0 || index >= lines.length) return;
+    if (!note || !note.content) return;
 
     const desiredDone = nextDone ?? !task.isDone;
-    const line = lines[index] ?? "";
-    const updatedLine = line.replace(/\[[ xX]\]/, desiredDone ? "[x]" : "[ ]");
-    lines[index] = updatedLine;
-    const nextContent = lines.join("\n");
+    const taskPosition = task.position ?? -1;
+    if (taskPosition < 0) return;
+
+    const nextContent = toggleTaskInContent(note.content, taskPosition, desiredDone, { value: 0 });
     const now = new Date();
 
     nodesCollection.update(note.id, (draft) => {
@@ -548,7 +590,13 @@ export function useNodeMutations() {
 
   const createNote = (title: string, tagId?: string) => {
     const id = ulid();
-    const content = `<h1>${title}</h1><p></p>`;
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: title }] },
+        { type: "paragraph" },
+      ],
+    };
     const now = new Date();
     const node: Node = {
       id,
@@ -594,7 +642,13 @@ export function useNodeMutations() {
 
   const createTemplate = (title: string) => {
     const id = ulid();
-    const content = `<h1>${title}</h1><p></p>`;
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: title }] },
+        { type: "paragraph" },
+      ],
+    };
     const now = new Date();
     const node: Node = {
       id,
@@ -654,7 +708,14 @@ export function useNodeMutations() {
     }
 
     const title = noteTitle?.trim() || template.title;
-    const baseContent = template.content ?? `<h1>${title}</h1><p></p>`;
+    const defaultContent: JSONContent = {
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: title }] },
+        { type: "paragraph" },
+      ],
+    };
+    const baseContent = template.content ?? defaultContent;
     const content = applyTemplatePlaceholders(baseContent, title);
     const excerpt = buildNoteExcerpt(content);
     const now = new Date();

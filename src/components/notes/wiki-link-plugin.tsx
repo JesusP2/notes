@@ -1,59 +1,72 @@
+import type { JSONContent } from "@tiptap/core";
 import { ulid } from "ulidx";
 import type { Node } from "@/db/schema/graph";
 import { edgesCollection, nodesCollection } from "@/lib/collections";
-
-export const EMBED_LINK_REGEX = /!\[\[([^[\]]+)\]\]/g;
 
 export interface WikiLinkInfo {
   noteId: string | null;
   title: string;
 }
 
-export function extractWikiLinksFromHtml(content: string): WikiLinkInfo[] {
+function extractWikiLinksFromJson(node: JSONContent, results: WikiLinkInfo[], seen: Set<string>): void {
+  if (node.type === "wikiLink") {
+    const attrs = node.attrs ?? {};
+    const noteId = (attrs.noteId as string) || null;
+    const title = (attrs.title as string) || "";
+
+    if (title.trim()) {
+      const key = title.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push({ noteId, title: title.trim() });
+      }
+    }
+  }
+
+  if (node.content) {
+    for (const child of node.content) {
+      extractWikiLinksFromJson(child, results, seen);
+    }
+  }
+}
+
+export function extractWikiLinks(content: JSONContent): WikiLinkInfo[] {
   if (!content) return [];
 
   const results: WikiLinkInfo[] = [];
   const seen = new Set<string>();
-
-  if (typeof window !== "undefined" && "DOMParser" in window) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, "text/html");
-    const links = doc.querySelectorAll("a[data-wiki-link]");
-
-    for (const link of links) {
-      const noteId = link.getAttribute("data-note-id");
-      const title = link.getAttribute("data-title") || link.textContent || "";
-
-      if (!title.trim()) continue;
-
-      const key = title.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      results.push({ noteId, title: title.trim() });
-    }
-  }
-
+  extractWikiLinksFromJson(content, results, seen);
   return results;
 }
 
-export function extractEmbeds(content: string): string[] {
-  const results: string[] = [];
-  const seen = new Set<string>();
-
-  for (const match of content.matchAll(EMBED_LINK_REGEX)) {
-    const rawTitle = match[1]?.trim();
-    if (!rawTitle) {
-      continue;
+function extractEmbedsFromJson(node: JSONContent, results: string[], seen: Set<string>): void {
+  if (node.type === "image" && node.attrs?.alt) {
+    const embedMatch = String(node.attrs.alt).match(/^!\[\[([^\]]+)\]\]$/);
+    if (embedMatch) {
+      const title = embedMatch[1]?.trim();
+      if (title) {
+        const key = title.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push(title);
+        }
+      }
     }
-    const key = rawTitle.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    results.push(rawTitle);
   }
 
+  if (node.content) {
+    for (const child of node.content) {
+      extractEmbedsFromJson(child, results, seen);
+    }
+  }
+}
+
+export function extractEmbeds(content: JSONContent): string[] {
+  if (!content) return [];
+
+  const results: string[] = [];
+  const seen = new Set<string>();
+  extractEmbedsFromJson(content, results, seen);
   return results;
 }
 
@@ -81,9 +94,9 @@ export function syncWikiLinks({
 }: {
   noteId: string;
   userId: string;
-  content: string;
+  content: JSONContent;
 }): { resolved: string[]; unresolved: string[] } {
-  const wikiLinks = extractWikiLinksFromHtml(content);
+  const wikiLinks = extractWikiLinks(content);
 
   const desiredTargets = new Set<string>();
   const unresolved: string[] = [];
@@ -134,7 +147,7 @@ export function syncEmbeds({
 }: {
   noteId: string;
   userId: string;
-  content: string;
+  content: JSONContent;
 }): { resolved: string[]; unresolved: string[] } {
   const titles = extractEmbeds(content);
   const normalized = titles.map((title) => title.toLowerCase());

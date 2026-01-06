@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { JSONContent } from "@tiptap/core";
 import type { Node } from "@/db/schema/graph";
 import { NoteEditor } from "./note-editor";
 
@@ -10,12 +11,20 @@ vi.mock("@/lib/graph-hooks", () => ({
   useNodeMutations: () => ({ createNote: vi.fn() }),
 }));
 
+const baseContent: JSONContent = {
+  type: "doc",
+  content: [
+    { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Example Note" }] },
+    { type: "paragraph", content: [{ type: "text", text: "Hello world" }] },
+  ],
+};
+
 const baseNote: Node = {
   id: "note-1",
   userId: "local",
   type: "note",
   title: "Example Note",
-  content: "# Example Note\n\nHello world",
+  content: baseContent,
   excerpt: null,
   color: null,
   createdAt: new Date("2020-01-01T00:00:00Z"),
@@ -45,7 +54,13 @@ describe("NoteEditor", () => {
     const handleChange = vi.fn();
     const noteWithContent: Node = {
       ...baseNote,
-      content: "# My Title\n\nSome content here",
+      content: {
+        type: "doc",
+        content: [
+          { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "My Title" }] },
+          { type: "paragraph", content: [{ type: "text", text: "Some content here" }] },
+        ],
+      },
     };
 
     render(<NoteEditor note={noteWithContent} onChange={handleChange} />);

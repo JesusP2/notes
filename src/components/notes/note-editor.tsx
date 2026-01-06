@@ -1,6 +1,6 @@
 import { Edit3Icon } from "lucide-react";
 import { useEffect, type RefObject } from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { EditorContent, EditorContext, useEditor, type JSONContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { LocalImage } from "@/components/tiptap-node/image-node/local-image-extension";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -75,18 +75,24 @@ const MAX_WIDTH_VALUES: Record<EditorMaxWidth, string> = {
 
 interface NoteEditorProps {
   note: Node | null;
-  onChange: (content: string) => void;
+  onChange: (content: JSONContent) => void;
   debounceMs?: number;
   saveNowRef?: RefObject<(() => void) | null>;
   editorKey?: number;
   maxWidth?: EditorMaxWidth;
 }
 
-function getInitialContent(note: Node): string {
+function getInitialContent(note: Node): JSONContent {
   if (note.content) {
-    return note.content;
+    return note.content as JSONContent;
   }
-  return `<h1>${note.title || "Untitled"}</h1><p></p>`;
+  return {
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: note.title || "Untitled" }] },
+      { type: "paragraph" },
+    ],
+  };
 }
 
 export function NoteEditor({
@@ -167,7 +173,7 @@ export function NoteEditor({
       ],
       content: note ? getInitialContent(note) : "",
       onUpdate: ({ editor }) => {
-        debouncer.maybeExecute(editor.getHTML());
+        debouncer.maybeExecute(editor.getJSON());
       },
     },
     [note?.id, editorKey],

@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+import type { JSONContent } from "@tiptap/core";
 import { runMigrations } from "@/db/migrations";
 import {
   edgesCollection,
@@ -47,7 +48,7 @@ export function insertTestNode(data: {
   id: string;
   type: NodeType;
   title: string;
-  content?: string;
+  content?: JSONContent;
   color?: string;
   createdAt?: Date;
   updatedAt?: Date;

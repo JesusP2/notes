@@ -17,7 +17,7 @@ export function NotePreviewCard({ noteId }: { noteId: string }) {
     return <div className="text-xs text-muted-foreground">No preview available.</div>;
   }
 
-  const excerpt = note.excerpt ?? buildNoteExcerpt(note.content ?? "");
+  const excerpt = note.excerpt ?? (note.content ? buildNoteExcerpt(note.content) : "");
 
   return (
     <div className="space-y-2">

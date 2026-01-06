@@ -1,3 +1,4 @@
+import type { JSONContent } from "@tiptap/core";
 import { ulid } from "ulidx";
 import { hashContent } from "@/lib/content-hash";
 import { tasksCollection } from "@/lib/collections";
@@ -9,23 +10,44 @@ export type ParsedTask = {
   position: number;
 };
 
-const TASK_LINE_REGEX = /^- \[([ xX])\]\s+(.*)$/;
+function extractTextFromNode(node: JSONContent): string {
+  if (node.text) return node.text;
+  if (!node.content) return "";
+  return node.content.map(extractTextFromNode).join("");
+}
 
-export function parseTasks(content: string, noteId: string): ParsedTask[] {
-  const lines = content.split(/\r?\n/);
-  const tasks: ParsedTask[] = [];
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i] ?? "";
-    const match = line.match(TASK_LINE_REGEX);
-    if (!match) continue;
-    const isDone = match[1]?.toLowerCase() === "x";
-    const taskContent = (match[2] ?? "").trim();
-    if (!taskContent) continue;
-    const blockId = hashContent(`${noteId}:${i}:${taskContent}`);
-    tasks.push({ blockId, content: taskContent, isDone, position: i });
+function extractTasksFromJson(
+  node: JSONContent,
+  tasks: ParsedTask[],
+  noteId: string,
+  position: { value: number },
+): void {
+  if (node.type === "taskItem") {
+    const checked = node.attrs?.checked === true;
+    const taskContent = node.content ? extractTextFromNode({ content: node.content }) : "";
+    if (taskContent.trim()) {
+      const blockId = hashContent(`${noteId}:${position.value}:${taskContent.trim()}`);
+      tasks.push({
+        blockId,
+        content: taskContent.trim(),
+        isDone: checked,
+        position: position.value,
+      });
+    }
+    position.value += 1;
+    return;
   }
 
+  if (node.content) {
+    for (const child of node.content) {
+      extractTasksFromJson(child, tasks, noteId, position);
+    }
+  }
+}
+
+export function parseTasks(content: JSONContent, noteId: string): ParsedTask[] {
+  const tasks: ParsedTask[] = [];
+  extractTasksFromJson(content, tasks, noteId, { value: 0 });
   return tasks;
 }
 
@@ -36,7 +58,7 @@ export function syncTasks({
 }: {
   userId: string;
   noteId: string;
-  content: string;
+  content: JSONContent;
 }): void {
   const tasks = parseTasks(content, noteId);
   const existing = Array.from(tasksCollection.state.values()).filter(

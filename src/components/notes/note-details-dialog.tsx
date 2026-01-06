@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { JSONContent } from "@tiptap/core";
 import { Download, History, Info, Plus, Printer, Folder, X } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
@@ -42,7 +43,7 @@ interface NoteDetailsDialogProps {
   noteId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onVersionRestored?: (content: string, title: string) => void;
+  onVersionRestored?: (content: JSONContent, title: string) => void;
 }
 
 export function NoteDetailsDialog({
@@ -87,13 +88,13 @@ export function NoteDetailsDialog({
   const incomingLinks = incoming.filter((edge) => LINK_TYPES.has(edge.type));
 
   const handleExportMarkdown = useCallback(() => {
-    if (!note) return;
-    exportAsMarkdown(note.title, note.content ?? "");
+    if (!note || !note.content) return;
+    exportAsMarkdown(note.title, note.content);
   }, [note]);
 
   const handleExportPdf = useCallback(() => {
-    if (!note) return;
-    exportAsPdf(note.title, note.content ?? "");
+    if (!note || !note.content) return;
+    exportAsPdf(note.title, note.content);
   }, [note]);
 
   if (!noteId || !note) {

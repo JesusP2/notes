@@ -1,3 +1,4 @@
+import type { JSONContent } from "@tiptap/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,41 @@ import {
 } from "@/lib/graph-hooks";
 import { buildNoteExcerpt } from "@/lib/note-excerpt";
 
+function extractTextFromJson(node: JSONContent): string {
+  const parts: string[] = [];
+
+  if (node.text) {
+    parts.push(node.text);
+  }
+
+  if (node.type === "wikiLink") {
+    const title = (node.attrs?.title as string) || "";
+    if (title) parts.push(`[[${title}]]`);
+  }
+
+  if (node.content) {
+    for (const child of node.content) {
+      parts.push(extractTextFromJson(child));
+    }
+  }
+
+  return parts.join("");
+}
+
+function contentToLines(content: JSONContent | null): string[] {
+  if (!content) return [];
+  const text = extractTextFromJson(content);
+  return text.split(/\n/).filter(Boolean);
+}
+
 type DiffLine = {
   type: "added" | "removed" | "unchanged";
   text: string;
 };
 
-function buildLineDiff(current: string, previous: string): DiffLine[] {
-  const currentLines = current.split(/\r?\n/);
-  const previousLines = previous.split(/\r?\n/);
+function buildLineDiff(current: JSONContent | null, previous: JSONContent): DiffLine[] {
+  const currentLines = contentToLines(current);
+  const previousLines = contentToLines(previous);
   const max = Math.max(currentLines.length, previousLines.length);
   const lines: DiffLine[] = [];
 
@@ -51,7 +79,7 @@ interface NoteVersionHistoryDialogProps {
   noteId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRestored?: (content: string, title: string) => void;
+  onRestored?: (content: JSONContent, title: string) => void;
 }
 
 export function NoteVersionHistoryDialog({
@@ -82,7 +110,7 @@ export function NoteVersionHistoryDialog({
 
   const diffLines = useMemo(() => {
     if (!note || !selected) return [];
-    return buildLineDiff(note.content ?? "", selected.content);
+    return buildLineDiff(note.content, selected.content);
   }, [note, selected]);
 
   const handleRestore = useCallback(async () => {

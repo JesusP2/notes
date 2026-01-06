@@ -1,6 +1,7 @@
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { JSONContent } from "@tiptap/core";
 import { Edit3Icon } from "lucide-react";
 import { useRef, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
@@ -45,7 +46,7 @@ function NoteEditorPage() {
   const note = noteQuery.data?.[0] ?? null;
   const noteLoading = Boolean(noteId) && noteQuery.isLoading;
 
-  const handleContentSave = async (content: string) => {
+  const handleContentSave = (content: JSONContent) => {
     const excerpt = buildNoteExcerpt(content);
     updateNode(noteId, { content, excerpt, updatedAt: new Date() });
     syncWikiLinks({ noteId, userId, content });
@@ -81,7 +82,7 @@ function NoteEditorPage() {
     saveNowRef.current?.();
   };
 
-  const handleVersionRestored = (content: string, _title: string) => {
+  const handleVersionRestored = (content: JSONContent, _title: string) => {
     setEditorKey((prev) => prev + 1);
     syncWikiLinks({ noteId, userId, content });
     syncEmbeds({ noteId, userId, content });

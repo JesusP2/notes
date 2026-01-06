@@ -215,8 +215,18 @@ describe("useSearchNodes", () => {
     try {
       expect(result.current).toEqual([]);
 
-      insertTestNode({ id: "note-1", type: "note", title: "Alpha Note", content: "Zebra content" });
-      insertTestNode({ id: "note-2", type: "note", title: "Beta Note", content: "Alpha mention" });
+      insertTestNode({
+        id: "note-1",
+        type: "note",
+        title: "Alpha Note",
+        content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Zebra content" }] }] },
+      });
+      insertTestNode({
+        id: "note-2",
+        type: "note",
+        title: "Beta Note",
+        content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Alpha mention" }] }] },
+      });
 
       rerender({ query: "alpha" });
 
@@ -247,11 +257,12 @@ describe("useSearchNodes", () => {
     });
 
     try {
+      const noteContent = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "note" }] }] };
       insertTestNode({
         id: "note-old",
         type: "note",
         title: "Note Old",
-        content: "note",
+        content: noteContent,
         createdAt: new Date("2020-01-01T00:00:00Z"),
         updatedAt: new Date("2020-01-01T00:00:00Z"),
       });
@@ -259,7 +270,7 @@ describe("useSearchNodes", () => {
         id: "note-new",
         type: "note",
         title: "Note New",
-        content: "note",
+        content: noteContent,
         createdAt: new Date("2020-01-02T00:00:00Z"),
         updatedAt: new Date("2020-01-02T00:00:00Z"),
       });
@@ -514,25 +525,28 @@ describe("useNodeMutations", () => {
     });
 
     try {
+      const oldContent = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Old content" }] }] };
+      const newContent = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "New content" }] }] };
+
       insertTestNode({
         id: "note-1",
         type: "note",
         title: "Old",
-        content: "Old content",
+        content: oldContent,
         color: "red",
       });
 
       act(() => {
         result.current.updateNode("note-1", {
           title: "New",
-          content: "New content",
+          content: newContent,
           color: "blue",
         });
       });
 
       const node = nodesCollection.state.get("note-1");
       expect(node?.title).toBe("New");
-      expect(node?.content).toBe("New content");
+      expect(node?.content).toEqual(newContent);
       expect(node?.color).toBe("blue");
     } finally {
       unmount();
