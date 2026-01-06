@@ -1,10 +1,13 @@
 import { createContext, useContext, type ReactNode } from "react";
+import type { EditorMaxWidth } from "@/components/notes/note-editor";
 
 export type AppSettingsContextValue = {
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
   vimEnabled: boolean;
   setVimEnabled: (next: boolean) => void;
+  editorMaxWidth: EditorMaxWidth;
+  setEditorMaxWidth: (next: EditorMaxWidth) => void;
 };
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);

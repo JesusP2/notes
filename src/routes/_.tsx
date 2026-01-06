@@ -15,6 +15,7 @@ import { useNodeMutations } from "@/lib/graph-hooks";
 import { SHORTCUTS } from "@/lib/shortcuts";
 import { useShortcut } from "@/lib/use-shortcut";
 import { preloadCoreCollections } from "@/lib/collections";
+import type { EditorMaxWidth } from "@/components/notes/note-editor";
 
 export const Route = createFileRoute("/_")({
   component: RouteComponent,
@@ -73,6 +74,10 @@ function MainLayoutShell() {
   const { setTheme, resolvedTheme } = useTheme();
   const { createNote, createTag } = useNodeMutations();
   const [vimEnabled, setVimEnabledSetting] = useUserSetting<boolean>("vim_enabled", false);
+  const [editorMaxWidth, setEditorMaxWidthSetting] = useUserSetting<EditorMaxWidth>(
+    "editor.maxWidth",
+    "lg",
+  );
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -97,6 +102,10 @@ function MainLayoutShell() {
     void setVimEnabledSetting(next);
   };
 
+  const handleSetEditorMaxWidth = (next: EditorMaxWidth) => {
+    void setEditorMaxWidthSetting(next);
+  };
+
   useShortcut(SHORTCUTS.TOGGLE_SIDEBAR, toggleSidebar);
   useShortcut(SHORTCUTS.TOGGLE_THEME, toggleTheme);
   useShortcut(SHORTCUTS.NEW_NOTE, handleCreateNote);
@@ -112,6 +121,8 @@ function MainLayoutShell() {
         toggleSidebar,
         vimEnabled,
         setVimEnabled: handleSetVimEnabled,
+        editorMaxWidth,
+        setEditorMaxWidth: handleSetEditorMaxWidth,
       }}
     >
       <CommandPalette

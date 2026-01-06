@@ -18,6 +18,7 @@ import { createImageUploadHandler, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
+import { useAppSettings } from "@/components/providers/app-settings";
 
 import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
 import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/tiptap-ui-primitive/toolbar";
@@ -56,12 +57,29 @@ import "@/components/tiptap-node/paragraph-node/paragraph-node.scss";
 import "@/components/tiptap-node/table-node/table-node.scss";
 import "@/components/tiptap-templates/simple/simple-editor.scss";
 
+export type EditorMaxWidth = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "full";
+
+const MAX_WIDTH_VALUES: Record<EditorMaxWidth, string> = {
+  sm: "640px",
+  md: "768px",
+  lg: "1024px",
+  xl: "1280px",
+  "2xl": "1536px",
+  "3xl": "1792px",
+  "4xl": "2048px",
+  "5xl": "2304px",
+  "6xl": "2560px",
+  "7xl": "2816px",
+  full: "100%",
+};
+
 interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
   debounceMs?: number;
   saveNowRef?: MutableRefObject<(() => void) | null>;
   editorKey?: number;
+  maxWidth?: EditorMaxWidth;
 }
 
 function getInitialContent(note: Node): string {
@@ -77,13 +95,19 @@ export function NoteEditor({
   debounceMs = 500,
   saveNowRef,
   editorKey = 0,
+  maxWidth: maxWidthOverride,
 }: NoteEditorProps) {
   const userId = useCurrentUserId();
   const { nodes } = useGraphData();
   const { createNote } = useNodeMutations();
+  const { editorMaxWidth } = useAppSettings();
   const notesRef = useRef(nodes);
   const onChangeRef = useRef(onChange);
+  const isMobile = useIsBreakpoint();
+  const { height } = useWindowSize();
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  const maxWidth = maxWidthOverride ?? editorMaxWidth;
 
   const handleImageUpload = createImageUploadHandler(userId);
 
@@ -197,7 +221,10 @@ export function NoteEditor({
   return (
     <div className="simple-editor-wrapper" data-testid="note-editor">
       <EditorContext.Provider value={{ editor }}>
-        <div className="simple-editor-content-wrapper">
+        <div
+          className="simple-editor-content-wrapper"
+          style={{ maxWidth: MAX_WIDTH_VALUES[maxWidth] }}
+        >
           <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
           {editor && <TableMenu editor={editor} />}
           {editor && <SelectionMenu editor={editor} />}

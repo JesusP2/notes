@@ -20,7 +20,14 @@ export const Route = createFileRoute("/_/settings")({
 
 function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { isSidebarCollapsed, toggleSidebar, vimEnabled, setVimEnabled } = useAppSettings();
+  const {
+    isSidebarCollapsed,
+    toggleSidebar,
+    vimEnabled,
+    setVimEnabled,
+    editorMaxWidth,
+    setEditorMaxWidth,
+  } = useAppSettings();
   const themeValue = theme ?? "system";
 
   return (
@@ -86,7 +93,7 @@ function SettingsPage() {
             <CardTitle>Editor</CardTitle>
             <CardDescription>Adjust editor behavior.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="settings-vim">Vim mode</Label>
@@ -99,6 +106,25 @@ function SettingsPage() {
                   setVimEnabled(checked);
                 }}
               />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="settings-editor-width">Editor width</Label>
+                <p className="text-muted-foreground text-xs">Maximum width of the editor content.</p>
+              </div>
+              <Select value={editorMaxWidth} onValueChange={(value) => value && setEditorMaxWidth(value as typeof editorMaxWidth)}>
+                <SelectTrigger id="settings-editor-width" className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sm">Small (640px)</SelectItem>
+                  <SelectItem value="md">Medium (768px)</SelectItem>
+                  <SelectItem value="lg">Large (1024px)</SelectItem>
+                  <SelectItem value="xl">XL (1280px)</SelectItem>
+                  <SelectItem value="2xl">2XL (1536px)</SelectItem>
+                  <SelectItem value="full">Full width</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
