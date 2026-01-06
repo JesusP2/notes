@@ -15,13 +15,7 @@ import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { ROOT_TAG_ID, useCurrentUserId } from "@/hooks/use-current-user";
 import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
 import { createImageUploadHandler, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint";
-import { useWindowSize } from "@/hooks/use-window-size";
-import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 import { useAppSettings } from "@/components/providers/app-settings";
-
-import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
-import { Toolbar, ToolbarGroup, ToolbarSeparator } from "@/components/tiptap-ui-primitive/toolbar";
 
 import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
 import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
@@ -38,12 +32,6 @@ import "@/components/tiptap-node/mermaid-node/mermaid-node.scss";
 import { SlashCommandNode } from "@/components/tiptap-node/slash-command-node/slash-command-node-extension";
 import { createSlashCommandSuggestion } from "@/components/tiptap-extension/slash-command-suggestion";
 
-import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
-import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button";
-import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu";
-import { BlockquoteButton } from "@/components/tiptap-ui/blockquote-button";
-import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button";
-import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
 import { SelectionMenu } from "@/components/tiptap-ui/selection-menu";
 
 import "@/styles/_variables.scss";
@@ -103,9 +91,6 @@ export function NoteEditor({
   const { editorMaxWidth } = useAppSettings();
   const notesRef = useRef(nodes);
   const onChangeRef = useRef(onChange);
-  const isMobile = useIsBreakpoint();
-  const { height } = useWindowSize();
-  const toolbarRef = useRef<HTMLDivElement>(null);
 
   const maxWidth = maxWidthOverride ?? editorMaxWidth;
 
@@ -184,11 +169,6 @@ export function NoteEditor({
     },
     [note?.id, editorKey],
   );
-
-  const rect = useCursorVisibility({
-    editor,
-    overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-  });
 
   useEffect(() => {
     if (!saveNowRef) return;
