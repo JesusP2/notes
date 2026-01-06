@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileText, Loader2, Tag } from "lucide-react";
+import { FileText, LayoutTemplate, Loader2, PenTool, Tag } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Command,
@@ -27,6 +27,8 @@ import { usePlatform, useShortcut } from "@/lib/use-shortcut";
 const NODE_ICONS: Record<Node["type"], typeof FileText> = {
   note: FileText,
   tag: Tag,
+  template: LayoutTemplate,
+  canvas: PenTool,
 };
 
 interface CommandPaletteProps {
