@@ -1,5 +1,5 @@
 import { Edit3Icon } from "lucide-react";
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { LocalImage } from "@/components/tiptap-node/image-node/local-image-extension";
@@ -11,7 +11,6 @@ import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Selection } from "@tiptap/extensions";
 import type { Node } from "@/db/schema/graph";
-import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { ROOT_TAG_ID, useCurrentUserId } from "@/hooks/use-current-user";
 import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
 import { createImageUploadHandler, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
@@ -34,6 +33,7 @@ import { SlashCommandNode } from "@/components/tiptap-node/slash-command-node/sl
 import { createSlashCommandSuggestion } from "@/components/tiptap-extension/slash-command-suggestion";
 
 import { SelectionMenu } from "@/components/tiptap-ui/selection-menu";
+import { useDebouncer } from "@tanstack/react-pacer";
 
 import "@/styles/_variables.scss";
 import "@/components/tiptap-node/blockquote-node/blockquote-node.scss";
@@ -77,7 +77,7 @@ interface NoteEditorProps {
   note: Node | null;
   onChange: (content: string) => void;
   debounceMs?: number;
-  saveNowRef?: MutableRefObject<(() => void) | null>;
+  saveNowRef?: RefObject<(() => void) | null>;
   editorKey?: number;
   maxWidth?: EditorMaxWidth;
 }
@@ -101,24 +101,14 @@ export function NoteEditor({
   const { nodes } = useGraphData();
   const { createNote } = useNodeMutations();
   const { editorMaxWidth } = useAppSettings();
-  const notesRef = useRef(nodes);
-  const onChangeRef = useRef(onChange);
 
   const maxWidth = maxWidthOverride ?? editorMaxWidth;
 
   const handleImageUpload = createImageUploadHandler(userId);
 
-  useEffect(() => {
-    notesRef.current = nodes;
-  }, [nodes]);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  const { call: debouncedSave, flush: flushSave } = useDebouncedCallback((html: string) => {
-    onChangeRef.current(html);
-  }, debounceMs);
+  const debouncer = useDebouncer(onChange, {
+    wait: debounceMs,
+  });
 
   const handleCreateNote = async (title: string) => {
     return createNote(title, ROOT_TAG_ID);
@@ -162,7 +152,7 @@ export function NoteEditor({
         }),
         WikiLinkNode.configure({
           suggestion: createWikiLinkSuggestion({
-            getNotes: () => notesRef.current,
+            getNotes: () => nodes,
             onCreateNote: handleCreateNote,
           }),
         }),
@@ -177,7 +167,7 @@ export function NoteEditor({
       ],
       content: note ? getInitialContent(note) : "",
       onUpdate: ({ editor }) => {
-        debouncedSave(editor.getHTML());
+        debouncer.maybeExecute(editor.getHTML());
       },
     },
     [note?.id, editorKey],
@@ -185,17 +175,15 @@ export function NoteEditor({
 
   useEffect(() => {
     if (!saveNowRef) return;
-    saveNowRef.current = flushSave;
+    saveNowRef.current = debouncer.flush;
     return () => {
       saveNowRef.current = null;
     };
-  }, [flushSave, saveNowRef]);
+  }, [debouncer.flush, saveNowRef]);
 
   useEffect(() => {
-    return () => {
-      flushSave();
-    };
-  }, [flushSave, note?.id]);
+    return () => debouncer.flush();
+  }, [note?.id]);
 
   if (!note) {
     return (

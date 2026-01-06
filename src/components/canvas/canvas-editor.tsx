@@ -12,7 +12,6 @@ import { NodeSearch } from "@/components/edges/node-search";
 import { useTheme } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import type { Node } from "@/db/schema/graph";
-import { useDebouncedCallback } from "@/hooks/use-debounce";
 import {
   type CanvasScene,
   useCanvasLinks,
@@ -21,6 +20,7 @@ import {
   useNodeById,
 } from "@/lib/graph-hooks";
 import { cn } from "@/lib/utils";
+import { useDebouncer } from "@tanstack/react-pacer";
 
 const NOTE_LINK_PREFIX = "note:";
 
@@ -53,15 +53,20 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [apiReady, setApiReady] = useState(false);
 
-  const { call: persistScene } = useDebouncedCallback(async (next: ScenePayload) => {
-    await upsertCanvasScene(canvasId, {
-      elements: next.elements,
-      appState: next.appState,
-      files: next.files,
-    });
-    const elementIds = next.elements.map((element) => element.id);
-    await pruneCanvasLinks(canvasId, elementIds);
-  }, 300);
+  const debouncer = useDebouncer(
+    (next: ScenePayload) => {
+      upsertCanvasScene(canvasId, {
+        elements: next.elements,
+        appState: next.appState,
+        files: next.files,
+      });
+      const elementIds = next.elements.map((element) => element.id);
+      pruneCanvasLinks(canvasId, elementIds);
+    },
+    {
+      wait: 300,
+    },
+  );
 
   const handleExcalidrawApi = useCallback((api: ExcalidrawImperativeAPI) => {
     excalidrawRef.current = api;
@@ -109,40 +114,38 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
   const linkedNodeId = selectedElementId ? (linksByElement.get(selectedElementId) ?? null) : null;
   const linkedNode = useNodeById(linkedNodeId ?? "");
 
-  const handleChange = useCallback(
-    (elements: readonly OrderedExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
-      const nextElements = Array.from(elements);
-      elementsRef.current = nextElements;
-      appStateRef.current = appState;
-      filesRef.current = files;
+  const handleChange = (
+    elements: readonly OrderedExcalidrawElement[],
+    appState: AppState,
+    files: BinaryFiles,
+  ) => {
+    const nextElements = Array.from(elements);
+    elementsRef.current = nextElements;
+    appStateRef.current = appState;
+    filesRef.current = files;
 
-      const selectedIds = Object.entries(appState.selectedElementIds ?? {})
-        .filter(([, selected]) => Boolean(selected))
-        .map(([id]) => id);
-      setSelectedElementIds(selectedIds);
+    const selectedIds = Object.entries(appState.selectedElementIds ?? {})
+      .filter(([, selected]) => Boolean(selected))
+      .map(([id]) => id);
+    setSelectedElementIds(selectedIds);
 
-      persistScene({ elements: nextElements, appState, files });
-    },
-    [persistScene],
-  );
+    debouncer.maybeExecute({ elements: nextElements, appState, files });
+  };
 
-  const updateElementLink = useCallback(
-    (elementId: string, linkValue?: string | null) => {
-      const elements = elementsRef.current ?? [];
-      const nextLink = linkValue ?? null;
-      const updatedElements = elements.map((element) =>
-        element.id === elementId ? { ...element, link: nextLink } : element,
-      );
+  const updateElementLink = (elementId: string, linkValue?: string | null) => {
+    const elements = elementsRef.current ?? [];
+    const nextLink = linkValue ?? null;
+    const updatedElements = elements.map((element) =>
+      element.id === elementId ? { ...element, link: nextLink } : element,
+    );
 
-      elementsRef.current = updatedElements;
-      excalidrawRef.current?.updateScene({ elements: updatedElements });
+    elementsRef.current = updatedElements;
+    excalidrawRef.current?.updateScene({ elements: updatedElements });
 
-      const appState = appStateRef.current ?? scene?.appState ?? ({} as AppState);
-      const files = filesRef.current ?? scene?.files ?? ({} as BinaryFiles);
-      persistScene({ elements: updatedElements, appState, files });
-    },
-    [persistScene, scene],
-  );
+    const appState = appStateRef.current ?? scene?.appState ?? ({} as AppState);
+    const files = filesRef.current ?? scene?.files ?? ({} as BinaryFiles);
+    debouncer.maybeExecute({ elements: updatedElements, appState, files });
+  };
 
   const handleLinkToNode = useCallback(
     async (node: Node) => {
@@ -267,7 +270,10 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        navigate({ to: "/notes/$noteId", params: { noteId: linkedNodeId } })
+                        navigate({
+                          to: "/notes/$noteId",
+                          params: { noteId: linkedNodeId },
+                        })
                       }
                     >
                       Open note

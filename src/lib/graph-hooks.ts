@@ -335,12 +335,7 @@ export function useNoteVersions(noteId: string): Array<{
 export function useVersionMutations() {
   const userId = useCurrentUserId();
 
-  const createNoteVersion = (
-    noteId: string,
-    title: string,
-    content: string,
-    reason?: string,
-  ) => {
+  const createNoteVersion = (noteId: string, title: string, content: string, reason?: string) => {
     const hash = hashContent(`${title}\n${content}`);
     const state = nodeVersionsCollection.state;
     const existing = Array.from(state.values()).some(
@@ -955,9 +950,9 @@ export function useCanvasLinks(canvasId: string): CanvasLink[] {
 export function useCanvasMutations() {
   const userId = useCurrentUserId();
 
-  const upsertCanvasScene = async (canvasId: string, scene: CanvasScene) => {
+  const upsertCanvasScene = (canvasId: string, scene: CanvasScene) => {
     const now = new Date();
-    const state = await canvasScenesCollection.stateWhenReady();
+    const state = canvasScenesCollection.state;
     const existing = state.get(canvasId);
 
     const payload = {
@@ -1018,8 +1013,8 @@ export function useCanvasMutations() {
     canvasLinksCollection.delete(toDelete);
   };
 
-  const pruneCanvasLinks = async (canvasId: string, elementIds: string[]) => {
-    const state = await canvasLinksCollection.stateWhenReady();
+  const pruneCanvasLinks = (canvasId: string, elementIds: string[]) => {
+    const state = canvasLinksCollection.state;
     const toDelete = Array.from(state.values())
       .filter((link) => link.userId === userId && link.canvasId === canvasId)
       .filter((link) => !elementIds.includes(link.elementId))
