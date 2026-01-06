@@ -14,6 +14,7 @@ export const CalloutNode = Node.create<CalloutNodeOptions>({
   group: "block",
   content: "block+",
   defining: true,
+  isolating: true,
   draggable: true,
 
   addOptions() {

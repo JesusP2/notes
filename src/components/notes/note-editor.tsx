@@ -22,6 +22,7 @@ import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/ho
 import { WikiLinkNode } from "@/components/tiptap-extension/wiki-link-node";
 import { createWikiLinkSuggestion } from "@/components/tiptap-extension/wiki-link-suggestion";
 import { CalloutNode } from "@/components/tiptap-node/callout-node/callout-node-extension";
+import { BlockEscape } from "@/components/tiptap-extension/block-escape";
 import "@/components/tiptap-node/callout-node/callout-node.scss";
 import { tableExtensions } from "@/components/tiptap-node/table-node";
 import { TableMenu } from "@/components/tiptap-ui/table-menu/table-menu";
@@ -155,6 +156,7 @@ export function NoteEditor({
           }),
         }),
         CalloutNode,
+        BlockEscape,
         ...tableExtensions,
         MathNode,
         MermaidNode,
