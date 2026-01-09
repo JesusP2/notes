@@ -4,7 +4,7 @@ import { ulid } from "ulidx";
 import { hashContent } from "@/lib/content-hash";
 import { getPgliteInstance } from "@/lib/pglite";
 import { chunkBlocks } from "./chunker";
-import { embedText, serializeEmbedding } from "./embedder";
+import { embedTexts, serializeEmbedding } from "./embedder";
 import { extractBlocks } from "./extractor";
 
 let vectorCastAvailable: boolean | null = null;
@@ -169,8 +169,28 @@ export async function indexNoteEmbeddings(
     await deleteChunks(db, toDelete);
   }
 
-  for (const { existing, updated } of toUpdate) {
-    const embedding = await embedText(updated.chunkText);
+  // Collect all texts that need embedding
+  const textsToEmbed: string[] = [];
+  const updateItems: { existing: ExistingChunk; updated: ChunkToProcess }[] = [];
+  const insertItems: ChunkToProcess[] = [];
+
+  for (const item of toUpdate) {
+    textsToEmbed.push(item.updated.chunkText);
+    updateItems.push(item);
+  }
+
+  for (const chunk of toInsert) {
+    textsToEmbed.push(chunk.chunkText);
+    insertItems.push(chunk);
+  }
+
+  // Batch embed all texts at once
+  const embeddings = textsToEmbed.length > 0 ? await embedTexts(textsToEmbed) : [];
+  let embeddingIndex = 0;
+
+  // Apply updates
+  for (const { existing, updated } of updateItems) {
+    const embedding = embeddings[embeddingIndex++];
     await updateChunk(
       db,
       existing.id,
@@ -181,8 +201,9 @@ export async function indexNoteEmbeddings(
     );
   }
 
-  for (const chunk of toInsert) {
-    const embedding = await embedText(chunk.chunkText);
+  // Apply inserts
+  for (const chunk of insertItems) {
+    const embedding = embeddings[embeddingIndex++];
     await insertChunk(
       db,
       ulid(),

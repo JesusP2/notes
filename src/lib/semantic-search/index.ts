@@ -6,7 +6,17 @@ export {
   serializeEmbedding,
   deserializeEmbedding,
   preloadModel,
+  isModelReady,
+  getModelError,
 } from "./embedder";
+export {
+  initEmbeddingWorker,
+  isEmbeddingWorkerReady,
+  getEmbeddingWorkerError,
+  embed,
+  embedBatch,
+  terminateEmbeddingWorker,
+} from "./embedding-client";
 export {
   indexNoteEmbeddings,
   deleteNoteChunks,

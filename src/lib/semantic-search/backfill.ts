@@ -88,6 +88,9 @@ export async function backfillAllNotes(
     }
 
     offset += BATCH_SIZE;
+
+    // Yield to keep UI responsive between batches
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   onProgress?.({
