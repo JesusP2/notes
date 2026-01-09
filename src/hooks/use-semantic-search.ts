@@ -56,7 +56,6 @@ export function useSemanticSearch(
       abortControllerRef.current = controller;
 
       try {
-        console.log('search')
         const searchResults = await semanticSearch(trimmedQuery, userId, limit);
 
         if (!controller.signal.aborted) {

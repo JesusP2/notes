@@ -48,7 +48,6 @@ function handleWorkerMessage(event: MessageEvent<WorkerResponse>) {
 
   // Handle ready signal
   if (data.type === "ready") {
-    console.log('ready')
     return;
   }
 
@@ -58,8 +57,10 @@ function handleWorkerMessage(event: MessageEvent<WorkerResponse>) {
     if (pending) {
       pendingRequests.delete(data.id);
 
-      if (data.ok && data.result !== undefined) {
-        pending.resolve(data.result);
+      if (data.ok) {
+        // For init requests, result is undefined - that's ok
+        // For embed requests, result is the Float32Array
+        pending.resolve(data.result as Float32Array | Float32Array[]);
       } else {
         pending.reject(new Error(data.error || "Unknown worker error"));
       }

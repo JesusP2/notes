@@ -8,12 +8,19 @@
  */
 
 import {
+  env,
   pipeline,
   type FeatureExtractionPipeline,
   type Tensor,
 } from "@xenova/transformers";
 
-const MODEL_NAME = "models/Xenova/all-MiniLM-L6-v2";
+// Configure to use local models from /models directory (served from public/)
+// This prevents CORS issues by loading models from the same origin
+env.localModelPath = "/models/";
+env.allowRemoteModels = false;
+env.allowLocalModels = true;
+
+const MODEL_NAME = "Xenova/all-MiniLM-L6-v2";
 const EMBEDDING_DIM = 384;
 
 let extractor: FeatureExtractionPipeline | null = null;
@@ -47,13 +54,11 @@ async function getExtractor(): Promise<FeatureExtractionPipeline> {
       quantized: true,
     })
       .then((pipe) => {
-        console.log('init promise resolved', pipe)
         extractor = pipe as FeatureExtractionPipeline;
         return extractor;
       })
       .catch((err) => {
         initError = err instanceof Error ? err : new Error(String(err));
-        console.error('init error', initError)
         throw initError;
       });
   }
