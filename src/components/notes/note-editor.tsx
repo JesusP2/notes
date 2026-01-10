@@ -1,5 +1,5 @@
 import { Edit3Icon } from "lucide-react";
-import { useEffect, type RefObject } from "react";
+import { useDeferredValue, useEffect, type RefObject } from "react";
 import { EditorContent, EditorContext, useEditor, type JSONContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { LocalImage } from "@/components/tiptap-node/image-node/local-image-extension";
@@ -12,7 +12,7 @@ import { Superscript } from "@tiptap/extension-superscript";
 import { Selection } from "@tiptap/extensions";
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID, useCurrentUserId } from "@/hooks/use-current-user";
-import { useGraphData, useNodeMutations } from "@/lib/graph-hooks";
+import { useNodeMutations, useNotes } from "@/lib/graph-hooks";
 import { createImageUploadHandler, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import { useAppSettings } from "@/components/providers/app-settings";
 
@@ -104,7 +104,9 @@ export function NoteEditor({
   maxWidth: maxWidthOverride,
 }: NoteEditorProps) {
   const userId = useCurrentUserId();
-  const { nodes } = useGraphData();
+  const notes = useNotes();
+  // Defer notes updates so typing remains responsive even when notes list changes
+  const deferredNotes = useDeferredValue(notes);
   const { createNote } = useNodeMutations();
   const { editorMaxWidth } = useAppSettings();
 
@@ -158,7 +160,7 @@ export function NoteEditor({
         }),
         WikiLinkNode.configure({
           suggestion: createWikiLinkSuggestion({
-            getNotes: () => nodes,
+            getNotes: () => deferredNotes,
             onCreateNote: handleCreateNote,
           }),
         }),

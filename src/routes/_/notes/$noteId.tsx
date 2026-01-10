@@ -1,9 +1,10 @@
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useDebouncer } from "@tanstack/react-pacer";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/core";
 import { Edit3Icon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LinkDialog } from "@/components/edges/link-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 import { NoteDetailsDialog } from "@/components/notes/note-details-dialog";
@@ -48,17 +49,47 @@ function NoteEditorPage() {
   const note = noteQuery.data?.[0] ?? null;
   const noteLoading = Boolean(noteId) && noteQuery.isLoading;
 
-  const handleContentSave = (content: JSONContent) => {
-    const excerpt = buildNoteExcerpt(content);
-    updateNode(noteId, { content, excerpt, updatedAt: new Date() });
-    syncWikiLinks({ noteId, userId, content });
-    syncEmbeds({ noteId, userId, content });
-    syncTasks({ userId, noteId, content });
-    if (note?.title) {
-      createNoteVersion(noteId, note.title, content, "autosave");
-      scheduleIndex(noteId, userId, note.title, content);
-    }
-  };
+  // Store latest note title in a ref for use in callbacks
+  const noteTitleRef = useRef(note?.title);
+  useEffect(() => {
+    noteTitleRef.current = note?.title;
+  }, [note?.title]);
+
+  // Expensive background operations with longer debounce (2 seconds)
+  const runBackgroundSync = useCallback(
+    (content: JSONContent) => {
+      syncWikiLinks({ noteId, userId, content });
+      syncEmbeds({ noteId, userId, content });
+      syncTasks({ userId, noteId, content });
+      const title = noteTitleRef.current;
+      if (title) {
+        createNoteVersion(noteId, title, content, "autosave");
+        scheduleIndex(noteId, userId, title, content);
+      }
+    },
+    [noteId, userId, createNoteVersion, scheduleIndex],
+  );
+
+  const backgroundSyncDebouncer = useDebouncer(runBackgroundSync, {
+    wait: 2000,
+  });
+
+  // Flush background sync when navigating away
+  useEffect(() => {
+    return () => backgroundSyncDebouncer.flush();
+  }, [noteId]);
+
+  const handleContentSave = useCallback(
+    (content: JSONContent) => {
+      // Immediate: save content to database
+      const excerpt = buildNoteExcerpt(content);
+      updateNode(noteId, { content, excerpt, updatedAt: new Date() });
+
+      // Debounced: expensive background operations (wiki links, embeds, tasks, versioning, indexing)
+      backgroundSyncDebouncer.maybeExecute(content);
+    },
+    [noteId, updateNode, backgroundSyncDebouncer],
+  );
 
   const handleOpenDetails = () => {
     setDetailsOpen(true);

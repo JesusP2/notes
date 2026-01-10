@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -98,13 +98,19 @@ function MainLayoutShell() {
     setShortcutsOpen(true);
   };
 
-  const handleSetVimEnabled = (next: boolean) => {
-    void setVimEnabledSetting(next);
-  };
+  const handleSetVimEnabled = useCallback(
+    (next: boolean) => {
+      void setVimEnabledSetting(next);
+    },
+    [setVimEnabledSetting],
+  );
 
-  const handleSetEditorMaxWidth = (next: EditorMaxWidth) => {
-    void setEditorMaxWidthSetting(next);
-  };
+  const handleSetEditorMaxWidth = useCallback(
+    (next: EditorMaxWidth) => {
+      void setEditorMaxWidthSetting(next);
+    },
+    [setEditorMaxWidthSetting],
+  );
 
   useShortcut(SHORTCUTS.TOGGLE_SIDEBAR, toggleSidebar);
   useShortcut(SHORTCUTS.TOGGLE_THEME, toggleTheme);
@@ -114,17 +120,20 @@ function MainLayoutShell() {
   useShortcut(SHORTCUTS.GO_HOME, () => navigate({ to: "/" }));
   useShortcut(SHORTCUTS.SHOW_SHORTCUTS, handleShowShortcuts);
 
+  const appSettingsValue = useMemo(
+    () => ({
+      isSidebarCollapsed: isCollapsed,
+      toggleSidebar,
+      vimEnabled,
+      setVimEnabled: handleSetVimEnabled,
+      editorMaxWidth,
+      setEditorMaxWidth: handleSetEditorMaxWidth,
+    }),
+    [isCollapsed, toggleSidebar, vimEnabled, handleSetVimEnabled, editorMaxWidth, handleSetEditorMaxWidth],
+  );
+
   return (
-    <AppSettingsProvider
-      value={{
-        isSidebarCollapsed: isCollapsed,
-        toggleSidebar,
-        vimEnabled,
-        setVimEnabled: handleSetVimEnabled,
-        editorMaxWidth,
-        setEditorMaxWidth: handleSetEditorMaxWidth,
-      }}
-    >
+    <AppSettingsProvider value={appSettingsValue}>
       <CommandPalette
         onCreateNote={handleCreateNote}
         onCreateTag={handleCreateTag}

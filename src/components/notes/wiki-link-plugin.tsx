@@ -154,20 +154,34 @@ export function syncEmbeds({
   const normalizedSet = new Set(normalized);
   const resolvedMap = new Map<string, string>();
 
-  const notes = Array.from(nodesCollection.state.values()).filter(
-    (node) => node.userId === userId && node.type === "note",
-  );
-  const sortedNotes = [...notes].sort(
-    (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
-  );
+  // Build a map of title -> candidates (only for titles we care about)
+  // This avoids sorting ALL notes - we only compare candidates per title
+  const candidatesByTitle = new Map<string, Array<{ id: string; updatedAt: Date }>>();
 
-  for (const note of sortedNotes) {
-    const key = note.title.trim().toLowerCase();
+  for (const node of nodesCollection.state.values()) {
+    if (node.userId !== userId || node.type !== "note") {
+      continue;
+    }
+    const key = node.title.trim().toLowerCase();
     if (!normalizedSet.has(key)) {
       continue;
     }
-    if (!resolvedMap.has(key)) {
-      resolvedMap.set(key, note.id);
+    const candidates = candidatesByTitle.get(key);
+    if (candidates) {
+      candidates.push({ id: node.id, updatedAt: node.updatedAt });
+    } else {
+      candidatesByTitle.set(key, [{ id: node.id, updatedAt: node.updatedAt }]);
+    }
+  }
+
+  // For each title, pick the most recently updated candidate
+  for (const [key, candidates] of candidatesByTitle) {
+    if (candidates.length === 1) {
+      resolvedMap.set(key, candidates[0].id);
+    } else {
+      // Only sort the small candidate list, not all notes
+      candidates.sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+      resolvedMap.set(key, candidates[0].id);
     }
   }
 

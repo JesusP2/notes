@@ -52,10 +52,36 @@ export function NoteDetailsDialog({
   onOpenChange,
   onVersionRestored,
 }: NoteDetailsDialogProps) {
-  const note = useNodeById(noteId ?? "");
-  const { outgoing, incoming } = useNodeEdges(noteId ?? "");
+  // Only render the content when dialog is open to avoid running expensive hooks
+  if (!noteId || !open) {
+    return null;
+  }
+
+  return (
+    <NoteDetailsDialogContent
+      noteId={noteId}
+      open={open}
+      onOpenChange={onOpenChange}
+      onVersionRestored={onVersionRestored}
+    />
+  );
+}
+
+function NoteDetailsDialogContent({
+  noteId,
+  open,
+  onOpenChange,
+  onVersionRestored,
+}: {
+  noteId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onVersionRestored?: (content: JSONContent, title: string) => void;
+}) {
+  const note = useNodeById(noteId);
+  const { outgoing, incoming } = useNodeEdges(noteId);
   const { nodes } = useGraphData();
-  const noteTags = useNoteTags(noteId ?? "");
+  const noteTags = useNoteTags(noteId);
   const allTags = useTags();
   const { addTag, removeTag } = useNodeMutations();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -74,13 +100,11 @@ export function NoteDetailsDialog({
   const availableTags = allTags.filter((t) => !noteTagIds.has(t.id) && t.id !== ROOT_TAG_ID);
 
   const handleAddTag = (tagId: string) => {
-    if (!noteId) return;
     addTag(noteId, tagId);
     setTagPopoverOpen(false);
   };
 
   const handleRemoveTag = (tagId: string) => {
-    if (!noteId) return;
     removeTag(noteId, tagId);
   };
 
@@ -97,7 +121,7 @@ export function NoteDetailsDialog({
     exportAsPdf(note.title, note.content);
   }, [note]);
 
-  if (!noteId || !note) {
+  if (!note) {
     return null;
   }
 

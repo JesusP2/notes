@@ -206,6 +206,19 @@ export function useRecentNotes(limit = 10): Node[] {
   return [...data].sort(compareUpdatedDesc).slice(0, limit);
 }
 
+export function useNotes(): Node[] {
+  const userId = useCurrentUserId();
+  const { data = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: nodesCollection })
+        .where(({ nodes }) => and(eq(nodes.userId, userId), eq(nodes.type, "note"))),
+    [userId],
+  );
+
+  return data;
+}
+
 export function useBacklinks(noteId: string): Node[] {
   const userId = useCurrentUserId();
   const { data = [] } = useLiveQuery(
