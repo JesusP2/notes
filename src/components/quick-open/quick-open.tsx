@@ -65,9 +65,11 @@ export function QuickOpen() {
     setSelectedIndex(0);
   }, [query, searchMode]);
 
-  // Focus input when dialog opens
+  // Reset state and focus input when dialog opens
   useEffect(() => {
     if (open) {
+      setQuery("");
+      setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
@@ -90,10 +92,6 @@ export function QuickOpen() {
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (!nextOpen) {
-      setQuery("");
-      setSelectedIndex(0);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -114,7 +112,8 @@ export function QuickOpen() {
         break;
       case "Escape":
         e.preventDefault();
-        handleOpenChange(false);
+        e.stopPropagation();
+        setOpen(false);
         break;
       case "Tab":
         e.preventDefault();
