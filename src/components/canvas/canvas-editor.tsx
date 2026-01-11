@@ -127,7 +127,13 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
     const selectedIds = Object.entries(appState.selectedElementIds ?? {})
       .filter(([, selected]) => Boolean(selected))
       .map(([id]) => id);
-    setSelectedElementIds(selectedIds);
+
+    // Only update state if selection actually changed to prevent infinite loops
+    setSelectedElementIds((prev) => {
+      if (prev.length !== selectedIds.length) return selectedIds;
+      if (prev.every((id, i) => id === selectedIds[i])) return prev;
+      return selectedIds;
+    });
 
     debouncer.maybeExecute({ elements: nextElements, appState, files });
   };
