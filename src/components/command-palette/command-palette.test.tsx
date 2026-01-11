@@ -69,7 +69,7 @@ describe("CommandPalette", () => {
     fireShortcut(SHORTCUTS.COMMAND_PALETTE);
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText("Search notes, commands...")).not.toBeNull();
+      expect(screen.queryByPlaceholderText("Type a command...")).not.toBeNull();
     });
   });
 

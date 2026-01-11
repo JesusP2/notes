@@ -86,8 +86,8 @@ function MainLayoutShell() {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
-  const handleCreateNote = () => {
-    const note = createNote("Untitled Note", ROOT_TAG_ID);
+  const handleCreateNote = (title?: string) => {
+    const note = createNote(title || "Untitled Note", ROOT_TAG_ID);
     navigate({ to: "/notes/$noteId", params: { noteId: note.id } });
   };
 

@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { FilePlusIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Command,
@@ -20,7 +21,7 @@ import { formatShortcut, SHORTCUTS } from "@/lib/shortcuts";
 import { usePlatform, useShortcut } from "@/lib/use-shortcut";
 
 interface CommandPaletteProps {
-  onCreateNote: () => void;
+  onCreateNote: (title?: string) => void;
   onCreateTag: () => void;
   onToggleSidebar: () => void;
   onToggleTheme: () => void;
@@ -37,6 +38,7 @@ export function CommandPalette({
   isDarkMode = false,
 }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const platform = usePlatform();
 
@@ -44,7 +46,17 @@ export function CommandPalette({
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
+    if (!nextOpen) {
+      setSearch("");
+    }
   }, []);
+
+  const handleCreateNoteWithSearch = useCallback(() => {
+    const title = search.trim();
+    setOpen(false);
+    setSearch("");
+    onCreateNote(title || undefined);
+  }, [search, onCreateNote]);
 
   const commandHandlers: Record<string, () => void> = useMemo(
     () => ({
@@ -109,8 +121,12 @@ export function CommandPalette({
       title="Command Palette"
       description="Execute commands"
     >
-      <Command>
-        <CommandInput placeholder="Type a command..." />
+      <Command shouldFilter>
+        <CommandInput
+          placeholder="Type a command..."
+          value={search}
+          onValueChange={setSearch}
+        />
         <CommandList>
           <CommandEmpty>No commands found.</CommandEmpty>
 
@@ -137,6 +153,19 @@ export function CommandPalette({
               })}
             </CommandGroup>
           ))}
+
+          {search.trim() && (
+            <CommandGroup forceMount>
+              <CommandItem
+                value={`create-note-${search}`}
+                onSelect={handleCreateNoteWithSearch}
+                forceMount
+              >
+                <FilePlusIcon className="size-4 text-muted-foreground" />
+                <span>Create note: "{search.trim()}"</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
         </CommandList>
       </Command>
     </CommandDialog>
