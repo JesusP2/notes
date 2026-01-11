@@ -5,21 +5,33 @@ import {
   Network,
   NotebookPen,
   PenTool,
+  Pencil,
   Pin,
   PlusIcon,
   SearchIcon,
   Settings,
   Folder,
+  Trash2,
 } from "lucide-react";
 import type { FocusEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useConfirmDialog } from "@/components/providers/confirm-dialog";
 import { TagTree } from "@/components/tree/tag-tree";
-import { ShortcutHint } from "@/components/ui/shortcut-hint";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import {
   Sidebar,
   SidebarContent,
@@ -45,11 +57,22 @@ import { usePlatform } from "@/lib/use-shortcut";
 
 export function AppSidebar() {
   const navigate = useNavigate();
-  const { createTag, createNote, createTemplate, createNoteFromTemplate, createCanvas } =
+  const { createTag, createNote, createTemplate, createNoteFromTemplate, createCanvas, updateNode, deleteNode } =
     useNodeMutations();
   const pinnedNotes = usePinnedNotes();
   const templates = useTemplates();
   const platform = usePlatform();
+  const { openConfirmDialog } = useConfirmDialog();
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingTemplateId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingTemplateId]);
 
   const handleSelectNode = (node: Node) => {
     if (node.type === "note" || node.type === "template") {
@@ -119,6 +142,42 @@ export function AppSidebar() {
   const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
     handleOpenSearch();
     event.currentTarget.blur();
+  };
+
+  const handleStartRenameTemplate = (template: Node) => {
+    setEditValue(template.title);
+    setEditingTemplateId(template.id);
+  };
+
+  const handleRenameSubmit = () => {
+    if (editingTemplateId) {
+      const trimmed = editValue.trim();
+      if (trimmed) {
+        updateNode(editingTemplateId, { title: trimmed });
+      }
+    }
+    setEditingTemplateId(null);
+    setEditValue("");
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRenameSubmit();
+    } else if (e.key === "Escape") {
+      setEditingTemplateId(null);
+      setEditValue("");
+    }
+  };
+
+  const handleDeleteTemplate = (template: Node) => {
+    openConfirmDialog({
+      title: "Delete template?",
+      description: `Are you sure you want to delete "${template.title}"? This cannot be undone.`,
+      handleConfirm: () => {
+        void deleteNode(template.id);
+      },
+      variant: "destructive",
+    });
   };
 
   return (
@@ -229,26 +288,69 @@ export function AppSidebar() {
               <SidebarMenu className="pl-4">
                 {templates.map((template) => (
                   <SidebarMenuItem key={template.id}>
-                    <SidebarMenuButton
-                      onClick={() =>
-                        navigate({
-                          to: "/notes/$noteId",
-                          params: { noteId: template.id },
-                        })
-                      }
-                      type="button"
-                    >
-                      <LayoutTemplate className="text-muted-foreground" />
-                      <span>{template.title}</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuAction
-                      onClick={() => void handleUseTemplate(template.id)}
-                      title="Create note from template"
-                      aria-label="Create note from template"
-                      type="button"
-                    >
-                      <FilePlusIcon />
-                    </SidebarMenuAction>
+                    {editingTemplateId === template.id ? (
+                      <div className="flex items-center gap-2 px-2 py-1">
+                        <LayoutTemplate className="text-muted-foreground size-4 shrink-0" />
+                        <Input
+                          ref={editInputRef}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={handleRenameSubmit}
+                          onKeyDown={handleRenameKeyDown}
+                          className="h-6 text-xs py-0 px-1.5 flex-1 min-w-0"
+                        />
+                      </div>
+                    ) : (
+                      <ContextMenu>
+                        <ContextMenuTrigger>
+                          <SidebarMenuButton
+                            onClick={() =>
+                              navigate({
+                                to: "/notes/$noteId",
+                                params: { noteId: template.id },
+                              })
+                            }
+                            onDoubleClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleStartRenameTemplate(template);
+                            }}
+                            type="button"
+                          >
+                            <LayoutTemplate className="text-muted-foreground" />
+                            <span>{template.title}</span>
+                          </SidebarMenuButton>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent className="w-48">
+                          <ContextMenuItem onClick={() => void handleUseTemplate(template.id)}>
+                            <FilePlusIcon className="mr-2 size-4" />
+                            Create note
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem onClick={() => handleStartRenameTemplate(template)}>
+                            <Pencil className="mr-2 size-4" />
+                            Rename
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onClick={() => handleDeleteTemplate(template)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 size-4" />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    )}
+                    {editingTemplateId !== template.id && (
+                      <SidebarMenuAction
+                        onClick={() => void handleUseTemplate(template.id)}
+                        title="Create note from template"
+                        aria-label="Create note from template"
+                        type="button"
+                      >
+                        <FilePlusIcon />
+                      </SidebarMenuAction>
+                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
