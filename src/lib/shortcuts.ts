@@ -25,6 +25,14 @@ export const SHORTCUTS = {
     scope: "global",
     category: "navigation",
   },
+  QUICK_OPEN: {
+    id: "quick-open",
+    key: "o",
+    modifiers: { meta: true, alt: true },
+    description: "Quick open notes",
+    scope: "global",
+    category: "navigation",
+  },
   GRAPH_VIEW: {
     id: "graph-view",
     key: "g",

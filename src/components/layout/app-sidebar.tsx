@@ -102,8 +102,8 @@ export function AppSidebar() {
     });
   };
 
-  const handleOpenCommandPalette = () => {
-    const shortcut: ShortcutDefinition = SHORTCUTS.COMMAND_PALETTE;
+  const handleOpenSearch = () => {
+    const shortcut: ShortcutDefinition = SHORTCUTS.QUICK_OPEN;
     document.dispatchEvent(
       new KeyboardEvent("keydown", {
         key: shortcut.key,
@@ -117,7 +117,7 @@ export function AppSidebar() {
   };
 
   const handleSearchFocus = (event: FocusEvent<HTMLInputElement>) => {
-    handleOpenCommandPalette();
+    handleOpenSearch();
     event.currentTarget.blur();
   };
 
@@ -140,7 +140,7 @@ export function AppSidebar() {
             onFocus={handleSearchFocus}
           />
           <ShortcutHint
-            shortcut={SHORTCUTS.COMMAND_PALETTE}
+            shortcut={SHORTCUTS.QUICK_OPEN}
             className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>

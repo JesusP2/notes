@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
+import { QuickOpen } from "@/components/quick-open/quick-open";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppSettingsProvider } from "@/components/providers/app-settings";
 import { ThemeProvider, useTheme } from "@/components/providers/theme-provider";
@@ -142,6 +143,7 @@ function MainLayoutShell() {
         onShowShortcuts={handleShowShortcuts}
         isDarkMode={resolvedTheme === "dark"}
       />
+      <QuickOpen />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <AppSidebar />
       <SidebarInset>
