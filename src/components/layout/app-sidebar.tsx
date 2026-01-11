@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  FilePlusIcon,
-  LayoutTemplate,
+  Blocks,
+  Frame,
   Network,
   NotebookPen,
-  PenTool,
   Pencil,
   Pin,
+  Plus,
   PlusIcon,
   SearchIcon,
   Settings,
@@ -207,7 +207,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleCreateNote} type="button">
-              <FilePlusIcon />
+              <Plus />
               <span>New Note</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -219,7 +219,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleCreateCanvas} type="button">
-              <PenTool />
+              <Frame />
               <span>New Canvas</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -259,7 +259,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleCreateNote}>
-                <FilePlusIcon />
+                <Plus />
                 <span>New Note</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCreateTag}>
@@ -281,7 +281,7 @@ export function AppSidebar() {
             type="button"
             aria-label="New Template"
           >
-            <PlusIcon />
+            <Plus />
           </SidebarGroupAction>
           <SidebarGroupContent>
             {templates.length > 0 ? (
@@ -290,7 +290,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={template.id}>
                     {editingTemplateId === template.id ? (
                       <div className="flex items-center gap-2 px-2 py-1">
-                        <LayoutTemplate className="text-muted-foreground size-4 shrink-0" />
+                        <Blocks className="text-muted-foreground size-4 shrink-0" />
                         <Input
                           ref={editInputRef}
                           value={editValue}
@@ -317,13 +317,13 @@ export function AppSidebar() {
                             }}
                             type="button"
                           >
-                            <LayoutTemplate className="text-muted-foreground" />
+                            <Blocks className="text-muted-foreground" />
                             <span>{template.title}</span>
                           </SidebarMenuButton>
                         </ContextMenuTrigger>
                         <ContextMenuContent className="w-48">
                           <ContextMenuItem onClick={() => void handleUseTemplate(template.id)}>
-                            <FilePlusIcon className="mr-2 size-4" />
+                            <Plus className="mr-2 size-4" />
                             Create note
                           </ContextMenuItem>
                           <ContextMenuSeparator />
@@ -348,7 +348,7 @@ export function AppSidebar() {
                         aria-label="Create note from template"
                         type="button"
                       >
-                        <FilePlusIcon />
+                        <Plus />
                       </SidebarMenuAction>
                     )}
                   </SidebarMenuItem>

@@ -146,7 +146,7 @@ function MainLayoutShell() {
       <QuickOpen />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="!m-0">
         <Tooltip>
           <TooltipTrigger
             render={

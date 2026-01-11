@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, Folder, Link2, PenTool } from "lucide-react";
+import { ChevronRight, FileText, Folder, Frame, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { NotePreviewCard } from "@/components/notes/note-preview-card";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -27,7 +27,7 @@ function nodeIcon(type: Node["type"]) {
     case "tag":
       return <Folder className="size-3.5" />;
     case "canvas":
-      return <PenTool className="size-3.5" />;
+      return <Frame className="size-3.5" />;
     default:
       return <FileText className="size-3.5" />;
   }

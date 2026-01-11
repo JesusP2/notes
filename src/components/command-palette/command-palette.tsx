@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlusIcon } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Command,
@@ -161,7 +161,7 @@ export function CommandPalette({
                 onSelect={handleCreateNoteWithSearch}
                 forceMount
               >
-                <FilePlusIcon className="size-4 text-muted-foreground" />
+                <Plus className="size-4 text-muted-foreground" />
                 <span>Create note: "{search.trim()}"</span>
               </CommandItem>
             </CommandGroup>

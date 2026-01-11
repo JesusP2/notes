@@ -10,6 +10,7 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Selection } from "@tiptap/extensions";
+import { TextSelection } from "@tiptap/pm/state";
 import type { Node } from "@/db/schema/graph";
 import { ROOT_TAG_ID, useCurrentUserId } from "@/hooks/use-current-user";
 import { useNodeMutations, useNotes } from "@/lib/graph-hooks";
@@ -131,6 +132,23 @@ export function NoteEditor({
           autocorrect: "off",
           autocapitalize: "off",
           class: "simple-editor",
+        },
+        handleClick: (view, pos, event) => {
+          if (event.button !== 0) {
+            return false;
+          }
+
+          const { selection } = view.state;
+          if (selection.empty || !(selection instanceof TextSelection)) {
+            return false;
+          }
+
+          if (pos < selection.from || pos > selection.to) {
+            return false;
+          }
+
+          view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, pos)));
+          return true;
         },
       },
       extensions: [
