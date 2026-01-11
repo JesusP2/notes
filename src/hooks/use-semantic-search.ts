@@ -4,6 +4,7 @@ import {
   semanticSearch,
   type SemanticSearchResult,
 } from "@/lib/semantic-search";
+import { useAsyncDebouncer } from "@tanstack/react-pacer";
 
 interface UseSemanticSearchOptions {
   debounceMs?: number;
@@ -27,21 +28,10 @@ export function useSemanticSearch(
   const [results, setResults] = useState<SemanticSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
     const trimmedQuery = query.trim();
-
     if (trimmedQuery.length < minQueryLength) {
       setResults([]);
       setIsLoading(false);
@@ -50,38 +40,20 @@ export function useSemanticSearch(
     }
 
     setIsLoading(true);
-
     timeoutRef.current = setTimeout(async () => {
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
       try {
         const searchResults = await semanticSearch(trimmedQuery, userId, limit);
-
-        if (!controller.signal.aborted) {
-          setResults(searchResults);
-          setError(null);
-        }
+        setResults(searchResults);
+        setError(null);
       } catch (err) {
-        if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err : new Error("Search failed"));
-          setResults([]);
-        }
+        setError(err instanceof Error ? err : new Error("Search failed"));
+        setResults([]);
       } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     }, debounceMs);
 
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+    return () => timeoutRef.current && clearTimeout(timeoutRef.current);
   }, [query, userId, debounceMs, minQueryLength, limit]);
 
   return { results, isLoading, error };
