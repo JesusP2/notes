@@ -3,7 +3,7 @@ import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
 import { and, eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import type { JSONContent } from "@tiptap/core";
-import { ulid } from "ulidx";
+import { isValid, ulid } from "ulidx";
 import type { Edge, EdgeType, Node } from "@/db/schema/graph";
 import { useCurrentUserId } from "@/hooks/use-current-user";
 import { hashContent } from "@/lib/content-hash";
@@ -714,21 +714,17 @@ export function useNodeMutations() {
     return node;
   };
 
-  const createNoteFromTemplate = async (templateId: string, noteTitle?: string, tagId?: string) => {
-    const template = nodesCollection.state.get(templateId);
-    if (!template || template.userId !== userId || template.type !== "template") {
+  const createNoteFromTemplate = (templateId: string, noteTitle?: string, tagId?: string) => {
+    const nodeState = nodesCollection.state;
+    const template = nodeState.get(templateId);
+    if (!template || template.userId !== userId || template.type !== "template" || !template.content) {
       return null;
     }
 
     const title = noteTitle?.trim() || template.title;
-    const defaultContent: JSONContent = {
-      type: "doc",
-      content: [
-        { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: title }] },
-        { type: "paragraph" },
-      ],
-    };
-    const baseContent = template.content ?? defaultContent;
+    // Check if content is valid JSONContent (object with type property) or invalid (string/HTML)
+    const templateContent = template.content;
+    const baseContent = structuredClone(templateContent);
     const content = applyTemplatePlaceholders(baseContent, title);
     const excerpt = buildNoteExcerpt(content);
     const now = new Date();
@@ -751,7 +747,7 @@ export function useNodeMutations() {
       ensureEdge(noteId, tagId, "tagged_with");
     }
 
-    const metaState = await templatesMetaCollection.stateWhenReady();
+    const metaState = templatesMetaCollection.state;
     const existingMeta = metaState.get(templateId);
     if (existingMeta) {
       templatesMetaCollection.update(templateId, (draft) => {

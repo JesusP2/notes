@@ -29,5 +29,6 @@ export function applyTemplatePlaceholders(content: JSONContent, title: string): 
     "{{datetime}}": datetime,
   };
 
+  // Apply placeholders like {{title}}, {{date}}, {{datetime}}
   return applyPlaceholdersToNode(content, replacements);
 }
