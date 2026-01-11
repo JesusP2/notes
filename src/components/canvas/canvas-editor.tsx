@@ -1,14 +1,15 @@
 import "@excalidraw/excalidraw/index.css";
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import type {
   ExcalidrawElement,
   OrderedExcalidrawElement,
 } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { FileText, Link2, PenTool } from "lucide-react";
+import { FileText, Link2, PanelLeft, PenTool } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NodeSearch } from "@/components/edges/node-search";
+import { useAppSettings } from "@/components/providers/app-settings";
 import { useTheme } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import type { Node } from "@/db/schema/graph";
@@ -39,6 +40,7 @@ type ScenePayload = {
 export function CanvasEditor({ canvasId }: { canvasId: string }) {
   const navigate = useNavigate();
   const { resolvedTheme } = useTheme();
+  const { toggleSidebar, isSidebarCollapsed } = useAppSettings();
   const canvasNode = useNodeById(canvasId);
   const scene = useCanvasScene(canvasId);
   const links = useCanvasLinks(canvasId);
@@ -216,13 +218,6 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b bg-background/95 px-4 py-2">
-        <div className="flex items-center gap-2 text-sm font-medium min-w-0">
-          <PenTool className="size-4 text-muted-foreground" />
-          <span className="truncate">{canvasNode.title}</span>
-        </div>
-        <div className="text-xs text-muted-foreground">Canvas</div>
-      </div>
       <div className="relative flex-1 min-h-0">
         <Excalidraw
           excalidrawAPI={handleExcalidrawApi}
@@ -230,7 +225,23 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
           theme={resolvedTheme === "dark" ? "dark" : "light"}
           onChange={handleChange}
           onLinkOpen={handleLinkOpen}
-        />
+        >
+          <MainMenu>
+            <MainMenu.Item
+              onSelect={toggleSidebar}
+              icon={<PanelLeft className="size-4" />}
+            >
+              {isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+            </MainMenu.Item>
+            <MainMenu.Separator />
+            <MainMenu.DefaultItems.LoadScene />
+            <MainMenu.DefaultItems.Export />
+            <MainMenu.DefaultItems.SaveAsImage />
+            <MainMenu.DefaultItems.ClearCanvas />
+            <MainMenu.Separator />
+            <MainMenu.DefaultItems.ChangeCanvasBackground />
+          </MainMenu>
+        </Excalidraw>
         {selectedElementIds.length > 0 && (
           <div className="absolute right-4 top-4 z-10 w-72 rounded-md border bg-popover p-3 shadow-lg">
             <div className="flex items-center justify-between">

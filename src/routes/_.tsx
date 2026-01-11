@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
@@ -81,6 +81,7 @@ function MainLayoutShell() {
   );
   const { toggleSidebar, state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const isCanvasRoute = useMatch({ from: "/_/canvas/$canvasId", shouldThrow: false });
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -147,17 +148,19 @@ function MainLayoutShell() {
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <AppSidebar />
       <SidebarInset className="!m-0">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <SidebarTrigger className="absolute top-2 left-2 z-10 h-8 w-8 opacity-60 hover:opacity-100" />
-            }
-          />
-          <TooltipContent className="flex items-center gap-2">
-            <span>{isCollapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
-            <ShortcutHint shortcut={SHORTCUTS.TOGGLE_SIDEBAR} />
-          </TooltipContent>
-        </Tooltip>
+        {!isCanvasRoute && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <SidebarTrigger className="absolute top-2 left-2 z-10 h-8 w-8 opacity-60 hover:opacity-100" />
+              }
+            />
+            <TooltipContent className="flex items-center gap-2">
+              <span>{isCollapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
+              <ShortcutHint shortcut={SHORTCUTS.TOGGLE_SIDEBAR} />
+            </TooltipContent>
+          </Tooltip>
+        )}
         <Outlet />
       </SidebarInset>
       <Toaster richColors />
