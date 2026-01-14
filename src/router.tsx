@@ -3,6 +3,10 @@ import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { toast } from "sonner";
 import { routeTree } from "./routeTree.gen";
+import { scan } from "react-scan";
+scan({
+  enabled: true,
+});
 
 export const getRouter = () => {
   const queryClient = new QueryClient({

@@ -59,12 +59,49 @@ function normalizeCanvasAppState(appState: AppState | null | undefined): AppStat
   return next;
 }
 
+const CANVAS_APP_STATE_STORAGE_KEYS: (keyof AppState)[] = [
+  "viewBackgroundColor",
+  "gridSize",
+  "gridStep",
+  "gridModeEnabled",
+  "scrollX",
+  "scrollY",
+  "zoom",
+];
+
 function stripCanvasAppStateForStorage(appState: AppState | null | undefined): Partial<AppState> {
   if (!appState) return {};
-  const { collaborators, ...rest } = appState as AppState & {
-    collaborators?: unknown;
-  };
-  return rest;
+  const next: Partial<AppState> = {};
+  for (const key of CANVAS_APP_STATE_STORAGE_KEYS) {
+    const value = appState[key];
+    if (value !== undefined) {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
+// jsonb key order isn't stable; normalize before comparing payloads.
+function sortJsonKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortJsonKeys);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, sortJsonKeys(nestedValue)] as const),
+    );
+  }
+  return value;
+}
+
+function serializeCanvasScenePayload(payload: {
+  elementsJson: unknown;
+  appStateJson: unknown;
+  filesJson: unknown;
+}): string {
+  return JSON.stringify(sortJsonKeys(payload));
 }
 
 function compareTagFirst(left: Node, right: Node) {
@@ -1025,16 +1062,31 @@ export function useCanvasMutations() {
     const state = canvasScenesCollection.state;
     const existing = state.get(canvasId);
 
-    const payload = {
-      canvasId,
-      userId,
+    const scenePayload = {
       elementsJson: scene.elements ?? [],
       appStateJson: stripCanvasAppStateForStorage(scene.appState),
       filesJson: scene.files ?? {},
+    };
+    const serializedScenePayload = serializeCanvasScenePayload(scenePayload);
+    const nextScenePayload = JSON.parse(serializedScenePayload) as typeof scenePayload;
+    const payload = {
+      canvasId,
+      userId,
+      ...nextScenePayload,
       updatedAt: now,
     };
 
     if (existing) {
+      const existingScenePayload = {
+        elementsJson: existing.elementsJson ?? [],
+        appStateJson: existing.appStateJson ?? {},
+        filesJson: existing.filesJson ?? {},
+      };
+      if (
+        serializeCanvasScenePayload(existingScenePayload) === serializedScenePayload
+      ) {
+        return;
+      }
       canvasScenesCollection.update(canvasId, (draft) => {
         draft.elementsJson = payload.elementsJson;
         draft.appStateJson = payload.appStateJson;
