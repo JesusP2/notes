@@ -7,13 +7,15 @@ import type {
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { FileText, Link2, PanelLeft, PenTool } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NodeSearch } from "@/components/edges/node-search";
 import { useAppSettings } from "@/components/providers/app-settings";
 import { useTheme } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import type { Node } from "@/db/schema/graph";
+import { canvasScenesCollection } from "@/lib/collections";
 import {
+  buildCanvasSceneStoragePayload,
   type CanvasScene,
   useCanvasLinks,
   useCanvasMutations,
@@ -35,6 +37,7 @@ type ScenePayload = {
   elements: ExcalidrawElement[];
   appState: AppState;
   files: BinaryFiles;
+  fingerprint: string;
 };
 
 export function CanvasEditor({ canvasId }: { canvasId: string }) {
@@ -52,6 +55,8 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
   const filesRef = useRef<BinaryFiles | null>(null);
   const sceneBootstrappedRef = useRef(false);
   const sceneAppliedRef = useRef(false);
+  const lastSavedFingerprintRef = useRef<string | null>(null);
+  const queuedFingerprintRef = useRef<string | null>(null);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [apiReady, setApiReady] = useState(false);
 
@@ -64,23 +69,51 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
       });
       const elementIds = next.elements.map((element) => element.id);
       pruneCanvasLinks(canvasId, elementIds);
+      lastSavedFingerprintRef.current = next.fingerprint;
+      queuedFingerprintRef.current = null;
     },
     {
       wait: 300,
     },
   );
 
-  const handleExcalidrawApi = useCallback((api: ExcalidrawImperativeAPI) => {
+  const queueSceneSave = (elements: ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+    const { fingerprint } = buildCanvasSceneStoragePayload({ elements, appState, files });
+    if (fingerprint === lastSavedFingerprintRef.current) return;
+    if (fingerprint === queuedFingerprintRef.current) return;
+    queuedFingerprintRef.current = fingerprint;
+    debouncer.maybeExecute({ elements, appState, files, fingerprint });
+  };
+
+  const handleExcalidrawApi = (api: ExcalidrawImperativeAPI) => {
     excalidrawRef.current = api;
     setApiReady(true);
-  }, []);
+  };
 
   useEffect(() => {
     if (sceneBootstrappedRef.current) return;
     if (!canvasNode) return;
-    if (scene) return;
-    sceneBootstrappedRef.current = true;
-    void upsertCanvasScene(canvasId, DEFAULT_SCENE);
+    if (scene) {
+      sceneBootstrappedRef.current = true;
+      return;
+    }
+
+    let isCancelled = false;
+    const ensureScene = async () => {
+      const state = await canvasScenesCollection.stateWhenReady();
+      if (isCancelled) return;
+      if (state.get(canvasId)) {
+        sceneBootstrappedRef.current = true;
+        return;
+      }
+      sceneBootstrappedRef.current = true;
+      upsertCanvasScene(canvasId, DEFAULT_SCENE);
+    };
+    void ensureScene();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [canvasId, canvasNode, scene, upsertCanvasScene]);
 
   useEffect(() => {
@@ -91,10 +124,13 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
     const nextElements = scene.elements;
     const nextAppState = scene.appState;
     const nextFiles = scene.files;
+    const { fingerprint } = buildCanvasSceneStoragePayload(scene);
 
     elementsRef.current = nextElements;
     appStateRef.current = nextAppState;
     filesRef.current = nextFiles;
+    lastSavedFingerprintRef.current = fingerprint;
+    queuedFingerprintRef.current = null;
     excalidrawRef.current.updateScene({
       elements: nextElements,
       appState: nextAppState,
@@ -104,13 +140,22 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
     }
   }, [apiReady, scene]);
 
-  const linksByElement = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const link of links) {
-      map.set(link.elementId, link.nodeId);
-    }
-    return map;
-  }, [links]);
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const handleBeforeUnload = () => {
+      debouncer.flush();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      debouncer.flush();
+    };
+  }, [debouncer]);
+
+  const linksByElement = new Map<string, string>();
+  for (const link of links) {
+    linksByElement.set(link.elementId, link.nodeId);
+  }
 
   const selectedElementId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
   const linkedNodeId = selectedElementId ? (linksByElement.get(selectedElementId) ?? null) : null;
@@ -137,7 +182,7 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
       return selectedIds;
     });
 
-    debouncer.maybeExecute({ elements: nextElements, appState, files });
+    queueSceneSave(nextElements, appState, files);
   };
 
   const updateElementLink = (elementId: string, linkValue?: string | null) => {
@@ -152,37 +197,31 @@ export function CanvasEditor({ canvasId }: { canvasId: string }) {
 
     const appState = appStateRef.current ?? scene?.appState ?? ({} as AppState);
     const files = filesRef.current ?? scene?.files ?? ({} as BinaryFiles);
-    debouncer.maybeExecute({ elements: updatedElements, appState, files });
+    queueSceneSave(updatedElements, appState, files);
   };
 
-  const handleLinkToNode = useCallback(
-    async (node: Node) => {
-      if (!selectedElementId) return;
-      await setCanvasLink(canvasId, selectedElementId, node.id);
-      updateElementLink(selectedElementId, `${NOTE_LINK_PREFIX}${node.id}`);
-    },
-    [canvasId, selectedElementId, setCanvasLink, updateElementLink],
-  );
+  const handleLinkToNode = async (node: Node) => {
+    if (!selectedElementId) return;
+    await setCanvasLink(canvasId, selectedElementId, node.id);
+    updateElementLink(selectedElementId, `${NOTE_LINK_PREFIX}${node.id}`);
+  };
 
-  const handleClearLink = useCallback(async () => {
+  const handleClearLink = async () => {
     if (!selectedElementId) return;
     await removeCanvasLink(canvasId, selectedElementId);
     updateElementLink(selectedElementId, null);
-  }, [canvasId, removeCanvasLink, selectedElementId, updateElementLink]);
+  };
 
-  const handleLinkOpen = useCallback(
-    (element: ExcalidrawElement) => {
-      const link = element.link ?? "";
-      if (!link) return;
-      if (link.startsWith(NOTE_LINK_PREFIX)) {
-        const noteId = link.slice(NOTE_LINK_PREFIX.length);
-        navigate({ to: "/notes/$noteId", params: { noteId } });
-        return;
-      }
-      window.open(link, "_blank", "noopener,noreferrer");
-    },
-    [navigate],
-  );
+  const handleLinkOpen = (element: ExcalidrawElement) => {
+    const link = element.link ?? "";
+    if (!link) return;
+    if (link.startsWith(NOTE_LINK_PREFIX)) {
+      const noteId = link.slice(NOTE_LINK_PREFIX.length);
+      navigate({ to: "/notes/$noteId", params: { noteId } });
+      return;
+    }
+    window.open(link, "_blank", "noopener,noreferrer");
+  };
 
   const initialDataRef = useRef<{
     elements: ExcalidrawElement[];

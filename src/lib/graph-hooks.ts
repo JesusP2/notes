@@ -59,6 +59,13 @@ function normalizeCanvasAppState(appState: AppState | null | undefined): AppStat
   return next;
 }
 
+function cloneCanvasValue<T>(value: T): T {
+  if (typeof globalThis.structuredClone === "function") {
+    return globalThis.structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 const CANVAS_APP_STATE_STORAGE_KEYS: (keyof AppState)[] = [
   "viewBackgroundColor",
   "gridSize",
@@ -96,12 +103,24 @@ function sortJsonKeys(value: unknown): unknown {
   return value;
 }
 
-function serializeCanvasScenePayload(payload: {
-  elementsJson: unknown;
-  appStateJson: unknown;
-  filesJson: unknown;
-}): string {
-  return JSON.stringify(sortJsonKeys(payload));
+export type CanvasSceneStoragePayload = {
+  elementsJson: ExcalidrawElement[];
+  appStateJson: Partial<AppState>;
+  filesJson: BinaryFiles;
+};
+
+export function buildCanvasSceneStoragePayload(scene: CanvasScene): {
+  payload: CanvasSceneStoragePayload;
+  fingerprint: string;
+} {
+  const rawPayload = {
+    elementsJson: scene.elements ?? [],
+    appStateJson: stripCanvasAppStateForStorage(scene.appState),
+    filesJson: scene.files ?? {},
+  };
+  const payload = sortJsonKeys(rawPayload) as CanvasSceneStoragePayload;
+  const fingerprint = hashContent(JSON.stringify(payload));
+  return { payload, fingerprint };
 }
 
 function compareTagFirst(left: Node, right: Node) {
@@ -1029,10 +1048,20 @@ export function useCanvasScene(canvasId: string): CanvasScene | null {
   const row = data[0];
   if (!row) return null;
 
+  const elements = cloneCanvasValue(
+    parseJson<ExcalidrawElement[]>(row.elementsJson, []),
+  );
+  const appState = normalizeCanvasAppState(
+    cloneCanvasValue(parseJson<AppState>(row.appStateJson, {} as AppState)),
+  );
+  const files = cloneCanvasValue(
+    parseJson<BinaryFiles>(row.filesJson, {} as BinaryFiles),
+  );
+
   return {
-    elements: parseJson<ExcalidrawElement[]>(row.elementsJson, []),
-    appState: normalizeCanvasAppState(parseJson<AppState>(row.appStateJson, {} as AppState)),
-    files: parseJson<BinaryFiles>(row.filesJson, {} as BinaryFiles),
+    elements,
+    appState,
+    files,
   };
 }
 
@@ -1062,29 +1091,21 @@ export function useCanvasMutations() {
     const state = canvasScenesCollection.state;
     const existing = state.get(canvasId);
 
-    const scenePayload = {
-      elementsJson: scene.elements ?? [],
-      appStateJson: stripCanvasAppStateForStorage(scene.appState),
-      filesJson: scene.files ?? {},
-    };
-    const serializedScenePayload = serializeCanvasScenePayload(scenePayload);
-    const nextScenePayload = JSON.parse(serializedScenePayload) as typeof scenePayload;
+    const { payload: scenePayload, fingerprint } = buildCanvasSceneStoragePayload(scene);
     const payload = {
       canvasId,
       userId,
-      ...nextScenePayload,
+      ...scenePayload,
       updatedAt: now,
     };
 
     if (existing) {
-      const existingScenePayload = {
-        elementsJson: existing.elementsJson ?? [],
-        appStateJson: existing.appStateJson ?? {},
-        filesJson: existing.filesJson ?? {},
-      };
-      if (
-        serializeCanvasScenePayload(existingScenePayload) === serializedScenePayload
-      ) {
+      const { fingerprint: existingFingerprint } = buildCanvasSceneStoragePayload({
+        elements: existing.elementsJson ?? [],
+        appState: existing.appStateJson as AppState,
+        files: existing.filesJson ?? {},
+      });
+      if (existingFingerprint === fingerprint) {
         return;
       }
       canvasScenesCollection.update(canvasId, (draft) => {
